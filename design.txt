@@ -1,0 +1,14 @@
+- Main: Init SDL, basic command-line + config parsing, construct config object, construct and start emulator
+- Emulator: Construct CPU memory map, CPU, APU, VDP, input mapper, sending config + dependencies to each as necessary. Creates SDL window, renderer, etc. Has the main loop, which reads events+sends them to memmap via input mapper, runs cpu+apu+vdp for one frame of time, pushes out the frame, waits for refresh.
+- Config: In-memory representation of the config generated between command-line options and any config file
+- CPU memmap: Allows m68k CPU to communicate to devices attached to its bus. Might use it for interrupt polling too?
+- CPU_68k: Main Motorola 68k CPU
+- APU: Container for the Z80, its memmap, and the PSG and FM synths
+- TI PSG: Master System square wave generator, a TI SN76489 Programmable Sound Generator
+- Yamaha FM: Genesis/MegaDrive FM synthesizer, a Yamaha YM2612
+- APU memmap: Allows Z80 CPU to communicate with devices on its bus
+- CPU_z80: Zilog Z80 APU processor
+- VDP memmap: Allows VDP to access memory mapped to it
+- VDP: Renders graphics. Generates interrupts. Once a frame (maybe once per scanline?) I'll have it render.
+- Input mapper: Go from SDL input events to key state that the CPU can access
+- Util: File load and save utilities, any other convenience wrappers that I find I need.
