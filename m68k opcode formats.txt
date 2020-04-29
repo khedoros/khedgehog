@@ -1,0 +1,5 @@
+PPPP RRRO SSMM Mrrr  Most operations
+PPSS RRRM MMee eeee  MOVE
+PPPP DDD. QQQQ QQQQ  MOVEQ
+PPPP CCCC 11EE EEEE  SCC (set on condition)
+PPPP .... .... VVVV  TRAP
