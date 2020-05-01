@@ -20,7 +20,17 @@ int main(int argc, char *argv[]) {
     vector<uint8_t> rom(start, end);
     romfile.close();
     for(int i=0;i<16;i++) {
-        cout<<hex<<uint32_t(rom[i])<<" ";
+        if(i==0) {
+            std::printf("Starting stack address: ");
+        }
+        else if(i==2) {
+            std::printf("\nReset vector: ");
+        }
+        else if(i==4) {
+            std::printf("\n");
+        }
+        std::printf("%02x%02x ", rom[i*2], rom[i*2+1]);
+        //cout<<hex<<uint32_t(rom[i])<<" ";
     }
     cout<<endl;
     return 0;
