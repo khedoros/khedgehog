@@ -13,4 +13,5 @@ int main() {
         out.write(reinterpret_cast<char *>(&no_op), 2);
     }
     out.close();
+    std::cout<<"If you have an m68k-compatible copy of objdump, you can disassemble the output binary like this:\n\n\tm68k-linux-gnu-objdump -m m68k:68000 -b binary -D out.bin\n\n";
 }
