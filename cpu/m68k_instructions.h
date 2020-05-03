@@ -33,7 +33,8 @@ enum ops {
         movea,
         move_from_sr,
         move_to_ccr,
-        move_to_sr,
+        move_to_sr
+};
 
 enum op_size {
     s_byte, // One byte
@@ -47,8 +48,7 @@ struct instr_id {
         uint16_t mask_bits;             // Bits to mask off for ID purposes
 };
 
-//Potentially 132 different formats?
-std::array<instr_id, 76> instrs{instr_id{"ORI",          0b0000000000000000, 0b1111111100000000},
+std::array<instr_id, 78> instrs{instr_id{"ORI",          0b0000000000000000, 0b1111111100000000},
                                 instr_id{"ANDI",         0b0000001000000000, 0b1111111100000000},
                                 instr_id{"SUBI",         0b0000010000000000, 0b1111111100000000},
                                 instr_id{"ADDI",         0b0000011000000000, 0b1111111100000000},
@@ -63,7 +63,9 @@ std::array<instr_id, 76> instrs{instr_id{"ORI",          0b0000000000000000, 0b1
                                 instr_id{"BCLR",         0b0000000110000000, 0b1111000111000000},
                                 instr_id{"BSET",         0b0000000111000000, 0b1111000111000000},
                                 instr_id{"MOVEP",        0b0000000100001000, 0b1111000100111000},
-                                instr_id{"MOVEA",        0b0000000001000000, 0b1100000111000000},
+                                instr_id{"MOVEA",        0b0010000001000000, 0b1110000111000000},
+                                instr_id{"MOVE",         0b0010000000000000, 0b1110000000000000}, //MOVE has size 01, 10, and 11, but not 00, so I'm encoding it this way.
+                                instr_id{"MOVE",         0b0001000000000000, 0b1101000000000000},
                                 instr_id{"MOVE from SR", 0b0100000011000000, 0b1111111111000000},
                                 instr_id{"MOVE to CCR",  0b0100010011000000, 0b1111111111000000},
                                 instr_id{"MOVE to SR",   0b0100011011000000, 0b1111111111000000},
