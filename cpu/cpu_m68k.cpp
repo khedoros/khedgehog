@@ -1,4 +1,15 @@
 #include "cpu_m68k.h"
+#include "m68_instructions.h"
+
+cpu_m68k::cpu() {
+    for(int inst=0;inst<8192;inst++) {
+	for(auto &cand: instrs) {
+	    int c = (inst & (cand.mask_bits));
+	    if(c == cand.id_bits) {
+		// store instruction in lookup table
+	}
+    }
+}
 
 int cpu_m68k::op_ABCD(uint16_t opcode) {return -1;}
 int cpu_m68k::op_ADD(uint16_t opcode)  {return -1;}

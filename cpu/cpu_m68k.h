@@ -107,4 +107,5 @@ class cpu_m68k {
 
 public:
     int calc(int cycles);
+    cpu();
 };
