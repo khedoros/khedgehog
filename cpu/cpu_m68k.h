@@ -4,6 +4,9 @@
 #include<unordered_map>
 #include "m68k_instructions.h"
 
+class cpu_m68k;
+typedef uint64_t (cpu_m68k::*m68kOpPtr)(uint16_t);
+
 class cpu_m68k {
     class m68k_dreg {
         uint32_t d;
@@ -30,8 +33,8 @@ class cpu_m68k {
 
     stack_type cur_stack = supervisor;
 
-    std::array<std::function<uint64_t(uint16_t)>, 8192> op_table;
-    std::unordered_map<ops, std::function<uint64_t(uint16_t)>>    op_map;
+    std::array<m68kOpPtr, 8192> op_table;
+    std::unordered_map<ops, m68kOpPtr> op_map;
 
     uint64_t op_ABCD(uint16_t opcode);
     uint64_t op_ADD(uint16_t opcode);
