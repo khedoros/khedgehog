@@ -7,7 +7,7 @@ cpu_m68k::cpu_m68k() {
 	    int c = (inst & (cand.mask_bits));
 	    if(c == cand.id_bits) {
 		// store instruction in lookup table
-                op_table[inst] = cand.func;
+                //op_table[inst] = cand.func;
             }
 	}
     }
@@ -82,3 +82,7 @@ uint64_t cpu_m68k::op_TAS(uint16_t opcode) {return -1;}
 uint64_t cpu_m68k::op_TRAP(uint16_t opcode) {return -1;}
 
 uint64_t cpu_m68k::calc(uint64_t cycles) { return -1; }
+
+// TODO:
+// std::function<uint64_t(cpu_m68k*, uint16_t)>
+// std::bind(&cpu_m68k::op_ORI, std::placeholders::_1, std::placeholders::_2)

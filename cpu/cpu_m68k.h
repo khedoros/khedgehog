@@ -1,7 +1,8 @@
 #pragma once
 
 #include<functional>
-//#include "m68k_instructions.h"
+#include<unordered_map>
+#include "m68k_instructions.h"
 
 class cpu_m68k {
     class m68k_dreg {
@@ -30,6 +31,7 @@ class cpu_m68k {
     stack_type cur_stack = supervisor;
 
     std::array<std::function<uint64_t(uint16_t)>, 8192> op_table;
+    std::unordered_map<ops, std::function<uint64_t(uint16_t)>>    op_map;
 
     uint64_t op_ABCD(uint16_t opcode);
     uint64_t op_ADD(uint16_t opcode);
