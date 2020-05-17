@@ -2,44 +2,14 @@
 #include "m68k_instructions.h"
 
 cpu_m68k::cpu_m68k() {
-
-    op_map.insert({{ops::ori, &cpu_m68k::op_ORI}});
-
-    op_map.insert({
-        {ops::abcd, &cpu_m68k::op_ABCD}, {ops::add, &cpu_m68k::op_ADD}, {ops::adda, &cpu_m68k::op_ADDA},
-        {ops::addi, &cpu_m68k::op_ADDI}, {ops::addq, &cpu_m68k::op_ADDQ}, {ops::addx, &cpu_m68k::op_ADDX},
-        {ops::andop, &cpu_m68k::op_AND}, {ops::andi, &cpu_m68k::op_ANDI}, {ops::asd, &cpu_m68k::op_ASd},
-        {ops::bcc, &cpu_m68k::op_Bcc}, {ops::bchg, &cpu_m68k::op_BCHG}, {ops::bclr, &cpu_m68k::op_BCLR},
-        {ops::bra, &cpu_m68k::op_BRA}, {ops::bset, &cpu_m68k::op_BSET}, {ops::bsr, &cpu_m68k::op_BSR},
-        {ops::btst, &cpu_m68k::op_BTST}, {ops::chk, &cpu_m68k::op_CHK}, {ops::clr, &cpu_m68k::op_CLR},
-        {ops::cmp, &cpu_m68k::op_CMP}, {ops::cmpa, &cpu_m68k::op_CMPA}, {ops::cmpi, &cpu_m68k::op_CMPI},
-        {ops::cmpm, &cpu_m68k::op_CMPM}, {ops::dbcc, &cpu_m68k::op_DBcc}, {ops::divs, &cpu_m68k::op_DIVS},
-        {ops::divu, &cpu_m68k::op_DIVU}, {ops::eor, &cpu_m68k::op_EOR}, {ops::eori, &cpu_m68k::op_EORI},
-        {ops::exg, &cpu_m68k::op_EXG}, {ops::ext, &cpu_m68k::op_EXT}, {ops::illegal, &cpu_m68k::op_ILLEGAL},
-        {ops::jmp, &cpu_m68k::op_JMP}, {ops::jsr, &cpu_m68k::op_JSR}, {ops::lea, &cpu_m68k::op_LEA},
-        {ops::link, &cpu_m68k::op_LINK}, {ops::lsd, &cpu_m68k::op_LSd}, {ops::move, &cpu_m68k::op_MOVE},
-        {ops::movea, &cpu_m68k::op_MOVEA}, {ops::move_from_sr, &cpu_m68k::op_MOVE_from_SR}, {ops::movem, &cpu_m68k::op_MOVEM},
-        {ops::movep, &cpu_m68k::op_MOVEP}, {ops::moveq, &cpu_m68k::op_MOVEQ}, {ops::move_to_ccr, &cpu_m68k::op_MOVE_to_CCR},
-        {ops::move_to_sr, &cpu_m68k::op_MOVE_to_SR}, {ops::move_usp, &cpu_m68k::op_MOVE_USP}, {ops::muls, &cpu_m68k::op_MULS},
-        {ops::mulu, &cpu_m68k::op_MULU}, {ops::nbcd, &cpu_m68k::op_NBCD}, {ops::neg, &cpu_m68k::op_NEG},
-        {ops::negx, &cpu_m68k::op_NEGX}, {ops::none, &cpu_m68k::op_NONE}, {ops::notop, &cpu_m68k::op_NOT},
-        {ops::orop, &cpu_m68k::op_OR}, {ops::ori, &cpu_m68k::op_ORI}, {ops::pea, &cpu_m68k::op_PEA},
-        {ops::rod, &cpu_m68k::op_ROd}, {ops::roxd, &cpu_m68k::op_ROXd}, {ops::sbcd, &cpu_m68k::op_SBCD},
-        {ops::scc, &cpu_m68k::op_Scc}, {ops::special, &cpu_m68k::op_SPECIAL}, {ops::sub, &cpu_m68k::op_SUB},
-        {ops::suba, &cpu_m68k::op_SUBA}, {ops::subi, &cpu_m68k::op_SUBI}, {ops::subq, &cpu_m68k::op_SUBQ},
-        {ops::subx, &cpu_m68k::op_SUBX}, {ops::swap, &cpu_m68k::op_SWAP}, {ops::tas, &cpu_m68k::op_TAS},
-        {ops::trap, &cpu_m68k::op_TRAP}
-    });
-
     for(int inst=0;inst<8192;inst++) {
-        for(auto &cand: instrs) {
-            int c = (inst & (cand.mask_bits));
-            if(c == cand.id_bits) {
-                // store instruction in lookup table
-                op_table[inst] = op_map[cand.func];
-                    //op_table[inst] = cand.func;
+	for(auto &cand: instrs) {
+	    int c = (inst & (cand.mask_bits));
+	    if(c == cand.id_bits) {
+		// store instruction in lookup table
+                //op_table[inst] = cand.func;
             }
-        }
+	}
     }
 }
 
