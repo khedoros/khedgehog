@@ -2,7 +2,7 @@
 #include<fstream>
 #include<iterator>
 #include<vector>
-#include "m68k.h"
+#include "cpu/m68k_instructions.h"
 
 using namespace std;
 
@@ -27,13 +27,13 @@ uint32_t get_long(std::vector<uint8_t>& rom, uint32_t index) {
 uint32_t bswap(uint8_t) = delete;
 uint32_t bswap(uint32_t in) {
 	uint8_t * conv = reinterpret_cast<uint8_t*>(&in);
-	swap(conv[0], conv[3]);
-	swap(conv[1], conv[2]);
+    std::swap(conv[0], conv[3]);
+    std::swap(conv[1], conv[2]);
 	return in;
 }
 uint16_t bswap(uint16_t in) {
 	uint8_t * conv = reinterpret_cast<uint8_t*>(&in);
-	swap(conv[0], conv[1]);
+    std::swap(conv[0], conv[1]);
 	return in;
 }
 

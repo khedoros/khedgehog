@@ -3,9 +3,6 @@
 #include<cstddef>
 #include<string>
 #include<array>
-#include<functional>
-
-#include "cpu_m68k.h"
 
 class cpu_m68k;
 
