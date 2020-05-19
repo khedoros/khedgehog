@@ -1,6 +1,7 @@
-- Main: Init SDL, basic command-line + config parsing, construct config object, construct and start emulator
-- Emulator: Construct CPU memory map, CPU, APU, VDP, input mapper, sending config + dependencies to each as necessary. Creates SDL window, renderer, etc. Has the main loop, which reads events+sends them to memmap via input mapper, runs cpu+apu+vdp for one frame of time, pushes out the frame, waits for refresh.
-- Config: In-memory representation of the config generated between command-line options and any config file
+- Main: Construct the config object, construct the emulator, start emulator execution.
+- Emulator: Construct CPU memory map, CPU, APU, VDP, input mapper, sending config + dependencies to each as necessary. Requests IoMgr to create window, set up audio, set up controls, etc. Has the main loop, which reads events+sends them to memmap via input mapper, runs cpu+apu+vdp for one frame of time, pushes out the frame, waits for refresh.
+- IoMgr: Abstract interface to IO. Handles graphics, controllers, sound. I think I'm starting with an SDL backend.
+- Config: In-memory representation of the config generated between command-line options and any config file. Makes early decisions about emulator configuration, like which system will be emulated, based on input ROM chosen.
 - CPU memmap: Allows m68k CPU to communicate to devices attached to its bus. Might use it for interrupt polling too?
 - CPU_68k: Main Motorola 68k CPU
 - APU: Container for the Z80, its memmap, and the PSG and FM synths
@@ -10,5 +11,5 @@
 - CPU_z80: Zilog Z80 APU processor
 - VDP memmap: Allows VDP to access memory mapped to it
 - VDP: Renders graphics. Generates interrupts. Once a frame (maybe once per scanline?) I'll have it render.
-- Input mapper: Go from SDL input events to key state that the CPU can access
+- Input mapper: Go from IoMgr input events to key state that the CPU can access
 - Util: File load and save utilities, any other convenience wrappers that I find I need.

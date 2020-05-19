@@ -1,13 +1,17 @@
 #pragma once
 #include<memory>
 
+#include "io/ioMgr.h"
+
 class config;
 
 class emulator {
 public:
     static std::shared_ptr<emulator> getEmulator(std::shared_ptr<config> cfg);
     virtual int run() = 0;
-private:
+protected:
+    std::shared_ptr<config> cfg;
+    std::shared_ptr<ioMgr>  io;
 };
 
 class genesisEmulator: public emulator {
@@ -30,3 +34,4 @@ public:
     int run() override;
 private:
 };
+
