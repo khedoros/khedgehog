@@ -2,9 +2,11 @@
 
 #include<functional>
 #include<unordered_map>
-#include "m68k_instructions.h"
+#include<cstdint>
 
 class cpu_m68k;
+enum ops : unsigned int;
+
 typedef uint64_t (cpu_m68k::*m68kOpPtr)(uint16_t);
 
 class cpu_m68k {

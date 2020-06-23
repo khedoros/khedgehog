@@ -1,7 +1,13 @@
 #include<memory>
 #include<iostream>
+
 #include "emulator.h"
 #include "config.h"
+#include "memmap_m68k.h"
+#include "cpu/cpu_m68k.h"
+#include "apu/apu.h"
+#include "io/ioMgr.h"
+#include "vdp/vdp.h"
 
 std::shared_ptr<emulator> emulator::getEmulator(std::shared_ptr<config> cfg) {
     switch(cfg->getSystemType()) {
@@ -15,6 +21,11 @@ std::shared_ptr<emulator> emulator::getEmulator(std::shared_ptr<config> cfg) {
 
 genesisEmulator::genesisEmulator(std::shared_ptr<config> config) {
     cfg = config;
+    cpu_map = std::make_shared<memmap_m68k>(config);
+    main_cpu = std::make_shared<cpu_m68k>();
+    apu_dev = std::make_shared<apu>();
+    io_manager = std::shared_ptr<ioMgr>();
+    vdp_dev = std::shared_ptr<vdp>();
 }
 
 int genesisEmulator::run() {

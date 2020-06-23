@@ -11,3 +11,5 @@
  * VDP             0xC00000   0xDFFFFF
  * 68K RAM         0xE00000   0xFFFFFF (mirrored every 64KiB)
  */
+
+ memmap_m68k::memmap_m68k(std::shared_ptr<config> cfg) {}

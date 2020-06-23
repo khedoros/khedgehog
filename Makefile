@@ -1,4 +1,4 @@
-objects:=config.o emulator.o main.o
+objects:=config.o memmap_m68k.o emulator.o main.o cpu/cpu_m68k.o
 ifdef DEBUG
     debug:=-g
 else

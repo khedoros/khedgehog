@@ -4,9 +4,14 @@
 #include<array>
 #include<memory>
 
+#include "config.h"
+#include "apu/memmap_apu.h"
+#include "vdp/memmap_vdp.h"
+#include "io/input_mapper.h"
+
 class memmap_m68k {
 public:
-    memmap_m68k(std::shared_ptr<config> config);
+    memmap_m68k(std::shared_ptr<config> cfg);
     uint8_t readByte(uint32_t addr);
     uint16_t readWord(uint32_t addr);
     uint32_t readLong(uint32_t addr);

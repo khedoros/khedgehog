@@ -4,8 +4,6 @@
 #include<string>
 #include<array>
 
-class cpu_m68k;
-
 enum addr_modes {
     data_reg,      //000 Reg Argument from data register
     addr_reg,      //001 Reg Argument from address register
@@ -21,7 +19,7 @@ enum addr_modes {
     immed          //111 100 Immediate value
 };
 
-enum ops {
+enum ops: unsigned int {
         ori,
         andi,
         subi,
@@ -106,7 +104,7 @@ struct instr_id {
         ops func;
 };
 
-std::array<instr_id, 78> instrs{
+std::array<instr_id, 78> instrs = {
     instr_id{"ORI",          0b0000000000000000, 0b1111111100000000, ori},
     instr_id{"ANDI",         0b0000001000000000, 0b1111111100000000, andi},
     instr_id{"SUBI",         0b0000010000000000, 0b1111111100000000, subi},
@@ -186,4 +184,3 @@ std::array<instr_id, 78> instrs{
     instr_id{"ROd",          0b1110000000011000, 0b1111000000011000, rod},
     instr_id{"NONE",         0b0000000000000000, 0b0000000000000000, none},
 };
-

@@ -1,6 +1,6 @@
 #include "util.h"
+#include<utility>
 
-uint32_t bswap(uint8_t) = delete;
 uint32_t bswap(uint32_t in) {
     uint8_t * conv = reinterpret_cast<uint8_t*>(&in);
     std::swap(conv[0], conv[3]);

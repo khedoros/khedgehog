@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="khedgehog" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/khedgehog" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/khedgehog" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="0" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="`sdl2-config --cflags`" />
+			<Add option="-Wall" />
+		</Compiler>
+		<Linker>
+			<Add option="`sdl2-config --libs`" />
+		</Linker>
+		<Unit filename="apu/apu.cpp" />
+		<Unit filename="apu/apu.h" />
+		<Unit filename="apu/memmap_apu.cpp" />
+		<Unit filename="apu/memmap_apu.h" />
+		<Unit filename="apu/ti_psg.cpp" />
+		<Unit filename="apu/ti_psg.h" />
+		<Unit filename="apu/yamaha_fm.cpp" />
+		<Unit filename="apu/yamaha_fm.h" />
+		<Unit filename="config.cpp" />
+		<Unit filename="config.h" />
+		<Unit filename="cpu/cpu_m68k.cpp" />
+		<Unit filename="cpu/cpu_m68k.h" />
+		<Unit filename="cpu/cpu_z80.cpp" />
+		<Unit filename="cpu/cpu_z80.h" />
+		<Unit filename="cpu/m68k_instructions.h" />
+		<Unit filename="emulator.cpp" />
+		<Unit filename="emulator.h" />
+		<Unit filename="io/input_mapper.cpp" />
+		<Unit filename="io/input_mapper.h" />
+		<Unit filename="io/ioMgr.cpp" />
+		<Unit filename="io/ioMgr.h" />
+		<Unit filename="main.cpp" />
+		<Unit filename="memmap_m68k.cpp" />
+		<Unit filename="memmap_m68k.h" />
+		<Unit filename="util.cpp" />
+		<Unit filename="util.h" />
+		<Unit filename="vdp/memmap_vdp.cpp" />
+		<Unit filename="vdp/memmap_vdp.h" />
+		<Unit filename="vdp/vdp.cpp" />
+		<Unit filename="vdp/vdp.h" />
+		<Extensions />
+	</Project>
+</CodeBlocks_project_file>
