@@ -24,4 +24,5 @@ private:
     std::shared_ptr<memmap_apu>   apu;
     std::shared_ptr<memmap_vdp>   vdp;
     std::shared_ptr<input_mapper> io;
+    bool valid;
 };

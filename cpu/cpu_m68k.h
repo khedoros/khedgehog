@@ -3,6 +3,7 @@
 #include<functional>
 #include<unordered_map>
 #include<cstdint>
+#include "../memmap_m68k.h"
 
 class cpu_m68k;
 enum ops : unsigned int;
@@ -10,13 +11,14 @@ enum ops : unsigned int;
 typedef uint64_t (cpu_m68k::*m68kOpPtr)(uint16_t);
 
 class cpu_m68k {
-    class m68k_dreg {
+private:
+    struct m68k_dreg {
         uint32_t d;
     };
-    class m68k_areg {
+    struct m68k_areg {
         uint32_t a;
     };
-    class m68k_ccr {
+    struct m68k_ccr {
 //      system   user
 //     TSMOIII|000XNZVC
         uint16_t c;
@@ -34,6 +36,9 @@ class cpu_m68k {
     };
 
     stack_type cur_stack = supervisor;
+
+
+    std::shared_ptr<memmap_m68k> memory;
 
     std::array<m68kOpPtr, 8192> op_table;
     std::unordered_map<ops, m68kOpPtr> op_map;
@@ -106,7 +111,10 @@ class cpu_m68k {
     uint64_t op_TAS(uint16_t opcode);
     uint64_t op_TRAP(uint16_t opcode);
 
+    const static uint32_t INIT_SSP_VECTOR = 0;
+    const static uint32_t INIT_PC_VECTOR = 4;
+
 public:
     uint64_t calc(uint64_t cycles);
-    cpu_m68k();
+    cpu_m68k(std::shared_ptr<memmap_m68k>);
 };

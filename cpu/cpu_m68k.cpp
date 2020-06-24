@@ -1,9 +1,12 @@
+#include<iostream>
+
 #include "cpu_m68k.h"
 #include "m68k_instructions.h"
 
-cpu_m68k::cpu_m68k() {
+cpu_m68k::cpu_m68k(std::shared_ptr<memmap_m68k> memmap) : memory(memmap) {
 
-    op_map.insert({{ops::ori, &cpu_m68k::op_ORI}});
+    sp[cur_stack].a = memory->readLong(INIT_SSP_VECTOR);
+    pc = memory->readLong(INIT_PC_VECTOR);
 
     op_map.insert({
         {ops::abcd, &cpu_m68k::op_ABCD}, {ops::add, &cpu_m68k::op_ADD}, {ops::adda, &cpu_m68k::op_ADDA},
@@ -41,6 +44,26 @@ cpu_m68k::cpu_m68k() {
             }
         }
     }
+}
+
+uint64_t cpu_m68k::calc(uint64_t cycle_max) {
+    uint64_t cycles = 0;
+    uint64_t inst_cycles = 0;
+    while(cycles < cycle_max && inst_cycles < 1000) {
+        std::cout<<"Read op from: 0x"<<std::hex<<pc<<"\n";
+        uint16_t op = memory->readWord(pc);
+        std::cout<<"Got opcode: 0x"<<std::hex<<op<<"\n";
+        inst_cycles = (this->*op_table[op>>3])(op);
+        std::cout<<"It says it took "<<inst_cycles<<" cycles.\n";
+        if(inst_cycles == uint64_t(-1)) {
+            return 0;
+        }
+        else {
+            std::cout<<inst_cycles<<" != "<<uint64_t(-1)<<".\n";
+        }
+        cycles += inst_cycles;
+    }
+    return cycles;
 }
 
 uint64_t cpu_m68k::op_ABCD(uint16_t opcode) {return -1;}
@@ -110,8 +133,6 @@ uint64_t cpu_m68k::op_SUBX(uint16_t opcode) {return -1;}
 uint64_t cpu_m68k::op_SWAP(uint16_t opcode) {return -1;}
 uint64_t cpu_m68k::op_TAS(uint16_t opcode) {return -1;}
 uint64_t cpu_m68k::op_TRAP(uint16_t opcode) {return -1;}
-
-uint64_t cpu_m68k::calc(uint64_t cycles) { return -1; }
 
 // TODO:
 // std::function<uint64_t(cpu_m68k*, uint16_t)>

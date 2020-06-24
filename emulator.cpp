@@ -22,7 +22,7 @@ std::shared_ptr<emulator> emulator::getEmulator(std::shared_ptr<config> cfg) {
 genesisEmulator::genesisEmulator(std::shared_ptr<config> config) {
     cfg = config;
     cpu_map = std::make_shared<memmap_m68k>(config);
-    main_cpu = std::make_shared<cpu_m68k>();
+    main_cpu = std::make_shared<cpu_m68k>(cpu_map);
     apu_dev = std::make_shared<apu>();
     io_manager = std::shared_ptr<ioMgr>();
     vdp_dev = std::shared_ptr<vdp>();
@@ -30,7 +30,29 @@ genesisEmulator::genesisEmulator(std::shared_ptr<config> config) {
 
 int genesisEmulator::run() {
     std::cout<<"Hi, I'm the Genesis emulator!"<<std::endl;
-    return -1;
+    uint64_t clock_total_cycles = 0;
+    bool running = true;
+    bool paused = false;
+    bool muted = false;
+
+    while(running) {
+        //process events
+        while(paused) {
+            //process events
+            //wait a frame
+        }
+        uint64_t cycle_chunk = main_cpu->calc(1024);
+        if(cycle_chunk == 0) {
+            running = false;
+            std::cerr<<"Found a bad op, I guess?\n";
+        }
+        //run VDP
+        //run APU
+        //pause for effect
+        clock_total_cycles += cycle_chunk;
+    }
+
+    return 0;
 }
 
 smsEmulator::smsEmulator(std::shared_ptr<config> config) {
