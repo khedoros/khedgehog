@@ -31,6 +31,12 @@ private:
         supervisor
     };
 
+    enum operandSize {
+        byteSize,
+        wordSize,
+        longSize
+    };
+
     stack_type cur_stack = supervisor;
 
 
@@ -109,6 +115,8 @@ private:
     uint64_t op_TRAP(uint16_t opcode);
     uint64_t op_TST(uint16_t opcode);
     uint64_t op_UNLK(uint16_t opcode);
+
+    uint32_t fetchArg(uint8_t addressBlock, operandSize size);
 
     const static uint32_t INIT_SSP_VECTOR = 0;
     const static uint32_t INIT_PC_VECTOR = 4;

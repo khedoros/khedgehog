@@ -77,7 +77,14 @@ uint64_t cpu_m68k::op_BCLR(uint16_t opcode) {return -1;}
 uint64_t cpu_m68k::op_BRA(uint16_t opcode) {return -1;}
 uint64_t cpu_m68k::op_BSET(uint16_t opcode) {return -1;}
 uint64_t cpu_m68k::op_BSR(uint16_t opcode) {return -1;}
-uint64_t cpu_m68k::op_BTST(uint16_t opcode) {return -1;}
+uint64_t cpu_m68k::op_BTST(uint16_t opcode) {
+    pc+=4;
+    operandSize size = static_cast<operandSize>((opcode & 0b11000000)>>6);
+    uint8_t bitNum = memory->readByte(pc-1);
+    uint32_t operand = fetchArg(opcode & 0b111111, size);
+
+    return -1;
+}
 uint64_t cpu_m68k::op_CHK(uint16_t opcode) {return -1;}
 uint64_t cpu_m68k::op_CLR(uint16_t opcode) {return -1;}
 uint64_t cpu_m68k::op_CMP(uint16_t opcode) {return -1;}
@@ -131,3 +138,37 @@ uint64_t cpu_m68k::op_TAS(uint16_t opcode) {return -1;}
 uint64_t cpu_m68k::op_TRAP(uint16_t opcode) {return -1;}
 uint64_t cpu_m68k::op_TST(uint16_t opcode) {return -1;}
 uint64_t cpu_m68k::op_UNLK(uint16_t opcode) {return -1;}
+
+uint32_t cpu_m68k::fetchArg(uint8_t addressBlock, operandSize size) {
+    switch (addressBlock & 0b00111000) {
+        case 0: // Data register direct
+            break;
+        case 8: // Address register direct
+            break;
+        case 0x10: // Address register indirect
+            break;
+        case 0x18: // Address register indirect with postincrement
+            break;
+        case 0x20: // Address register indirect with predecrement
+            break;
+        case 0x28: // Address register indirect with basic index
+            break;
+        case 0x30: // Address register indirect with full index
+            break;
+        case 0x38: // Non-register operand
+            switch(addressBlock & 0b111) {
+                case 0: // Absolute short
+                    break;
+                case 1: // Absolute long
+                    break;
+                case 2: // Relative basic
+                    break;
+                case 3: // Relative full
+                    break;
+                case 4: // Immediate
+                    break;
+            }
+            break;
+    }
+    return 0;
+}
