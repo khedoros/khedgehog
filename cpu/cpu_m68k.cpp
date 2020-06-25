@@ -5,7 +5,7 @@
 
 cpu_m68k::cpu_m68k(std::shared_ptr<memmap_m68k> memmap) : memory(memmap) {
 
-    sp[cur_stack].a = memory->readLong(INIT_SSP_VECTOR);
+    sp[cur_stack] = memory->readLong(INIT_SSP_VECTOR);
     pc = memory->readLong(INIT_PC_VECTOR);
 
     op_map.insert({
@@ -131,7 +131,3 @@ uint64_t cpu_m68k::op_TAS(uint16_t opcode) {return -1;}
 uint64_t cpu_m68k::op_TRAP(uint16_t opcode) {return -1;}
 uint64_t cpu_m68k::op_TST(uint16_t opcode) {return -1;}
 uint64_t cpu_m68k::op_UNLK(uint16_t opcode) {return -1;}
-
-// TODO:
-// std::function<uint64_t(cpu_m68k*, uint16_t)>
-// std::bind(&cpu_m68k::op_ORI, std::placeholders::_1, std::placeholders::_2)

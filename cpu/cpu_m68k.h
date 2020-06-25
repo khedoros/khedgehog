@@ -8,26 +8,22 @@
 class cpu_m68k;
 enum ops : unsigned int;
 
-typedef uint64_t (cpu_m68k::*m68kOpPtr)(uint16_t);
+//typedef uint64_t (cpu_m68k::*m68kOpPtr)(uint16_t);
+using m68kOpPtr = uint64_t (cpu_m68k::*)(uint16_t);
+using m68k_dreg = uint32_t;
+using m68k_areg = uint32_t;
+using m68k_ccr = uint16_t;
 
 class cpu_m68k {
 private:
-    struct m68k_dreg {
-        uint32_t d;
-    };
-    struct m68k_areg {
-        uint32_t a;
-    };
-    struct m68k_ccr {
-//      system   user
-//     TSMOIII|000XNZVC
-        uint16_t c;
-    };
 
     m68k_dreg dreg[8];
     m68k_areg areg[7];
     m68k_areg sp[2]; //A7, USP is sp[0], SSP is sp[1]
     uint32_t pc;
+
+    //      system   user
+    //     TSMOIII|000XNZVC
     m68k_ccr ccr;
 
     enum stack_type {
