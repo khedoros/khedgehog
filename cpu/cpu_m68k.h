@@ -41,6 +41,7 @@ private:
     std::shared_ptr<memmap_m68k> memory;
 
     std::array<m68kOpPtr, 8192> op_table;
+    std::array<std::string, 8192> op_name;
     std::unordered_map<ops, m68kOpPtr> op_map;
 
     uint64_t op_ABCD(uint16_t opcode);
@@ -110,6 +111,8 @@ private:
     uint64_t op_SWAP(uint16_t opcode);
     uint64_t op_TAS(uint16_t opcode);
     uint64_t op_TRAP(uint16_t opcode);
+    uint64_t op_TST(uint16_t opcode);
+    uint64_t op_UNLK(uint16_t opcode);
 
     const static uint32_t INIT_SSP_VECTOR = 0;
     const static uint32_t INIT_PC_VECTOR = 4;

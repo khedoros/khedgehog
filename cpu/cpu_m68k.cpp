@@ -31,16 +31,17 @@ cpu_m68k::cpu_m68k(std::shared_ptr<memmap_m68k> memmap) : memory(memmap) {
         {ops::scc, &cpu_m68k::op_Scc}, {ops::special, &cpu_m68k::op_SPECIAL}, {ops::sub, &cpu_m68k::op_SUB},
         {ops::suba, &cpu_m68k::op_SUBA}, {ops::subi, &cpu_m68k::op_SUBI}, {ops::subq, &cpu_m68k::op_SUBQ},
         {ops::subx, &cpu_m68k::op_SUBX}, {ops::swap, &cpu_m68k::op_SWAP}, {ops::tas, &cpu_m68k::op_TAS},
-        {ops::trap, &cpu_m68k::op_TRAP}
+        {ops::trap, &cpu_m68k::op_TRAP}, {ops:tst, &cpu_m68k::op_TST}, {ops:unlk, &cpu_m68k::op_UNLK}
     });
 
     for(int inst=0;inst<8192;inst++) {
         for(auto &cand: instrs) {
-            int c = (inst & (cand.mask_bits));
+            int c = ((inst<<3) & (cand.mask_bits));
             if(c == cand.id_bits) {
                 // store instruction in lookup table
                 op_table[inst] = op_map[cand.func];
-                    //op_table[inst] = cand.func;
+                op_name[inst] = cand.op_name;
+                break;
             }
         }
     }
@@ -50,16 +51,11 @@ uint64_t cpu_m68k::calc(uint64_t cycle_max) {
     uint64_t cycles = 0;
     uint64_t inst_cycles = 0;
     while(cycles < cycle_max && inst_cycles < 1000) {
-        std::cout<<"Read op from: 0x"<<std::hex<<pc<<"\n";
         uint16_t op = memory->readWord(pc);
-        std::cout<<"Got opcode: 0x"<<std::hex<<op<<"\n";
         inst_cycles = (this->*op_table[op>>3])(op);
-        std::cout<<"It says it took "<<inst_cycles<<" cycles.\n";
         if(inst_cycles == uint64_t(-1)) {
+            std::printf("%06X: %04x (%s)\n", pc, op, op_name[op>>3].c_str());
             return 0;
-        }
-        else {
-            std::cout<<inst_cycles<<" != "<<uint64_t(-1)<<".\n";
         }
         cycles += inst_cycles;
     }
@@ -133,6 +129,8 @@ uint64_t cpu_m68k::op_SUBX(uint16_t opcode) {return -1;}
 uint64_t cpu_m68k::op_SWAP(uint16_t opcode) {return -1;}
 uint64_t cpu_m68k::op_TAS(uint16_t opcode) {return -1;}
 uint64_t cpu_m68k::op_TRAP(uint16_t opcode) {return -1;}
+uint64_t cpu_m68k::op_TST(uint16_t opcode) {return -1;}
+uint64_t cpu_m68k::op_UNLK(uint16_t opcode) {return -1;}
 
 // TODO:
 // std::function<uint64_t(cpu_m68k*, uint16_t)>
