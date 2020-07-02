@@ -33,32 +33,34 @@
     std::cout<<"Opened ROM at path \""<<cfg->getRomPath()<<"\" with filesize "<<filesize<<" bytes.\n";
 }
 
-uint8_t memmap_m68k::readByte(uint32_t addr) {
+uint8_t& memmap_m68k::readByte(uint32_t addr) {
     if(addr < 0x400000) {
         return rom[addr];
     }
     else {
         std::cerr<<"Unmapped address encountered: 0x"<<std::hex<<addr<<"\n";
-        return 0;
+        return dummyByte;
     }
 }
 
-uint16_t memmap_m68k::readWord(uint32_t addr) {
+uint16_t& memmap_m68k::readWord(uint32_t addr) {
     if(addr < 0x400000) {
-        return uint16_t(rom[addr]) * 256 + uint16_t(rom[addr+1]);
+        return reinterpret_cast<uint16_t&>(rom[addr]);
+        //return uint16_t(rom[addr]) * 256 + uint16_t(rom[addr+1]);
     }
     else {
         std::cerr<<"Unmapped address encountered: 0x"<<std::hex<<addr<<"\n";
-        return 0;
+        return dummyWord;
     }
 }
 
-uint32_t memmap_m68k::readLong(uint32_t addr) {
+uint32_t& memmap_m68k::readLong(uint32_t addr) {
     if(addr < 0x400000) {
-        return (uint32_t(rom[addr])<<(24)) + (uint32_t(rom[addr + 1])<<(16)) + (uint32_t(rom[addr + 2])<<(8)) + rom[addr + 3];
+        return reinterpret_cast<uint32_t&>(rom[addr]);
+        //return (uint32_t(rom[addr])<<(24)) + (uint32_t(rom[addr + 1])<<(16)) + (uint32_t(rom[addr + 2])<<(8)) + rom[addr + 3];
     }
     else {
         std::cerr<<"Unmapped address encountered: 0x"<<std::hex<<addr<<"\n";
-        return 0;
+        return dummyLong;
     }
 }

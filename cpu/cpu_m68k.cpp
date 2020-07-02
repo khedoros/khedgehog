@@ -2,11 +2,12 @@
 
 #include "cpu_m68k.h"
 #include "m68k_instructions.h"
+#include "../util.h"
 
 cpu_m68k::cpu_m68k(std::shared_ptr<memmap_m68k> memmap) : memory(memmap) {
 
-    sp[cur_stack] = memory->readLong(INIT_SSP_VECTOR);
-    pc = memory->readLong(INIT_PC_VECTOR);
+    sp[cur_stack] = bswap(memory->readLong(INIT_SSP_VECTOR));
+    pc = bswap(memory->readLong(INIT_PC_VECTOR));
 
     op_map.insert({
         {ops::abcd, &cpu_m68k::op_ABCD}, {ops::add, &cpu_m68k::op_ADD}, {ops::adda, &cpu_m68k::op_ADDA},
@@ -51,7 +52,7 @@ uint64_t cpu_m68k::calc(uint64_t cycle_max) {
     uint64_t cycles = 0;
     uint64_t inst_cycles = 0;
     while(cycles < cycle_max && inst_cycles < 1000) {
-        uint16_t op = memory->readWord(pc);
+        uint16_t op = bswap(memory->readWord(pc));
         inst_cycles = (this->*op_table[op>>3])(op);
         if(inst_cycles == uint64_t(-1)) {
             std::printf("%06X: %04x (%s)\n", pc, op, op_name[op>>3].c_str());
