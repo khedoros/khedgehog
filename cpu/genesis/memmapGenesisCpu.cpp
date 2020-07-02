@@ -1,7 +1,7 @@
 #include<fstream>
 #include<iostream>
 
-#include "memmap_m68k.h"
+#include "memmapGenesisCpu.h"
 
 /* Mapping
  * Component     |Start Addr| End Addr |
@@ -16,7 +16,7 @@
  * 68K RAM         0xE00000   0xFFFFFF (mirrored every 64KiB)
  */
 
- memmap_m68k::memmap_m68k(std::shared_ptr<config> cfg): valid(false) {
+ memmapGenesisCpu::memmapGenesisCpu(std::shared_ptr<config> cfg): valid(false) {
     std::ifstream romfile(cfg->getRomPath().c_str());
     if(!romfile.is_open()) {
         std::cerr<<"Couldn't open ROM at path \""<<cfg->getRomPath()<<"\"\n";
@@ -33,7 +33,7 @@
     std::cout<<"Opened ROM at path \""<<cfg->getRomPath()<<"\" with filesize "<<filesize<<" bytes.\n";
 }
 
-uint8_t& memmap_m68k::readByte(uint32_t addr) {
+uint8_t& memmapGenesisCpu::readByte(uint32_t addr) {
     if(addr < 0x400000) {
         return rom[addr];
     }
@@ -43,7 +43,7 @@ uint8_t& memmap_m68k::readByte(uint32_t addr) {
     }
 }
 
-uint16_t& memmap_m68k::readWord(uint32_t addr) {
+uint16_t& memmapGenesisCpu::readWord(uint32_t addr) {
     if(addr < 0x400000) {
         return reinterpret_cast<uint16_t&>(rom[addr]);
         //return uint16_t(rom[addr]) * 256 + uint16_t(rom[addr+1]);
@@ -54,7 +54,7 @@ uint16_t& memmap_m68k::readWord(uint32_t addr) {
     }
 }
 
-uint32_t& memmap_m68k::readLong(uint32_t addr) {
+uint32_t& memmapGenesisCpu::readLong(uint32_t addr) {
     if(addr < 0x400000) {
         return reinterpret_cast<uint32_t&>(rom[addr]);
         //return (uint32_t(rom[addr])<<(24)) + (uint32_t(rom[addr + 1])<<(16)) + (uint32_t(rom[addr + 2])<<(8)) + rom[addr + 3];

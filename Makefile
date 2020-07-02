@@ -1,4 +1,4 @@
-objects:=config.o memmap_m68k.o emulator.o main.o cpu/cpu_m68k.o
+objects:=config.o cpu/genesis/memmapGenesisCpu.o emulator.o main.o cpu/m68k/cpuM68k.o
 ifdef DEBUG
     debug:=-g
     CXXFLAGS+=-g

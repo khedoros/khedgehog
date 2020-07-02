@@ -3,11 +3,12 @@
 
 #include "emulator.h"
 #include "config.h"
-#include "memmap_m68k.h"
-#include "cpu/cpu_m68k.h"
-#include "apu/apu.h"
+#include "memmap.h"
+#include "cpu/genesis/memmapGenesisCpu.h"
+#include "cpu/m68k/cpuM68k.h"
+#include "apu/genesis/apuGenesis.h"
 #include "io/ioMgr.h"
-#include "vdp/vdp.h"
+#include "vdp/genesis/vdpGenesis.h"
 
 std::shared_ptr<emulator> emulator::getEmulator(std::shared_ptr<config> cfg) {
     switch(cfg->getSystemType()) {
@@ -21,15 +22,14 @@ std::shared_ptr<emulator> emulator::getEmulator(std::shared_ptr<config> cfg) {
 
 genesisEmulator::genesisEmulator(std::shared_ptr<config> config) {
     cfg = config;
-    cpu_map = std::make_shared<memmap_m68k>(config);
-    main_cpu = std::make_shared<cpu_m68k>(cpu_map);
-    apu_dev = std::make_shared<apu>();
-    io_manager = std::shared_ptr<ioMgr>();
-    vdp_dev = std::shared_ptr<vdp>();
+    cpu_map = std::make_shared<memmapGenesisCpu>(config);
+    cpu_dev = std::make_shared<cpuM68k>(cpu_map);
+    apu_dev = std::make_shared<apuGenesis>();
+    io = std::make_shared<ioMgr>();
+    vdp_dev = std::make_shared<vdpGenesis>();
 }
 
-int genesisEmulator::run() {
-    std::cout<<"Hi, I'm the Genesis emulator!"<<std::endl;
+int emulator::run() {
     uint64_t clock_total_cycles = 0;
     bool running = true;
     bool paused = false;
@@ -41,7 +41,7 @@ int genesisEmulator::run() {
             //process events
             //wait a frame
         }
-        uint64_t cycle_chunk = main_cpu->calc(1024);
+        uint64_t cycle_chunk = cpu_dev->calc(1024);
         if(cycle_chunk == 0) {
             running = false;
             std::cerr<<"Found a bad op, I guess?\n";
@@ -55,12 +55,18 @@ int genesisEmulator::run() {
     return 0;
 }
 
+int genesisEmulator::run() {
+    std::cout<<"Hi, I'm the Genesis emulator!"<<std::endl;
+    return emulator::run();
+}
+
 smsEmulator::smsEmulator(std::shared_ptr<config> config) {
     cfg = config;
 }
 
 int smsEmulator::run() {
     std::cout<<"Hi, I'm the Master System emulator!"<<std::endl;
+    emulator::run();
     return -1;
 }
 
@@ -70,5 +76,6 @@ ggEmulator::ggEmulator(std::shared_ptr<config> config) {
 
 int ggEmulator::run() {
     std::cout<<"Hi, I'm the Game Gear emulator!"<<std::endl;
+    emulator::run();
     return -1;
 }

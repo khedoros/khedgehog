@@ -1,3 +1,0 @@
-class memmap_apu {
-
-};
