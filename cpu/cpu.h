@@ -4,5 +4,5 @@
 
 class cpu {
 public:
-    virtual uint64_t calc(uint64_t);
+    virtual uint64_t calc(uint64_t) = 0;
 };
