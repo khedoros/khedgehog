@@ -3,6 +3,7 @@
 #include<functional>
 #include<unordered_map>
 #include<cstdint>
+#include<stdexcept>
 #include<memory>
 #include "memmapM68k.h"
 #include "../cpu.h"
@@ -34,9 +35,9 @@ private:
     };
 
     enum operandSize {
-        byteSize,
-        wordSize,
-        longSize
+        byteSize = 1,
+        wordSize = 2,
+        longSize = 4
     };
 
     stack_type cur_stack = supervisor;
@@ -118,10 +119,23 @@ private:
     uint64_t op_TST(uint16_t opcode);
     uint64_t op_UNLK(uint16_t opcode);
 
-    uint32_t fetchArg(uint8_t addressBlock, operandSize size);
+    uint32_t& fetchArg(uint8_t addressBlock, operandSize size);
 
     const static uint32_t INIT_SSP_VECTOR = 0;
     const static uint32_t INIT_PC_VECTOR = 4;
+
+    class memoryMapException: public std::exception {
+    public:
+        memoryMapException(uint8_t mode, uint8_t reg, uint8_t size){
+            std::snprintf(buffer, 100, "Failed with mode: %x, register: %x, operandSize: %x\n", mode, reg, size);
+        }
+        virtual const char* what() const throw() {
+            return const_cast<const char*>(buffer);
+        }
+
+    private:
+        char buffer[100];
+    };
 
 public:
     uint64_t calc(uint64_t cycles);

@@ -34,37 +34,27 @@
 }
 
 uint8_t& memmapGenesisCpu::readByte(uint32_t addr) {
-    if(addr < 0x400000) {
-        return rom[addr];
-    }
-    else {
-        std::cerr<<"Unmapped address encountered: 0x"<<std::hex<<addr<<"\n";
-        return dummyByte;
-    }
+    return map(addr);
 }
 
 uint16_t& memmapGenesisCpu::readWord(uint32_t addr) {
-    if(addr < 0x400000) {
-        return reinterpret_cast<uint16_t&>(rom[addr]);
-        //return uint16_t(rom[addr]) * 256 + uint16_t(rom[addr+1]);
-    }
-    else {
-        std::cerr<<"Unmapped address encountered: 0x"<<std::hex<<addr<<"\n";
-        return dummyWord;
-    }
+    return reinterpret_cast<uint16_t&>(map(addr));
 }
 
 uint32_t& memmapGenesisCpu::readLong(uint32_t addr) {
-    if(addr < 0x400000) {
-        return reinterpret_cast<uint32_t&>(rom[addr]);
-        //return (uint32_t(rom[addr])<<(24)) + (uint32_t(rom[addr + 1])<<(16)) + (uint32_t(rom[addr + 2])<<(8)) + rom[addr + 3];
-    }
-    else {
-        std::cerr<<"Unmapped address encountered: 0x"<<std::hex<<addr<<"\n";
-        return dummyLong;
-    }
+    return reinterpret_cast<uint32_t&>(map(addr));
 }
 
 void memmapGenesisCpu::writeByte(uint32_t addr, uint8_t val) {}
 void memmapGenesisCpu::writeWord(uint32_t addr, uint16_t val) {}
 void memmapGenesisCpu::writeLong(uint32_t addr, uint32_t val) {}
+
+uint8_t& memmapGenesisCpu::map(uint32_t addr) {
+    if(addr < 0x400000) {
+        return rom[addr];
+    }
+    else {
+        std::cerr<<"Unmapped address encountered: 0x"<<std::hex<<addr<<"\n";
+        return reinterpret_cast<uint8_t&>(dummyVal);
+    }
+}

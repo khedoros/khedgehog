@@ -1,6 +1,7 @@
 #include<iostream>
 
 #include "cpuM68k.h"
+#include "memmapM68k.h"
 #include "m68kInstructions.h"
 #include "../../util.h"
 
@@ -140,24 +141,51 @@ uint64_t cpuM68k::op_TRAP(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_TST(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_UNLK(uint16_t opcode) {return -1;}
 
-uint32_t cpuM68k::fetchArg(uint8_t addressBlock, operandSize size) {
-    switch (addressBlock & 0b00111000) {
+uint32_t& cpuM68k::fetchArg(uint8_t addressBlock, operandSize size) {
+    uint8_t mode = addressBlock & 0b00'111'000;
+    uint8_t reg = addressBlock & 0b00'000'111;
+    switch (mode) {
         case 0: // Data register direct
+            return dreg[reg];
             break;
         case 8: // Address register direct
+            if(reg < 7) return areg[reg];
+            else return sp[cur_stack];
             break;
         case 0x10: // Address register indirect
+            if(reg < 7) return memory->readLong(areg[reg]);
+            else        return memory->readLong(sp[cur_stack]);
             break;
         case 0x18: // Address register indirect with postincrement
+            if(reg < 7) {
+                uint32_t& val = memory->readLong(areg[reg]);
+                areg[reg] += size;
+                return val;
+            }
+            else {
+                uint32_t& val = memory->readLong(sp[cur_stack]);
+                sp[cur_stack] += size;
+                if(size == byteSize) { sp[cur_stack]++;}
+                return val;
+            }
             break;
         case 0x20: // Address register indirect with predecrement
+            if(reg < 7) {
+                areg[reg] -= size;
+                return memory->readLong(areg[reg]);
+            }
+            else {
+                sp[cur_stack] -= size;
+                if(size == byteSize) { sp[cur_stack]--;}
+                return memory->readLong(sp[cur_stack]);
+            }
             break;
         case 0x28: // Address register indirect with basic index
             break;
         case 0x30: // Address register indirect with full index
             break;
         case 0x38: // Non-register operand
-            switch(addressBlock & 0b111) {
+            switch(addressBlock & 0b00'000'111) {
                 case 0: // Absolute short
                     break;
                 case 1: // Absolute long
@@ -171,5 +199,6 @@ uint32_t cpuM68k::fetchArg(uint8_t addressBlock, operandSize size) {
             }
             break;
     }
-    return 0;
+
+    throw memoryMapException(mode, reg, size);
 }
