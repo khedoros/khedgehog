@@ -165,7 +165,7 @@ uint32_t& cpuM68k::fetchArg(uint8_t addressBlock, operandSize size) {
             else {
                 uint32_t& val = memory->readLong(sp[cur_stack]);
                 sp[cur_stack] += size;
-                if(size == byteSize) { sp[cur_stack]++;}
+                if(size == byteSize) { sp[cur_stack]++; }
                 return val;
             }
             break;
@@ -181,8 +181,37 @@ uint32_t& cpuM68k::fetchArg(uint8_t addressBlock, operandSize size) {
             }
             break;
         case 0x28: // Address register indirect with basic index
+            {
+                int16_t offset = bswap(memory->readWord(pc));
+                pc+=2;
+                uint32_t regval = 0;
+                if(reg < 7) {
+                    regval = areg[reg] + offset;
+                }
+                else {
+                    regval = sp[cur_stack] + offset;
+                }
+                return memory->readLong(regval);
+            }
             break;
         case 0x30: // Address register indirect with full index
+            struct indexWord {
+
+            } word;
+            union basicDisplacement {
+                uint16_t val;
+                #pragma pack(push, 1)
+                struct {
+                    unsigned unused:1;
+                    unsigned scale:2;
+                    unsigned size:1;
+                    unsigned regnum:3;
+                    unsigned da:1;
+                    signed displacement:8;
+                } indexWord;
+                #pragma pack(pop)
+            } word;
+
             break;
         case 0x38: // Non-register operand
             switch(addressBlock & 0b00'000'111) {
