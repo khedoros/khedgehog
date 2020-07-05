@@ -1,14 +1,14 @@
 #include<iostream>
+#include<byteswap.h>
 
 #include "cpuM68k.h"
 #include "memmapM68k.h"
 #include "m68kInstructions.h"
-#include "../../util.h"
 
 cpuM68k::cpuM68k(std::shared_ptr<memmapM68k> memmap) : memory(memmap) {
 
-    sp[cur_stack] = bswap(memory->readLong(INIT_SSP_VECTOR));
-    pc = bswap(memory->readLong(INIT_PC_VECTOR));
+    sp[cur_stack] = bswap_32(memory->readLong(INIT_SSP_VECTOR));
+    pc = bswap_32(memory->readLong(INIT_PC_VECTOR));
 
     op_map.insert({
         {ops::abcd, &cpuM68k::op_ABCD}, {ops::add, &cpuM68k::op_ADD}, {ops::adda, &cpuM68k::op_ADDA},
@@ -53,7 +53,7 @@ uint64_t cpuM68k::calc(uint64_t cycle_max) {
     uint64_t cycles = 0;
     uint64_t inst_cycles = 0;
     while(cycles < cycle_max && inst_cycles < 1000) {
-        uint16_t op = bswap(memory->readWord(pc));
+        uint16_t op = bswap_16(memory->readWord(pc));
         inst_cycles = (this->*op_table[op>>3])(op);
         if(inst_cycles == uint64_t(-1)) {
             std::printf("%06X: %04x (%s)\n", pc, op, op_name[op>>3].c_str());
@@ -182,7 +182,7 @@ uint32_t& cpuM68k::fetchArg(uint8_t addressBlock, operandSize size) {
             break;
         case 0x28: // Address register indirect with basic index
             {
-                int16_t offset = bswap(memory->readWord(pc));
+                int16_t offset = memory->readWord(pc);
                 pc+=2;
                 uint32_t regval = 0;
                 if(reg < 7) {
@@ -203,12 +203,15 @@ uint32_t& cpuM68k::fetchArg(uint8_t addressBlock, operandSize size) {
                         unsigned unused:1;
                         unsigned scale:2;
                         unsigned size:1;
-                        unsigned regnum:3;
+                        unsigned indexRegNum:3;
                         unsigned da:1;
                         signed displacement:8;
                     } indexWord;
                     #pragma pack(pop)
                 } word;
+                word.val = memory->readWord(pc);
+                pc += 2;
+
             }
             break;
         case 0x38: // Non-register operand
