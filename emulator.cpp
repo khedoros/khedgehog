@@ -15,7 +15,9 @@ std::shared_ptr<emulator> emulator::getEmulator(std::shared_ptr<config> cfg) {
         case masterSystem: return std::make_shared<smsEmulator>(cfg);
         case gameGear: return std::make_shared<ggEmulator>(cfg);
         case genesis: return std::make_shared<genesisEmulator>(cfg);
-        default: std::cerr<<"Not supposed to be here ;-) I hereby declare this game...a Genesis game!!"<<std::endl;
+        case invalidSystem: std::cerr<<"Detected an invalid system type.\n"; break;
+        case uncheckedSystem: std::cerr<<"System type hasn't been checked.\n"; break;
+        default: std::cerr<<"Not supposed to be here ;-) I hereby declare this game...a Genesis game!!\n"; break;
     }
     return std::make_shared<genesisEmulator>(cfg);
 }
