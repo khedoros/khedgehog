@@ -217,8 +217,18 @@ uint32_t& cpuM68k::fetchArg(uint8_t addressBlock, operandSize size) {
         case 0x38: // Non-register operand
             switch(addressBlock & 0b00'000'111) {
                 case 0: // Absolute short
+                    {
+                        uint32_t ptr = bswap_16(memory->readWord(pc));
+                        pc += 2;
+                        return memory->readLong(ptr);
+                    }
                     break;
                 case 1: // Absolute long
+                    {
+                        uint32_t ptr = bswap_32(memory->readLong(pc));
+                        pc += 4;
+                        return memory->readLong(ptr);
+                    }
                     break;
                 case 2: // Relative basic
                     break;
