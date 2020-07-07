@@ -29,9 +29,9 @@ private:
     //     TSMOIII|000XNZVC
     m68k_ccr ccr;
 
-    enum stack_type {
-        user,
-        supervisor
+    enum stackType {
+        userMode,
+        supervisorMode
     };
 
     enum operandSize {
@@ -40,8 +40,22 @@ private:
         longSize = 4
     };
 
-    stack_type cur_stack = supervisor;
+    enum ccrField {
+        carry = 1<<0,
+        overflow = 1<<1,
+        zero = 1<<2,
+        negative = 1<<3,
+        extend = 1<<4,
+        interrupts = 7<<8,
+        supervisor = 1<<13,
+        trace = 1<<15
+    };
 
+    void setCCRReg(ccrField);
+    void clearCCRReg(ccrField);
+    uint16_t getCCRReg(ccrField);
+
+    stackType curStack = supervisorMode;
 
     std::shared_ptr<memmapM68k> memory;
 

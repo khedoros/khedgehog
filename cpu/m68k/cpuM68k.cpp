@@ -7,7 +7,7 @@
 
 cpuM68k::cpuM68k(std::shared_ptr<memmapM68k> memmap) : memory(memmap) {
 
-    sp[cur_stack] = bswap_32(memory->readLong(INIT_SSP_VECTOR));
+    sp[curStack] = bswap_32(memory->readLong(INIT_SSP_VECTOR));
     pc = bswap_32(memory->readLong(INIT_PC_VECTOR));
 
     op_map.insert({
@@ -62,6 +62,18 @@ uint64_t cpuM68k::calc(uint64_t cycle_max) {
         cycles += inst_cycles;
     }
     return cycles;
+}
+
+void cpuM68k::setCCRReg(ccrField f) {
+    ccr |= f;
+}
+
+void cpuM68k::clearCCRReg(ccrField f) {
+    ccr &= (~f);
+}
+
+uint16_t cpuM68k::getCCRReg(ccrField f) {
+    return (ccr & f);
 }
 
 uint64_t cpuM68k::op_ABCD(uint16_t opcode) {return -1;}
@@ -138,7 +150,15 @@ uint64_t cpuM68k::op_SUBX(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_SWAP(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_TAS(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_TRAP(uint16_t opcode) {return -1;}
-uint64_t cpuM68k::op_TST(uint16_t opcode) {return -1;}
+uint64_t cpuM68k::op_TST(uint16_t opcode) {
+    pc+=2;
+    operandSize size = static_cast<operandSize>((opcode & 0b11000000)>>6);
+    uint32_t operand = fetchArg(opcode & 0b111111, size);
+    if(operand == 0) setCCRReg(zero);
+    else             clearCCRReg(zero);
+
+    return -1;
+}
 uint64_t cpuM68k::op_UNLK(uint16_t opcode) {return -1;}
 
 uint32_t& cpuM68k::fetchArg(uint8_t addressBlock, operandSize size) {
@@ -150,11 +170,11 @@ uint32_t& cpuM68k::fetchArg(uint8_t addressBlock, operandSize size) {
             break;
         case 8: // Address register direct
             if(reg < 7) return areg[reg];
-            else return sp[cur_stack];
+            else return sp[curStack];
             break;
         case 0x10: // Address register indirect
             if(reg < 7) return memory->readLong(areg[reg]);
-            else        return memory->readLong(sp[cur_stack]);
+            else        return memory->readLong(sp[curStack]);
             break;
         case 0x18: // Address register indirect with postincrement
             if(reg < 7) {
@@ -163,9 +183,9 @@ uint32_t& cpuM68k::fetchArg(uint8_t addressBlock, operandSize size) {
                 return val;
             }
             else {
-                uint32_t& val = memory->readLong(sp[cur_stack]);
-                sp[cur_stack] += size;
-                if(size == byteSize) { sp[cur_stack]++; }
+                uint32_t& val = memory->readLong(sp[curStack]);
+                sp[curStack] += size;
+                if(size == byteSize) { sp[curStack]++; }
                 return val;
             }
             break;
@@ -175,9 +195,9 @@ uint32_t& cpuM68k::fetchArg(uint8_t addressBlock, operandSize size) {
                 return memory->readLong(areg[reg]);
             }
             else {
-                sp[cur_stack] -= size;
-                if(size == byteSize) { sp[cur_stack]--;}
-                return memory->readLong(sp[cur_stack]);
+                sp[curStack] -= size;
+                if(size == byteSize) { sp[curStack]--;}
+                return memory->readLong(sp[curStack]);
             }
             break;
         case 0x28: // Address register indirect with basic index
@@ -189,7 +209,7 @@ uint32_t& cpuM68k::fetchArg(uint8_t addressBlock, operandSize size) {
                     regval = areg[reg] + offset;
                 }
                 else {
-                    regval = sp[cur_stack] + offset;
+                    regval = sp[curStack] + offset;
                 }
                 return memory->readLong(regval);
             }
