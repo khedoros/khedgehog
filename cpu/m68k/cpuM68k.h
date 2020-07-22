@@ -133,7 +133,11 @@ private:
     uint64_t op_TST(uint16_t opcode);
     uint64_t op_UNLK(uint16_t opcode);
 
-    uint32_t& fetchArg(uint8_t addressBlock, operandSize size);
+    template <class retType>
+    retType fetchArg(uint8_t addressBlock);
+
+    template <class argType>
+    void stashArg(uint8_t addressBlock, argType value);
 
     const static uint32_t INIT_SSP_VECTOR = 0;
     const static uint32_t INIT_PC_VECTOR = 4;

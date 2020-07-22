@@ -95,7 +95,8 @@ uint64_t cpuM68k::op_BTST(uint16_t opcode) {
     pc+=4;
     operandSize size = static_cast<operandSize>((opcode & 0b11000000)>>6);
     uint8_t bitNum = memory->readByte(pc-1);
-    uint32_t operand = fetchArg(opcode & 0b111111, size);
+    // TODO: fix size handling
+    uint32_t operand = fetchArg<uint32_t>(opcode & 0b111111);
 
     return -1;
 }
@@ -153,7 +154,8 @@ uint64_t cpuM68k::op_TRAP(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_TST(uint16_t opcode) {
     pc+=2;
     operandSize size = static_cast<operandSize>((opcode & 0b11000000)>>6);
-    uint32_t operand = fetchArg(opcode & 0b111111, size);
+    // TODO: fix size handling
+    uint32_t operand = fetchArg<uint32_t>(opcode & 0b111111);
     if(operand == 0) setCCRReg(zero);
     else             clearCCRReg(zero);
 
@@ -161,7 +163,9 @@ uint64_t cpuM68k::op_TST(uint16_t opcode) {
 }
 uint64_t cpuM68k::op_UNLK(uint16_t opcode) {return -1;}
 
-uint32_t& cpuM68k::fetchArg(uint8_t addressBlock, operandSize size) {
+
+template <class retType>
+retType cpuM68k::fetchArg(uint8_t addressBlock) {
     uint8_t mode = addressBlock & 0b00'111'000;
     uint8_t reg = addressBlock & 0b00'000'111;
     switch (mode) {
@@ -179,24 +183,24 @@ uint32_t& cpuM68k::fetchArg(uint8_t addressBlock, operandSize size) {
         case 0x18: // Address register indirect with postincrement
             if(reg < 7) {
                 uint32_t& val = memory->readLong(areg[reg]);
-                areg[reg] += size;
+                areg[reg] += sizeof(retType);
                 return val;
             }
             else {
                 uint32_t& val = memory->readLong(sp[curStack]);
-                sp[curStack] += size;
-                if(size == byteSize) { sp[curStack]++; }
+                sp[curStack] += sizeof(retType);
+                if(sizeof(retType) == byteSize) { sp[curStack]++; }
                 return val;
             }
             break;
         case 0x20: // Address register indirect with predecrement
             if(reg < 7) {
-                areg[reg] -= size;
+                areg[reg] -= sizeof(retType);
                 return memory->readLong(areg[reg]);
             }
             else {
-                sp[curStack] -= size;
-                if(size == byteSize) { sp[curStack]--;}
+                sp[curStack] -= sizeof(retType);
+                if(sizeof(retType) == byteSize) { sp[curStack]--;}
                 return memory->readLong(sp[curStack]);
             }
             break;
@@ -260,5 +264,12 @@ uint32_t& cpuM68k::fetchArg(uint8_t addressBlock, operandSize size) {
             break;
     }
 
-    throw memoryMapException(mode, reg, size);
+    throw memoryMapException(mode, reg, sizeof(retType));
 }
+
+    template <class argType>
+    void cpuM68k::stashArg(uint8_t addressBlock, argType value) {
+        uint8_t mode = addressBlock & 0b00'111'000;
+        uint8_t reg = addressBlock & 0b00'000'111;
+        throw memoryMapException(mode, reg, sizeof(argType));
+    }
