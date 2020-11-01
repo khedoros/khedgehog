@@ -1,3 +1,5 @@
-class memmapGenesisApu {
+#include "../memmapApu.h"
+
+class memmapGenesisApu: public memmapApu {
 
 };

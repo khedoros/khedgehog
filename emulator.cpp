@@ -3,12 +3,19 @@
 
 #include "emulator.h"
 #include "config.h"
+#include "io/ioMgr.h"
 #include "memmap.h"
 #include "cpu/genesis/memmapGenesisCpu.h"
+#include "cpu/masterSystem/memmapMSCpu.h"
+#include "cpu/gameGear/memmapGGCpu.h"
 #include "cpu/m68k/cpuM68k.h"
+#include "cpu/z80/cpuZ80.h"
 #include "apu/genesis/apuGenesis.h"
-#include "io/ioMgr.h"
+#include "apu/masterSystem/apuMS.h"
+#include "apu/gameGear/apuGG.h"
 #include "vdp/genesis/vdpGenesis.h"
+#include "vdp/masterSystem/vdpMS.h"
+#include "vdp/gameGear/vdpGG.h"
 
 std::shared_ptr<emulator> emulator::getEmulator(std::shared_ptr<config> cfg) {
     switch(cfg->getSystemType()) {
@@ -64,6 +71,11 @@ int genesisEmulator::run() {
 
 smsEmulator::smsEmulator(std::shared_ptr<config> config) {
     cfg = config;
+    cpu_map = std::make_shared<memmapMSCpu>(config);
+    cpu_dev = std::make_shared<cpuZ80>(cpu_map);
+    apu_dev = std::make_shared<apuMS>();
+    io = std::make_shared<ioMgr>();
+    vdp_dev = std::make_shared<vdpMS>();
 }
 
 int smsEmulator::run() {
@@ -74,6 +86,11 @@ int smsEmulator::run() {
 
 ggEmulator::ggEmulator(std::shared_ptr<config> config) {
     cfg = config;
+    cpu_map = std::make_shared<memmapGGCpu>(config);
+    cpu_dev = std::make_shared<cpuZ80>(cpu_map);
+    apu_dev = std::make_shared<apuGG>();
+    io = std::make_shared<ioMgr>();
+    vdp_dev = std::make_shared<vdpGG>();
 }
 
 int ggEmulator::run() {

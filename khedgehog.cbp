@@ -76,6 +76,8 @@
 		<Unit filename="cpu/memmapCpu.h" />
 		<Unit filename="cpu/z80/cpuZ80.cpp" />
 		<Unit filename="cpu/z80/cpuZ80.h" />
+		<Unit filename="cpu/z80/memmapZ80.cpp" />
+		<Unit filename="cpu/z80/memmapZ80.h" />
 		<Unit filename="emulator.cpp" />
 		<Unit filename="emulator.h" />
 		<Unit filename="io/gameGear/inputMapperGG.cpp" />

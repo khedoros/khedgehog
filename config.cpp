@@ -93,3 +93,8 @@ systemRegion config::detectRomRegion() {
 size_t config::getHeaderOffset() {
     return headerOffset;
 }
+/*
+int main() {
+    std::cout<<"Hello"<<std::endl;
+}
+*/
