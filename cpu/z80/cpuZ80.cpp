@@ -1,11 +1,15 @@
 #include "cpuZ80.h"
 #include<iostream>
 
-uint64_t cpuZ80::calc(uint64_t) {
+uint64_t cpuZ80::calc(uint64_t cycles_to_run) {
+    cycles_remaining = cycles_to_run;
+    while(cycles_remaining > 0) {
+        //fetch, decode, execute
+    }
     return 0;
 }
 
-cpuZ80::cpuZ80(std::shared_ptr<memmapZ80> memmap): memory(memmap) {
+cpuZ80::cpuZ80(std::shared_ptr<memmap> memmap): memory(memmap), cycles_remaining(0)  {
 
 }
 
@@ -407,31 +411,31 @@ std::array<z80OpPtr, 256> cpuZ80::fdcb_op_table = {
 
 template <uint32_t OPCODE>
 uint64_t cpuZ80::cb_op_prefix(uint8_t opcode) {
-    //opcode = memory->read8(pc++);
+    opcode = memory->readByte(pc++);
     return CALL_MEMBER_FN(this, cb_op_table[opcode])(opcode);
 }
 
 template <uint32_t OPCODE>
 uint64_t cpuZ80::dd_op_prefix(uint8_t opcode) {
-    //opcode = memory->read8(pc++);
+    opcode = memory->readByte(pc++);
     return CALL_MEMBER_FN(this, dd_op_table[opcode])(opcode);
 }
 
 template <uint32_t OPCODE>
 uint64_t cpuZ80::ed_op_prefix(uint8_t opcode) {
-    //opcode = memory->read8(pc++);
+    opcode = memory->readByte(pc++);
     return CALL_MEMBER_FN(this, ed_op_table[opcode])(opcode);
 }
 
 template <uint32_t OPCODE>
 uint64_t cpuZ80::fd_op_prefix(uint8_t opcode) {
-    //opcode = memory->read8(pc++);
+    opcode = memory->readByte(pc++);
     return CALL_MEMBER_FN(this, fd_op_table[opcode])(opcode);
 }
 
 template <uint32_t OPCODE>
 uint64_t cpuZ80::fdcb_op_prefix(uint8_t opcode) {
-    //opcode = memory->read8(pc++);
+    opcode = memory->readByte(pc++);
     return CALL_MEMBER_FN(this, fdcb_op_table[opcode])(opcode);
 }
 

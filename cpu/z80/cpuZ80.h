@@ -1,6 +1,6 @@
 #pragma once
 #include "../cpu.h"
-#include "memmapZ80.h"
+#include "../../memmap.h"
 #include<memory>
 #include<array>
 #include<cstdint>
@@ -13,7 +13,7 @@ using z80OpPtr = uint64_t (cpuZ80::*)(uint8_t);
 
 class cpuZ80 : public cpu {
 private:
-    std::shared_ptr<memmapZ80> memory;
+    std::shared_ptr<memmap> memory;
 
     struct regpair {
         union {
@@ -39,10 +39,13 @@ private:
         mode1,
         mode2
     } int_mode;
+
     //NMI does call to 0066h
     //interrupt mode 0: interrupting device puts an instruction on data bus, CPU executes it
     //interrupt mode 1: interrupt calls to 0038h
     //interrupt mode 2: I (int_vect) contains high byte, device provides low byte, CPU executes indirect call
+
+    int64_t cycles_remaining;
 
     static std::array<z80OpPtr, 256> op_table;
     static std::array<z80OpPtr, 256> cb_op_table;
@@ -64,6 +67,6 @@ private:
 
 
 public:
-    cpuZ80(std::shared_ptr<memmapZ80>);
+    cpuZ80(std::shared_ptr<memmap>);
     uint64_t calc(uint64_t);
 };

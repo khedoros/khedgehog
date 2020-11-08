@@ -5,9 +5,8 @@
 #include "config.h"
 #include "io/ioMgr.h"
 #include "memmap.h"
-#include "cpu/genesis/memmapGenesisCpu.h"
-#include "cpu/masterSystem/memmapMSCpu.h"
-#include "cpu/gameGear/memmapGGCpu.h"
+#include "cpu/m68k/memmapM68k.h"
+#include "cpu/z80/memmapZ80Console.h"
 #include "cpu/m68k/cpuM68k.h"
 #include "cpu/z80/cpuZ80.h"
 #include "apu/genesis/apuGenesis.h"
@@ -31,7 +30,7 @@ std::shared_ptr<emulator> emulator::getEmulator(std::shared_ptr<config> cfg) {
 
 genesisEmulator::genesisEmulator(std::shared_ptr<config> config) {
     cfg = config;
-    cpu_map = std::make_shared<memmapGenesisCpu>(config);
+    cpu_map = std::make_shared<memmapM68k>(config);
     cpu_dev = std::make_shared<cpuM68k>(cpu_map);
     apu_dev = std::make_shared<apuGenesis>();
     io = std::make_shared<ioMgr>();
@@ -71,7 +70,7 @@ int genesisEmulator::run() {
 
 smsEmulator::smsEmulator(std::shared_ptr<config> config) {
     cfg = config;
-    cpu_map = std::make_shared<memmapMSCpu>(config);
+    cpu_map = std::make_shared<memmapZ80Console>(config);
     cpu_dev = std::make_shared<cpuZ80>(cpu_map);
     apu_dev = std::make_shared<apuMS>();
     io = std::make_shared<ioMgr>();
@@ -86,7 +85,7 @@ int smsEmulator::run() {
 
 ggEmulator::ggEmulator(std::shared_ptr<config> config) {
     cfg = config;
-    cpu_map = std::make_shared<memmapGGCpu>(config);
+    cpu_map = std::make_shared<memmapZ80Console>(config);
     cpu_dev = std::make_shared<cpuZ80>(cpu_map);
     apu_dev = std::make_shared<apuGG>();
     io = std::make_shared<ioMgr>();

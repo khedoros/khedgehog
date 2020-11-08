@@ -15,12 +15,8 @@ class memmapApu;
 class cpu;
 class cpuZ80;
 class cpuM68k;
-class memmapCpu;
 class memmapM68k;
-class memmapZ80;
-class memmapGenesisCpu;
-class memmapGGCpu;
-class memmapMSCpu;
+class memmapZ80Console;
 class inputMapper;
 class inputMapperGenesis;
 class inputMapperGG;
@@ -33,6 +29,7 @@ class memmapVdp;
 class memmapGenesisVdp;
 class memmapGGVdp;
 class memmapMSVdp;
+class memmap;
 
 class emulator {
 public:
@@ -45,6 +42,7 @@ protected:
     std::shared_ptr<cpu>    cpu_dev;
     std::shared_ptr<vdp>    vdp_dev;
     std::shared_ptr<inputMapper> input_map; //child of memmapCpu
+    std::shared_ptr<memmap> cpu_map;
 };
 
 class genesisEmulator: public emulator {
@@ -73,7 +71,7 @@ public:
     smsEmulator(std::shared_ptr<config> cfg);
     int run() override;
 private:
-    std::shared_ptr<memmapMSCpu> cpu_map;
+    //std::shared_ptr<memmapMSCpu> cpu_map;
 
 };
 
@@ -82,6 +80,6 @@ public:
     ggEmulator(std::shared_ptr<config> cfg);
     int run() override;
 private:
-    std::shared_ptr<memmapGGCpu> cpu_map;
+    //std::shared_ptr<memmapGGCpu> cpu_map;
 };
 

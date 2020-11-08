@@ -1,4 +1,4 @@
-objects:=config.o cpu/genesis/memmapGenesisCpu.o emulator.o main.o cpu/m68k/cpuM68k.o util.o cpu/z80/cpuZ80.o cpu/masterSystem/memmapMSCpu.o cpu/gameGear/memmapGGCpu.o
+objects:=config.o cpu/m68k/memmapM68k.o emulator.o main.o cpu/m68k/cpuM68k.o util.o cpu/z80/cpuZ80.o cpu/z80/memmapZ80Console.o
 
 CXXFLAGS:=-std=c++17
 
