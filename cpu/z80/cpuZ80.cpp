@@ -17,24 +17,24 @@ uint64_t cpuZ80::calc(uint64_t cycles_to_run) {
     return 0;
 }
 
-cpuZ80::cpuZ80(std::shared_ptr<memmap> memmap): memory(memmap), cycles_remaining(0), pc(0), iff1(false), iff2(false)  {
+cpuZ80::cpuZ80(std::shared_ptr<memmap> memmap): memory(memmap), cycles_remaining(0), pc(0), iff1(false), iff2(false), reg_set(0)  {
 
 }
 
 std::array<z80OpPtr, 256> cpuZ80::op_table = {
-  &cpuZ80::op_unimpl<0x00>, &cpuZ80::op_unimpl<0x01>, &cpuZ80::op_unimpl<0x02>, &cpuZ80::op_unimpl<0x03>,
+  &cpuZ80::op_unimpl<0x00>, &cpuZ80::op_ld<0x01>, &cpuZ80::op_unimpl<0x02>, &cpuZ80::op_unimpl<0x03>,
   &cpuZ80::op_unimpl<0x04>, &cpuZ80::op_unimpl<0x05>, &cpuZ80::op_unimpl<0x06>, &cpuZ80::op_unimpl<0x07>,
   &cpuZ80::op_unimpl<0x08>, &cpuZ80::op_unimpl<0x09>, &cpuZ80::op_unimpl<0x0a>, &cpuZ80::op_unimpl<0x0b>,
   &cpuZ80::op_unimpl<0x0c>, &cpuZ80::op_unimpl<0x0d>, &cpuZ80::op_unimpl<0x0e>, &cpuZ80::op_unimpl<0x0f>,
-  &cpuZ80::op_unimpl<0x10>, &cpuZ80::op_unimpl<0x11>, &cpuZ80::op_unimpl<0x12>, &cpuZ80::op_unimpl<0x13>,
+  &cpuZ80::op_unimpl<0x10>, &cpuZ80::op_ld<0x11>, &cpuZ80::op_unimpl<0x12>, &cpuZ80::op_unimpl<0x13>,
   &cpuZ80::op_unimpl<0x14>, &cpuZ80::op_unimpl<0x15>, &cpuZ80::op_unimpl<0x16>, &cpuZ80::op_unimpl<0x17>,
   &cpuZ80::op_unimpl<0x18>, &cpuZ80::op_unimpl<0x19>, &cpuZ80::op_unimpl<0x1a>, &cpuZ80::op_unimpl<0x1b>,
   &cpuZ80::op_unimpl<0x1c>, &cpuZ80::op_unimpl<0x1d>, &cpuZ80::op_unimpl<0x1e>, &cpuZ80::op_unimpl<0x1f>,
-  &cpuZ80::op_unimpl<0x20>, &cpuZ80::op_unimpl<0x21>, &cpuZ80::op_unimpl<0x22>, &cpuZ80::op_unimpl<0x23>,
+  &cpuZ80::op_unimpl<0x20>, &cpuZ80::op_ld<0x21>, &cpuZ80::op_unimpl<0x22>, &cpuZ80::op_unimpl<0x23>,
   &cpuZ80::op_unimpl<0x24>, &cpuZ80::op_unimpl<0x25>, &cpuZ80::op_unimpl<0x26>, &cpuZ80::op_unimpl<0x27>,
   &cpuZ80::op_unimpl<0x28>, &cpuZ80::op_unimpl<0x29>, &cpuZ80::op_unimpl<0x2a>, &cpuZ80::op_unimpl<0x2b>,
   &cpuZ80::op_unimpl<0x2c>, &cpuZ80::op_unimpl<0x2d>, &cpuZ80::op_unimpl<0x2e>, &cpuZ80::op_unimpl<0x2f>,
-  &cpuZ80::op_unimpl<0x30>, &cpuZ80::op_unimpl<0x31>, &cpuZ80::op_unimpl<0x32>, &cpuZ80::op_unimpl<0x33>,
+  &cpuZ80::op_unimpl<0x30>, &cpuZ80::op_ld<0x31>, &cpuZ80::op_unimpl<0x32>, &cpuZ80::op_unimpl<0x33>,
   &cpuZ80::op_unimpl<0x34>, &cpuZ80::op_unimpl<0x35>, &cpuZ80::op_unimpl<0x36>, &cpuZ80::op_unimpl<0x37>,
   &cpuZ80::op_unimpl<0x38>, &cpuZ80::op_unimpl<0x39>, &cpuZ80::op_unimpl<0x3a>, &cpuZ80::op_unimpl<0x3b>,
   &cpuZ80::op_unimpl<0x3c>, &cpuZ80::op_unimpl<0x3d>, &cpuZ80::op_unimpl<0x3e>, &cpuZ80::op_unimpl<0x3f>,
@@ -70,7 +70,7 @@ std::array<z80OpPtr, 256> cpuZ80::op_table = {
   &cpuZ80::op_unimpl<0xb4>, &cpuZ80::op_unimpl<0xb5>, &cpuZ80::op_unimpl<0xb6>, &cpuZ80::op_unimpl<0xb7>,
   &cpuZ80::op_unimpl<0xb8>, &cpuZ80::op_unimpl<0xb9>, &cpuZ80::op_unimpl<0xba>, &cpuZ80::op_unimpl<0xbb>,
   &cpuZ80::op_unimpl<0xbc>, &cpuZ80::op_unimpl<0xbd>, &cpuZ80::op_unimpl<0xbe>, &cpuZ80::op_unimpl<0xbf>,
-  &cpuZ80::op_unimpl<0xc0>, &cpuZ80::op_unimpl<0xc1>, &cpuZ80::op_unimpl<0xc2>, &cpuZ80::op_unimpl<0xc3>,
+  &cpuZ80::op_unimpl<0xc0>, &cpuZ80::op_unimpl<0xc1>, &cpuZ80::op_unimpl<0xc2>, &cpuZ80::op_jp<0xc3>,
   &cpuZ80::op_unimpl<0xc4>, &cpuZ80::op_unimpl<0xc5>, &cpuZ80::op_unimpl<0xc6>, &cpuZ80::op_unimpl<0xc7>,
   &cpuZ80::op_unimpl<0xc8>, &cpuZ80::op_unimpl<0xc9>, &cpuZ80::op_unimpl<0xca>, &cpuZ80::cb_op_prefix<0xcb>,
   &cpuZ80::op_unimpl<0xcc>, &cpuZ80::op_unimpl<0xcd>, &cpuZ80::op_unimpl<0xce>, &cpuZ80::op_unimpl<0xcf>,
@@ -457,14 +457,54 @@ uint64_t cpuZ80::op_unimpl(uint8_t opcode) {
     return -1;
 }
 
-template <uint32_t OPCODE> uint64_t cpuZ80::op_di(uint8_t opcode) {
+template <uint32_t OPCODE> uint64_t cpuZ80::op_di(uint8_t opcode) { // DI 4
     iff1 = false;
     iff2 = false;
     return 1;
 }
 
-template <uint32_t OPCODE> uint64_t cpuZ80::op_ei(uint8_t opcode) {
+template <uint32_t OPCODE> uint64_t cpuZ80::op_ei(uint8_t opcode) { // EI 4
     iff1 = true;
     iff2 = true;
     return 1;
+}
+
+template <uint32_t OPCODE> uint64_t cpuZ80::op_jp(uint8_t opcode) {
+    switch(OPCODE) {
+    case 0xc3: { //JP nn 4,3,3
+            uint16_t jump_addr = memory->readWord(pc);
+            pc = jump_addr;
+            return 1;
+        }
+    }
+    return -1;
+}
+
+template <uint32_t OPCODE> uint64_t cpuZ80::op_ld(uint8_t opcode) {
+    switch(OPCODE) {
+    case 0x01: { //LD BC, nn 4,3,3
+            uint16_t immediate = memory->readWord(pc);
+            pc+=2;
+            bc[reg_set].pair = immediate;
+            return 1;
+        }
+    case 0x11: { //LD DE, nn 4,3,3
+            uint16_t immediate = memory->readWord(pc);
+            pc+=2;
+            de[reg_set].pair = immediate;
+            return 1;
+        }
+    case 0x21: { //LD HL, nn 4,3,3
+            uint16_t immediate = memory->readWord(pc);
+            pc+=2;
+            hl[reg_set].pair = immediate;
+            return 1;
+        }
+    case 0x31: { //LD SP, nn 4,3,3
+            uint16_t immediate = memory->readWord(pc);
+            pc+=2;
+            sp = immediate;
+            return 1;
+        }
+    }
 }

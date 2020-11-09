@@ -29,6 +29,7 @@ private:
     std::array<regpair,2> bc;
     std::array<regpair,2> de;
     std::array<regpair,2> hl;
+    int reg_set; // 0 or 1
     uint8_t int_vect;
     uint8_t mem_refresh;
     uint16_t ix, iy, sp, pc;
@@ -61,6 +62,8 @@ private:
     template <uint32_t OPCODE> uint64_t fdcb_op_prefix(uint8_t);
     template <uint32_t OPCODE> uint64_t op_di(uint8_t opcode);
     template <uint32_t OPCODE> uint64_t op_ei(uint8_t opcode);
+    template <uint32_t OPCODE> uint64_t op_jp(uint8_t opcode);
+    template <uint32_t OPCODE> uint64_t op_ld(uint8_t opcode);
 
     uint64_t decode(uint8_t opcode);
 
