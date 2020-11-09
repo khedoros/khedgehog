@@ -59,6 +59,8 @@ private:
     template <uint32_t OPCODE> uint64_t ed_op_prefix(uint8_t);
     template <uint32_t OPCODE> uint64_t fd_op_prefix(uint8_t);
     template <uint32_t OPCODE> uint64_t fdcb_op_prefix(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_di(uint8_t opcode);
+    template <uint32_t OPCODE> uint64_t op_ei(uint8_t opcode);
 
     uint64_t decode(uint8_t opcode);
 

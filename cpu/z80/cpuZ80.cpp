@@ -2,14 +2,22 @@
 #include<iostream>
 
 uint64_t cpuZ80::calc(uint64_t cycles_to_run) {
-    cycles_remaining = cycles_to_run;
+    cycles_remaining += cycles_to_run;
     while(cycles_remaining > 0) {
-        //fetch, decode, execute
+        uint8_t opcode = memory->readByte(pc++);
+        std::printf("Read op %02x\n", opcode);
+        uint64_t inst_cycles = CALL_MEMBER_FN(this, op_table[opcode])(opcode);
+        if(inst_cycles == uint64_t(-1)) {
+            std::printf("%04X: %02x\n", pc, opcode);
+            return 0;
+        }
+        cycles_remaining -= inst_cycles;
     }
+
     return 0;
 }
 
-cpuZ80::cpuZ80(std::shared_ptr<memmap> memmap): memory(memmap), cycles_remaining(0)  {
+cpuZ80::cpuZ80(std::shared_ptr<memmap> memmap): memory(memmap), cycles_remaining(0), pc(0), iff1(false), iff2(false)  {
 
 }
 
@@ -64,20 +72,20 @@ std::array<z80OpPtr, 256> cpuZ80::op_table = {
   &cpuZ80::op_unimpl<0xbc>, &cpuZ80::op_unimpl<0xbd>, &cpuZ80::op_unimpl<0xbe>, &cpuZ80::op_unimpl<0xbf>,
   &cpuZ80::op_unimpl<0xc0>, &cpuZ80::op_unimpl<0xc1>, &cpuZ80::op_unimpl<0xc2>, &cpuZ80::op_unimpl<0xc3>,
   &cpuZ80::op_unimpl<0xc4>, &cpuZ80::op_unimpl<0xc5>, &cpuZ80::op_unimpl<0xc6>, &cpuZ80::op_unimpl<0xc7>,
-  &cpuZ80::op_unimpl<0xc8>, &cpuZ80::op_unimpl<0xc9>, &cpuZ80::op_unimpl<0xca>, &cpuZ80::op_unimpl<0xcb>,
+  &cpuZ80::op_unimpl<0xc8>, &cpuZ80::op_unimpl<0xc9>, &cpuZ80::op_unimpl<0xca>, &cpuZ80::cb_op_prefix<0xcb>,
   &cpuZ80::op_unimpl<0xcc>, &cpuZ80::op_unimpl<0xcd>, &cpuZ80::op_unimpl<0xce>, &cpuZ80::op_unimpl<0xcf>,
   &cpuZ80::op_unimpl<0xd0>, &cpuZ80::op_unimpl<0xd1>, &cpuZ80::op_unimpl<0xd2>, &cpuZ80::op_unimpl<0xd3>,
   &cpuZ80::op_unimpl<0xd4>, &cpuZ80::op_unimpl<0xd5>, &cpuZ80::op_unimpl<0xd6>, &cpuZ80::op_unimpl<0xd7>,
   &cpuZ80::op_unimpl<0xd8>, &cpuZ80::op_unimpl<0xd9>, &cpuZ80::op_unimpl<0xda>, &cpuZ80::op_unimpl<0xdb>,
-  &cpuZ80::op_unimpl<0xdc>, &cpuZ80::op_unimpl<0xdd>, &cpuZ80::op_unimpl<0xde>, &cpuZ80::op_unimpl<0xdf>,
+  &cpuZ80::op_unimpl<0xdc>, &cpuZ80::dd_op_prefix<0xdd>, &cpuZ80::op_unimpl<0xde>, &cpuZ80::op_unimpl<0xdf>,
   &cpuZ80::op_unimpl<0xe0>, &cpuZ80::op_unimpl<0xe1>, &cpuZ80::op_unimpl<0xe2>, &cpuZ80::op_unimpl<0xe3>,
   &cpuZ80::op_unimpl<0xe4>, &cpuZ80::op_unimpl<0xe5>, &cpuZ80::op_unimpl<0xe6>, &cpuZ80::op_unimpl<0xe7>,
   &cpuZ80::op_unimpl<0xe8>, &cpuZ80::op_unimpl<0xe9>, &cpuZ80::op_unimpl<0xea>, &cpuZ80::op_unimpl<0xeb>,
-  &cpuZ80::op_unimpl<0xec>, &cpuZ80::op_unimpl<0xed>, &cpuZ80::op_unimpl<0xee>, &cpuZ80::op_unimpl<0xef>,
-  &cpuZ80::op_unimpl<0xf0>, &cpuZ80::op_unimpl<0xf1>, &cpuZ80::op_unimpl<0xf2>, &cpuZ80::op_unimpl<0xf3>,
+  &cpuZ80::op_unimpl<0xec>, &cpuZ80::ed_op_prefix<0xed>, &cpuZ80::op_unimpl<0xee>, &cpuZ80::op_unimpl<0xef>,
+  &cpuZ80::op_unimpl<0xf0>, &cpuZ80::op_unimpl<0xf1>, &cpuZ80::op_unimpl<0xf2>, &cpuZ80::op_di<0xf3>,
   &cpuZ80::op_unimpl<0xf4>, &cpuZ80::op_unimpl<0xf5>, &cpuZ80::op_unimpl<0xf6>, &cpuZ80::op_unimpl<0xf7>,
-  &cpuZ80::op_unimpl<0xf8>, &cpuZ80::op_unimpl<0xf9>, &cpuZ80::op_unimpl<0xfa>, &cpuZ80::op_unimpl<0xfb>,
-  &cpuZ80::op_unimpl<0xfc>, &cpuZ80::op_unimpl<0xfd>, &cpuZ80::op_unimpl<0xfe>, &cpuZ80::op_unimpl<0xff>
+  &cpuZ80::op_unimpl<0xf8>, &cpuZ80::op_unimpl<0xf9>, &cpuZ80::op_unimpl<0xfa>, &cpuZ80::op_ei<0xfb>,
+  &cpuZ80::op_unimpl<0xfc>, &cpuZ80::fd_op_prefix<0xfd>, &cpuZ80::op_unimpl<0xfe>, &cpuZ80::op_unimpl<0xff>
 };
 
 std::array<z80OpPtr, 256> cpuZ80::cb_op_table = {
@@ -328,7 +336,7 @@ std::array<z80OpPtr, 256> cpuZ80::fd_op_table = {
   &cpuZ80::op_unimpl<0xfdbc>, &cpuZ80::op_unimpl<0xfdbd>, &cpuZ80::op_unimpl<0xfdbe>, &cpuZ80::op_unimpl<0xfdbf>,
   &cpuZ80::op_unimpl<0xfdc0>, &cpuZ80::op_unimpl<0xfdc1>, &cpuZ80::op_unimpl<0xfdc2>, &cpuZ80::op_unimpl<0xfdc3>,
   &cpuZ80::op_unimpl<0xfdc4>, &cpuZ80::op_unimpl<0xfdc5>, &cpuZ80::op_unimpl<0xfdc6>, &cpuZ80::op_unimpl<0xfdc7>,
-  &cpuZ80::op_unimpl<0xfdc8>, &cpuZ80::op_unimpl<0xfdc9>, &cpuZ80::op_unimpl<0xfdca>, &cpuZ80::op_unimpl<0xfdcb>,
+  &cpuZ80::op_unimpl<0xfdc8>, &cpuZ80::op_unimpl<0xfdc9>, &cpuZ80::op_unimpl<0xfdca>, &cpuZ80::fdcb_op_prefix<0xfdcb>,
   &cpuZ80::op_unimpl<0xfdcc>, &cpuZ80::op_unimpl<0xfdcd>, &cpuZ80::op_unimpl<0xfdce>, &cpuZ80::op_unimpl<0xfdcf>,
   &cpuZ80::op_unimpl<0xfdd0>, &cpuZ80::op_unimpl<0xfdd1>, &cpuZ80::op_unimpl<0xfdd2>, &cpuZ80::op_unimpl<0xfdd3>,
   &cpuZ80::op_unimpl<0xfdd4>, &cpuZ80::op_unimpl<0xfdd5>, &cpuZ80::op_unimpl<0xfdd6>, &cpuZ80::op_unimpl<0xfdd7>,
@@ -448,8 +456,15 @@ uint64_t cpuZ80::op_unimpl(uint8_t opcode) {
     std::cout<<"Opcode "<<std::hex<<OPCODE<<" not implemented."<<std::endl;
     return -1;
 }
-    /*
-uint64_t cpuZ80::op_unimplemented(uint8_t opcode) {
-    std::cout<<"Opcode "<<std::hex<<opcode<<" not implemented."<<std::endl;
-    return -1;
-}*/
+
+template <uint32_t OPCODE> uint64_t cpuZ80::op_di(uint8_t opcode) {
+    iff1 = false;
+    iff2 = false;
+    return 1;
+}
+
+template <uint32_t OPCODE> uint64_t cpuZ80::op_ei(uint8_t opcode) {
+    iff1 = true;
+    iff2 = true;
+    return 1;
+}
