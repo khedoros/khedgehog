@@ -63,12 +63,15 @@ private:
     template <uint32_t OPCODE> uint64_t op_di(uint8_t opcode);
     template <uint32_t OPCODE> uint64_t op_ei(uint8_t opcode);
     template <uint32_t OPCODE> uint64_t op_jp(uint8_t opcode);
-    template <uint32_t OPCODE> uint64_t op_ld(uint8_t opcode);
+    template <uint32_t OPCODE> uint64_t op_ld8rr(uint8_t opcode);
+    template <uint32_t OPCODE> uint64_t op_ld16(uint8_t opcode);
 
     uint64_t decode(uint8_t opcode);
 
     template <uint32_t OPCODE> uint64_t op_unimpl(uint8_t);
 
+    uint8_t dummy8;
+    uint16_t dummy16;
 
 
 public:
