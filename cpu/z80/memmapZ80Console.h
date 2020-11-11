@@ -28,4 +28,6 @@ private:
     std::array<uint8_t, 0x10'0000> rom; // ROM is only visible in 3 chunks of 16KB each, with most games controlled by a Sega family of mappers. Largest GG/SMS/SG-1000 ROMs are 1MB in size.
     std::array<uint8_t, 0x8000> cart_ram;
 
+    uint8_t map_ctrl, map_slot0, map_slot1, map_slot2;
+
 };

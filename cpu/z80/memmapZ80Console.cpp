@@ -21,7 +21,7 @@ void memmapZ80Console::writeLong(uint32_t addr, uint32_t val) {}
 #include<iostream>
 #include<fstream>
 
-memmapZ80Console::memmapZ80Console(std::shared_ptr<config> cfg) {
+memmapZ80Console::memmapZ80Console(std::shared_ptr<config> cfg) : map_ctrl(0), map_slot0(0), map_slot1(1), map_slot2(2) {
     std::ifstream romfile(cfg->getRomPath().c_str());
     if(!romfile.is_open()) {
         std::cerr<<"Couldn't open ROM at path \""<<cfg->getRomPath()<<"\"\n";
@@ -55,11 +55,20 @@ void memmapZ80Console::writeWord(uint32_t addr, uint16_t val) {}
 void memmapZ80Console::writeLong(uint32_t addr, uint32_t val) {}
 
 uint8_t& memmapZ80Console::map(uint32_t addr) {
-    if(addr < 0xC000) {
+    if(addr < 0x0400) { // unpaged rom
         return rom[addr];
     }
-    else if(addr < 0xE000) {
-        return ram[addr];
+    else if(addr < 0x4000) { // slot0 rom
+        return rom[(addr & 0x3fff) + map_slot0 * 0x4000];
+    }
+    else if(addr < 0x8000) { // slot1 rom
+        return rom[(addr & 0x3fff) + map_slot1 * 0x4000];
+    }
+    else if(addr < 0xC000) { // slot2 rom TODO: implement rom-ram swapout
+        return rom[(addr & 0x3fff) + map_slot2 * 0x4000];
+    }
+    else if(addr < 0x10000) { // system ram TODO: implement paging control
+        return ram[addr & 0x1fff];
     }
     else {
         std::cerr<<"Unmapped address encountered: 0x"<<std::hex<<addr<<"\n";
