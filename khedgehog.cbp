@@ -11,7 +11,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="roms/sonic1.md" />
+				<Option parameters="roms/sg-1000/Castle\,\ The\ \(Japan\).sg" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>
@@ -21,7 +21,7 @@
 				<Option object_output="obj/Release/" />
 				<Option type="0" />
 				<Option compiler="gcc" />
-				<Option parameters="roms/sonic1.md" />
+				<Option parameters="roms/sg-1000/Castle\,\ The\ \(Japan\).sg" />
 				<Compiler>
 					<Add option="-O2" />
 				</Compiler>

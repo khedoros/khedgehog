@@ -60,19 +60,27 @@ systemType config::detectRomType() {
     headerOffset = 0x0;
     systemType detected = systemType::uncheckedSystem;
     for(auto offset: smsGgHeaderOffset) {
-        rom.seekg(offset);
-        rom.read(magic, 0x10);
-        if(std::strncmp(magic, smsGgMagic.c_str(), 8) == 0) {
-            headerOffset = offset;
-            detected = systemType::uncheckedSystem;
-            break;
+        if(offset < romSize) {
+            rom.seekg(offset);
+            rom.read(magic, 0x10);
+            if(std::strncmp(magic, smsGgMagic.c_str(), 8) == 0) {
+                headerOffset = offset;
+                detected = systemType::uncheckedSystem;
+                break;
+            }
+            else detected = systemType::invalidSystem;
         }
-        else detected = systemType::invalidSystem;
     }
 
-    if(detected == systemType::invalidSystem) return detected;
+    // SG-1000 games are headerless, but have specific sizes.
+    if(detected == systemType::invalidSystem && romSize <= 48 * 1024 && romSize % 8192 == 0) {
+            return systemType::sg_1000;
+    }
+    else if(detected == systemType::invalidSystem) {
+        return systemType::invalidSystem;
+    }
 
-    // Read system type from header
+    // Interpret SMS/GG header for system type
     uint8_t smsGgType = (magic[0xf] & 0xf0);
     std::cout<<"SMS/GG System type: "<<std::hex<<uint32_t(smsGgType)<<"\n";
     switch(smsGgType) {

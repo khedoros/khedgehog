@@ -25,14 +25,20 @@ private:
         };
     };
 
-    std::array<regpair,2> af;
-    std::array<regpair,2> bc;
-    std::array<regpair,2> de;
-    std::array<regpair,2> hl;
-    int reg_set; // 0 or 1
+    regpair af;
+    regpair af_1;
+    regpair bc;
+    regpair bc_1;
+    regpair de;
+    regpair de_1;
+    regpair hl;
+    regpair hl_1;
+    regpair ix;
+    regpair iy;
+
     uint8_t int_vect;
     uint8_t mem_refresh;
-    uint16_t ix, iy, sp, pc;
+    uint16_t sp, pc;
     bool iff1, iff2; //interrupt enable registers
 
     enum intMode {
@@ -62,13 +68,20 @@ private:
     template <uint32_t OPCODE> uint64_t fd_op_prefix(uint8_t);
     template <uint32_t OPCODE> uint64_t ddcb_op_prefix(uint8_t);
     template <uint32_t OPCODE> uint64_t fdcb_op_prefix(uint8_t);
-    template <uint32_t OPCODE> uint64_t op_di(uint8_t opcode);
-    template <uint32_t OPCODE> uint64_t op_ei(uint8_t opcode);
-    template <uint32_t OPCODE> uint64_t op_jp(uint8_t opcode);
-    template <uint32_t OPCODE> uint64_t op_ld8rr(uint8_t opcode);
-    template <uint32_t OPCODE> uint64_t op_ld16(uint8_t opcode);
+    template <uint32_t OPCODE> uint64_t op_call(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_di(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_ei(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_exx(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_im(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_jp(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_ld16(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_ld8ri(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_ld8rr(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_nop(uint8_t);
 
     uint64_t decode(uint8_t opcode);
+    void push(uint16_t);
+    uint16_t pop();
 
     template <uint32_t OPCODE> uint64_t op_unimpl(uint8_t);
 

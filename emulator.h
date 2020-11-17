@@ -83,3 +83,8 @@ private:
     //std::shared_ptr<memmapGGCpu> cpu_map;
 };
 
+class noEmulator: public emulator {
+public:
+    noEmulator(std::shared_ptr<config> cfg);
+    int run() override;
+};

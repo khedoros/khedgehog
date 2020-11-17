@@ -5,6 +5,7 @@
 
 enum systemType {
     uncheckedSystem,
+    sg_1000,
     masterSystem,
     gameGear,
     genesis,

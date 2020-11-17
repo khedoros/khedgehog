@@ -18,6 +18,7 @@
 
 std::shared_ptr<emulator> emulator::getEmulator(std::shared_ptr<config> cfg) {
     switch(cfg->getSystemType()) {
+        case sg_1000: return std::make_shared<smsEmulator>(cfg);
         case masterSystem: return std::make_shared<smsEmulator>(cfg);
         case gameGear: return std::make_shared<ggEmulator>(cfg);
         case genesis: return std::make_shared<genesisEmulator>(cfg);
@@ -25,7 +26,7 @@ std::shared_ptr<emulator> emulator::getEmulator(std::shared_ptr<config> cfg) {
         case uncheckedSystem: std::cerr<<"System type hasn't been checked.\n"; break;
         default: std::cerr<<"Not supposed to be here ;-) I hereby declare this game...a Genesis game!!\n"; break;
     }
-    return std::make_shared<genesisEmulator>(cfg);
+    return std::make_shared<noEmulator>(cfg);
 }
 
 genesisEmulator::genesisEmulator(std::shared_ptr<config> config) {
@@ -96,4 +97,13 @@ int ggEmulator::run() {
     std::cout<<"Hi, I'm the Game Gear emulator!"<<std::endl;
     emulator::run();
     return -1;
+}
+
+noEmulator::noEmulator(std::shared_ptr<config> cfg) {
+
+}
+
+int noEmulator::run() {
+    std::cout<<"ROM type wasn't recognized. Exiting."<<std::endl;
+    return 0;
 }
