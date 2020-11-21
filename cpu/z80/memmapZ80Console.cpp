@@ -44,6 +44,7 @@ uint8_t& memmapZ80Console::readByte(uint32_t addr) {
 
 uint8_t memmapZ80Console::readPortByte(uint8_t port) {
     // TODO: Implement :-D
+    std::printf(" port %02x >> [dummy]", port);
     return 0xff;
 }
 
@@ -68,7 +69,9 @@ void memmapZ80Console::writeWord(uint32_t addr, uint16_t val) {
 }
 void memmapZ80Console::writeLong(uint32_t addr, uint32_t val) {}
 
-void memmapZ80Console::writePortByte(uint8_t port, uint8_t val) {}
+void memmapZ80Console::writePortByte(uint8_t port, uint8_t val) {
+    std::printf(" port %02x << %02x", port, val);
+}
 
 uint8_t& memmapZ80Console::map(uint32_t addr) {
     if(addr < 0x0400) { // unpaged rom
