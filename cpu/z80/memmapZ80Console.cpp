@@ -42,6 +42,11 @@ uint8_t& memmapZ80Console::readByte(uint32_t addr) {
     return map(addr);
 }
 
+uint8_t memmapZ80Console::readPortByte(uint8_t port) {
+    // TODO: Implement :-D
+    return 0xff;
+}
+
 uint16_t& memmapZ80Console::readWord(uint32_t addr) {
     return reinterpret_cast<uint16_t&>(map(addr));
 }
@@ -50,9 +55,20 @@ uint32_t& memmapZ80Console::readLong(uint32_t addr) {
     return reinterpret_cast<uint32_t&>(map(addr));
 }
 
-void memmapZ80Console::writeByte(uint32_t addr, uint8_t val) {}
-void memmapZ80Console::writeWord(uint32_t addr, uint16_t val) {}
+void memmapZ80Console::writeByte(uint32_t addr, uint8_t val) {
+    if(addr >= 0xC000) {
+        ram[addr & 0x1fff] = val;
+    }
+}
+void memmapZ80Console::writeWord(uint32_t addr, uint16_t val) {
+    if(addr >= 0xC000) {
+        ram[addr & 0x1fff] = (val & 0xff);
+        ram[(addr + 1) & 0x1fff] = (val >> 8);
+    }
+}
 void memmapZ80Console::writeLong(uint32_t addr, uint32_t val) {}
+
+void memmapZ80Console::writePortByte(uint8_t port, uint8_t val) {}
 
 uint8_t& memmapZ80Console::map(uint32_t addr) {
     if(addr < 0x0400) { // unpaged rom

@@ -71,7 +71,7 @@ public:
     smsEmulator(std::shared_ptr<config> cfg);
     int run() override;
 private:
-    //std::shared_ptr<memmapMSCpu> cpu_map;
+    std::shared_ptr<memmapZ80Console> cpu_map;
 
 };
 
@@ -80,7 +80,7 @@ public:
     ggEmulator(std::shared_ptr<config> cfg);
     int run() override;
 private:
-    //std::shared_ptr<memmapGGCpu> cpu_map;
+    std::shared_ptr<memmapZ80Console> cpu_map;
 };
 
 class noEmulator: public emulator {

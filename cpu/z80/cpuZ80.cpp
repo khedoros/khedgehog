@@ -5,10 +5,11 @@ uint64_t cpuZ80::calc(uint64_t cycles_to_run) {
     cycles_remaining += cycles_to_run;
     while(cycles_remaining > 0) {
         uint8_t opcode = memory->readByte(pc++);
-        std::printf("Read op %02x\n", opcode);
+        std::printf("%04X: %02x", pc-1, opcode);
         uint64_t inst_cycles = CALL_MEMBER_FN(this, op_table[opcode])(opcode);
+        std::printf("\n");
+
         if(inst_cycles == uint64_t(-1)) {
-            std::printf("%04X: %02x\n", pc, opcode);
             return 0;
         }
         cycles_remaining -= inst_cycles;
@@ -17,74 +18,74 @@ uint64_t cpuZ80::calc(uint64_t cycles_to_run) {
     return 0;
 }
 
-cpuZ80::cpuZ80(std::shared_ptr<memmap> memmap): memory(memmap), cycles_remaining(0), pc(0), iff1(false), iff2(false)  {
+cpuZ80::cpuZ80(std::shared_ptr<memmapZ80Console> memmap): memory(memmap), cycles_remaining(0), pc(0), iff1(false), iff2(false)  {
 
 }
 
 std::array<z80OpPtr, 256> cpuZ80::op_table = {
-  &cpuZ80::op_nop<0x00>, &cpuZ80::op_ld16<0x01>, &cpuZ80::op_unimpl<0x02>, &cpuZ80::op_unimpl<0x03>,
-  &cpuZ80::op_unimpl<0x04>, &cpuZ80::op_unimpl<0x05>, &cpuZ80::op_ld8ri<0x06>, &cpuZ80::op_unimpl<0x07>,
-  &cpuZ80::op_unimpl<0x08>, &cpuZ80::op_unimpl<0x09>, &cpuZ80::op_unimpl<0x0a>, &cpuZ80::op_unimpl<0x0b>,
-  &cpuZ80::op_unimpl<0x0c>, &cpuZ80::op_unimpl<0x0d>, &cpuZ80::op_ld8ri<0x0e>, &cpuZ80::op_unimpl<0x0f>,
-  &cpuZ80::op_unimpl<0x10>, &cpuZ80::op_ld16<0x11>, &cpuZ80::op_unimpl<0x12>, &cpuZ80::op_unimpl<0x13>,
-  &cpuZ80::op_unimpl<0x14>, &cpuZ80::op_unimpl<0x15>, &cpuZ80::op_ld8ri<0x16>, &cpuZ80::op_unimpl<0x17>,
-  &cpuZ80::op_unimpl<0x18>, &cpuZ80::op_unimpl<0x19>, &cpuZ80::op_unimpl<0x1a>, &cpuZ80::op_unimpl<0x1b>,
-  &cpuZ80::op_unimpl<0x1c>, &cpuZ80::op_unimpl<0x1d>, &cpuZ80::op_ld8ri<0x1e>, &cpuZ80::op_unimpl<0x1f>,
-  &cpuZ80::op_unimpl<0x20>, &cpuZ80::op_ld16<0x21>, &cpuZ80::op_unimpl<0x22>, &cpuZ80::op_unimpl<0x23>,
-  &cpuZ80::op_unimpl<0x24>, &cpuZ80::op_unimpl<0x25>, &cpuZ80::op_ld8ri<0x26>, &cpuZ80::op_unimpl<0x27>,
-  &cpuZ80::op_unimpl<0x28>, &cpuZ80::op_unimpl<0x29>, &cpuZ80::op_unimpl<0x2a>, &cpuZ80::op_unimpl<0x2b>,
-  &cpuZ80::op_unimpl<0x2c>, &cpuZ80::op_unimpl<0x2d>, &cpuZ80::op_ld8ri<0x2e>, &cpuZ80::op_unimpl<0x2f>,
-  &cpuZ80::op_unimpl<0x30>, &cpuZ80::op_ld16<0x31>, &cpuZ80::op_unimpl<0x32>, &cpuZ80::op_unimpl<0x33>,
-  &cpuZ80::op_unimpl<0x34>, &cpuZ80::op_unimpl<0x35>, &cpuZ80::op_unimpl<0x36>, &cpuZ80::op_unimpl<0x37>,
-  &cpuZ80::op_unimpl<0x38>, &cpuZ80::op_unimpl<0x39>, &cpuZ80::op_unimpl<0x3a>, &cpuZ80::op_unimpl<0x3b>,
-  &cpuZ80::op_unimpl<0x3c>, &cpuZ80::op_unimpl<0x3d>, &cpuZ80::op_ld8ri<0x3e>, &cpuZ80::op_unimpl<0x3f>,
-  &cpuZ80::op_ld8rr<0x40>, &cpuZ80::op_ld8rr<0x41>, &cpuZ80::op_ld8rr<0x42>, &cpuZ80::op_ld8rr<0x43>,
-  &cpuZ80::op_ld8rr<0x44>, &cpuZ80::op_ld8rr<0x45>, &cpuZ80::op_unimpl<0x46>, &cpuZ80::op_ld8rr<0x47>,
-  &cpuZ80::op_ld8rr<0x48>, &cpuZ80::op_ld8rr<0x49>, &cpuZ80::op_ld8rr<0x4a>, &cpuZ80::op_ld8rr<0x4b>,
-  &cpuZ80::op_ld8rr<0x4c>, &cpuZ80::op_ld8rr<0x4d>, &cpuZ80::op_unimpl<0x4e>, &cpuZ80::op_ld8rr<0x4f>,
-  &cpuZ80::op_ld8rr<0x50>, &cpuZ80::op_ld8rr<0x51>, &cpuZ80::op_ld8rr<0x52>, &cpuZ80::op_ld8rr<0x53>,
-  &cpuZ80::op_ld8rr<0x54>, &cpuZ80::op_ld8rr<0x55>, &cpuZ80::op_unimpl<0x56>, &cpuZ80::op_ld8rr<0x57>,
-  &cpuZ80::op_ld8rr<0x58>, &cpuZ80::op_ld8rr<0x59>, &cpuZ80::op_ld8rr<0x5a>, &cpuZ80::op_ld8rr<0x5b>,
-  &cpuZ80::op_ld8rr<0x5c>, &cpuZ80::op_ld8rr<0x5d>, &cpuZ80::op_unimpl<0x5e>, &cpuZ80::op_ld8rr<0x5f>,
-  &cpuZ80::op_ld8rr<0x60>, &cpuZ80::op_ld8rr<0x61>, &cpuZ80::op_ld8rr<0x62>, &cpuZ80::op_ld8rr<0x63>,
-  &cpuZ80::op_ld8rr<0x64>, &cpuZ80::op_ld8rr<0x65>, &cpuZ80::op_unimpl<0x66>, &cpuZ80::op_ld8rr<0x67>,
-  &cpuZ80::op_ld8rr<0x68>, &cpuZ80::op_ld8rr<0x69>, &cpuZ80::op_ld8rr<0x6a>, &cpuZ80::op_ld8rr<0x6b>,
-  &cpuZ80::op_ld8rr<0x6c>, &cpuZ80::op_ld8rr<0x6d>, &cpuZ80::op_unimpl<0x6e>, &cpuZ80::op_ld8rr<0x6f>,
-  &cpuZ80::op_unimpl<0x70>, &cpuZ80::op_unimpl<0x71>, &cpuZ80::op_unimpl<0x72>, &cpuZ80::op_unimpl<0x73>,
-  &cpuZ80::op_unimpl<0x74>, &cpuZ80::op_unimpl<0x75>, &cpuZ80::op_unimpl<0x76>, &cpuZ80::op_unimpl<0x77>,
-  &cpuZ80::op_ld8rr<0x78>, &cpuZ80::op_ld8rr<0x79>, &cpuZ80::op_ld8rr<0x7a>, &cpuZ80::op_ld8rr<0x7b>,
-  &cpuZ80::op_ld8rr<0x7c>, &cpuZ80::op_ld8rr<0x7d>, &cpuZ80::op_unimpl<0x7e>, &cpuZ80::op_ld8rr<0x7f>,
-  &cpuZ80::op_unimpl<0x80>, &cpuZ80::op_unimpl<0x81>, &cpuZ80::op_unimpl<0x82>, &cpuZ80::op_unimpl<0x83>,
-  &cpuZ80::op_unimpl<0x84>, &cpuZ80::op_unimpl<0x85>, &cpuZ80::op_unimpl<0x86>, &cpuZ80::op_unimpl<0x87>,
-  &cpuZ80::op_unimpl<0x88>, &cpuZ80::op_unimpl<0x89>, &cpuZ80::op_unimpl<0x8a>, &cpuZ80::op_unimpl<0x8b>,
-  &cpuZ80::op_unimpl<0x8c>, &cpuZ80::op_unimpl<0x8d>, &cpuZ80::op_unimpl<0x8e>, &cpuZ80::op_unimpl<0x8f>,
-  &cpuZ80::op_unimpl<0x90>, &cpuZ80::op_unimpl<0x91>, &cpuZ80::op_unimpl<0x92>, &cpuZ80::op_unimpl<0x93>,
-  &cpuZ80::op_unimpl<0x94>, &cpuZ80::op_unimpl<0x95>, &cpuZ80::op_unimpl<0x96>, &cpuZ80::op_unimpl<0x97>,
-  &cpuZ80::op_unimpl<0x98>, &cpuZ80::op_unimpl<0x99>, &cpuZ80::op_unimpl<0x9a>, &cpuZ80::op_unimpl<0x9b>,
-  &cpuZ80::op_unimpl<0x9c>, &cpuZ80::op_unimpl<0x9d>, &cpuZ80::op_unimpl<0x9e>, &cpuZ80::op_unimpl<0x9f>,
-  &cpuZ80::op_unimpl<0xa0>, &cpuZ80::op_unimpl<0xa1>, &cpuZ80::op_unimpl<0xa2>, &cpuZ80::op_unimpl<0xa3>,
-  &cpuZ80::op_unimpl<0xa4>, &cpuZ80::op_unimpl<0xa5>, &cpuZ80::op_unimpl<0xa6>, &cpuZ80::op_unimpl<0xa7>,
-  &cpuZ80::op_unimpl<0xa8>, &cpuZ80::op_unimpl<0xa9>, &cpuZ80::op_unimpl<0xaa>, &cpuZ80::op_unimpl<0xab>,
-  &cpuZ80::op_unimpl<0xac>, &cpuZ80::op_unimpl<0xad>, &cpuZ80::op_unimpl<0xae>, &cpuZ80::op_unimpl<0xaf>,
-  &cpuZ80::op_unimpl<0xb0>, &cpuZ80::op_unimpl<0xb1>, &cpuZ80::op_unimpl<0xb2>, &cpuZ80::op_unimpl<0xb3>,
-  &cpuZ80::op_unimpl<0xb4>, &cpuZ80::op_unimpl<0xb5>, &cpuZ80::op_unimpl<0xb6>, &cpuZ80::op_unimpl<0xb7>,
-  &cpuZ80::op_unimpl<0xb8>, &cpuZ80::op_unimpl<0xb9>, &cpuZ80::op_unimpl<0xba>, &cpuZ80::op_unimpl<0xbb>,
-  &cpuZ80::op_unimpl<0xbc>, &cpuZ80::op_unimpl<0xbd>, &cpuZ80::op_unimpl<0xbe>, &cpuZ80::op_unimpl<0xbf>,
-  &cpuZ80::op_unimpl<0xc0>, &cpuZ80::op_unimpl<0xc1>, &cpuZ80::op_unimpl<0xc2>, &cpuZ80::op_jp<0xc3>,
-  &cpuZ80::op_unimpl<0xc4>, &cpuZ80::op_unimpl<0xc5>, &cpuZ80::op_unimpl<0xc6>, &cpuZ80::op_unimpl<0xc7>,
-  &cpuZ80::op_unimpl<0xc8>, &cpuZ80::op_unimpl<0xc9>, &cpuZ80::op_unimpl<0xca>, &cpuZ80::cb_op_prefix<0xcb>,
-  &cpuZ80::op_unimpl<0xcc>, &cpuZ80::op_call<0xcd>, &cpuZ80::op_unimpl<0xce>, &cpuZ80::op_unimpl<0xcf>,
-  &cpuZ80::op_unimpl<0xd0>, &cpuZ80::op_unimpl<0xd1>, &cpuZ80::op_unimpl<0xd2>, &cpuZ80::op_unimpl<0xd3>,
-  &cpuZ80::op_unimpl<0xd4>, &cpuZ80::op_unimpl<0xd5>, &cpuZ80::op_unimpl<0xd6>, &cpuZ80::op_unimpl<0xd7>,
-  &cpuZ80::op_unimpl<0xd8>, &cpuZ80::op_exx<0xd9>, &cpuZ80::op_unimpl<0xda>, &cpuZ80::op_unimpl<0xdb>,
+  &cpuZ80::op_nop<0x00>, &cpuZ80::op_ld16<0x01>,         &cpuZ80::op_unimpl<0x02>, &cpuZ80::op_unimpl<0x03>,
+  &cpuZ80::op_unimpl<0x04>, &cpuZ80::op_unimpl<0x05>,    &cpuZ80::op_ld8ri<0x06>, &cpuZ80::op_unimpl<0x07>,
+  &cpuZ80::op_unimpl<0x08>, &cpuZ80::op_unimpl<0x09>,    &cpuZ80::op_unimpl<0x0a>, &cpuZ80::op_unimpl<0x0b>,
+  &cpuZ80::op_unimpl<0x0c>, &cpuZ80::op_unimpl<0x0d>,    &cpuZ80::op_ld8ri<0x0e>, &cpuZ80::op_unimpl<0x0f>,
+  &cpuZ80::op_unimpl<0x10>, &cpuZ80::op_ld16<0x11>,      &cpuZ80::op_unimpl<0x12>, &cpuZ80::op_unimpl<0x13>,
+  &cpuZ80::op_unimpl<0x14>, &cpuZ80::op_unimpl<0x15>,    &cpuZ80::op_ld8ri<0x16>, &cpuZ80::op_unimpl<0x17>,
+  &cpuZ80::op_unimpl<0x18>, &cpuZ80::op_unimpl<0x19>,    &cpuZ80::op_unimpl<0x1a>, &cpuZ80::op_unimpl<0x1b>,
+  &cpuZ80::op_unimpl<0x1c>, &cpuZ80::op_unimpl<0x1d>,    &cpuZ80::op_ld8ri<0x1e>, &cpuZ80::op_unimpl<0x1f>,
+  &cpuZ80::op_unimpl<0x20>, &cpuZ80::op_ld16<0x21>,      &cpuZ80::op_unimpl<0x22>, &cpuZ80::op_unimpl<0x23>,
+  &cpuZ80::op_unimpl<0x24>, &cpuZ80::op_unimpl<0x25>,    &cpuZ80::op_ld8ri<0x26>, &cpuZ80::op_unimpl<0x27>,
+  &cpuZ80::op_unimpl<0x28>, &cpuZ80::op_unimpl<0x29>,    &cpuZ80::op_unimpl<0x2a>, &cpuZ80::op_unimpl<0x2b>,
+  &cpuZ80::op_unimpl<0x2c>, &cpuZ80::op_unimpl<0x2d>,    &cpuZ80::op_ld8ri<0x2e>, &cpuZ80::op_unimpl<0x2f>,
+  &cpuZ80::op_unimpl<0x30>, &cpuZ80::op_ld16<0x31>,      &cpuZ80::op_unimpl<0x32>, &cpuZ80::op_unimpl<0x33>,
+  &cpuZ80::op_unimpl<0x34>, &cpuZ80::op_unimpl<0x35>,    &cpuZ80::op_unimpl<0x36>, &cpuZ80::op_unimpl<0x37>,
+  &cpuZ80::op_unimpl<0x38>, &cpuZ80::op_unimpl<0x39>,    &cpuZ80::op_unimpl<0x3a>, &cpuZ80::op_unimpl<0x3b>,
+  &cpuZ80::op_unimpl<0x3c>, &cpuZ80::op_unimpl<0x3d>,    &cpuZ80::op_ld8ri<0x3e>, &cpuZ80::op_unimpl<0x3f>,
+  &cpuZ80::op_ld8rr<0x40>, &cpuZ80::op_ld8rr<0x41>,      &cpuZ80::op_ld8rr<0x42>, &cpuZ80::op_ld8rr<0x43>,
+  &cpuZ80::op_ld8rr<0x44>, &cpuZ80::op_ld8rr<0x45>,      &cpuZ80::op_unimpl<0x46>, &cpuZ80::op_ld8rr<0x47>,
+  &cpuZ80::op_ld8rr<0x48>, &cpuZ80::op_ld8rr<0x49>,      &cpuZ80::op_ld8rr<0x4a>, &cpuZ80::op_ld8rr<0x4b>,
+  &cpuZ80::op_ld8rr<0x4c>, &cpuZ80::op_ld8rr<0x4d>,      &cpuZ80::op_unimpl<0x4e>, &cpuZ80::op_ld8rr<0x4f>,
+  &cpuZ80::op_ld8rr<0x50>, &cpuZ80::op_ld8rr<0x51>,      &cpuZ80::op_ld8rr<0x52>, &cpuZ80::op_ld8rr<0x53>,
+  &cpuZ80::op_ld8rr<0x54>, &cpuZ80::op_ld8rr<0x55>,      &cpuZ80::op_unimpl<0x56>, &cpuZ80::op_ld8rr<0x57>,
+  &cpuZ80::op_ld8rr<0x58>, &cpuZ80::op_ld8rr<0x59>,      &cpuZ80::op_ld8rr<0x5a>, &cpuZ80::op_ld8rr<0x5b>,
+  &cpuZ80::op_ld8rr<0x5c>, &cpuZ80::op_ld8rr<0x5d>,      &cpuZ80::op_unimpl<0x5e>, &cpuZ80::op_ld8rr<0x5f>,
+  &cpuZ80::op_ld8rr<0x60>, &cpuZ80::op_ld8rr<0x61>,      &cpuZ80::op_ld8rr<0x62>, &cpuZ80::op_ld8rr<0x63>,
+  &cpuZ80::op_ld8rr<0x64>, &cpuZ80::op_ld8rr<0x65>,      &cpuZ80::op_unimpl<0x66>, &cpuZ80::op_ld8rr<0x67>,
+  &cpuZ80::op_ld8rr<0x68>, &cpuZ80::op_ld8rr<0x69>,      &cpuZ80::op_ld8rr<0x6a>, &cpuZ80::op_ld8rr<0x6b>,
+  &cpuZ80::op_ld8rr<0x6c>, &cpuZ80::op_ld8rr<0x6d>,      &cpuZ80::op_unimpl<0x6e>, &cpuZ80::op_ld8rr<0x6f>,
+  &cpuZ80::op_unimpl<0x70>, &cpuZ80::op_unimpl<0x71>,    &cpuZ80::op_unimpl<0x72>, &cpuZ80::op_unimpl<0x73>,
+  &cpuZ80::op_unimpl<0x74>, &cpuZ80::op_unimpl<0x75>,    &cpuZ80::op_unimpl<0x76>, &cpuZ80::op_unimpl<0x77>,
+  &cpuZ80::op_ld8rr<0x78>, &cpuZ80::op_ld8rr<0x79>,      &cpuZ80::op_ld8rr<0x7a>, &cpuZ80::op_ld8rr<0x7b>,
+  &cpuZ80::op_ld8rr<0x7c>, &cpuZ80::op_ld8rr<0x7d>,      &cpuZ80::op_unimpl<0x7e>, &cpuZ80::op_ld8rr<0x7f>,
+  &cpuZ80::op_unimpl<0x80>, &cpuZ80::op_unimpl<0x81>,    &cpuZ80::op_unimpl<0x82>, &cpuZ80::op_unimpl<0x83>,
+  &cpuZ80::op_unimpl<0x84>, &cpuZ80::op_unimpl<0x85>,    &cpuZ80::op_unimpl<0x86>, &cpuZ80::op_unimpl<0x87>,
+  &cpuZ80::op_unimpl<0x88>, &cpuZ80::op_unimpl<0x89>,    &cpuZ80::op_unimpl<0x8a>, &cpuZ80::op_unimpl<0x8b>,
+  &cpuZ80::op_unimpl<0x8c>, &cpuZ80::op_unimpl<0x8d>,    &cpuZ80::op_unimpl<0x8e>, &cpuZ80::op_unimpl<0x8f>,
+  &cpuZ80::op_unimpl<0x90>, &cpuZ80::op_unimpl<0x91>,    &cpuZ80::op_unimpl<0x92>, &cpuZ80::op_unimpl<0x93>,
+  &cpuZ80::op_unimpl<0x94>, &cpuZ80::op_unimpl<0x95>,    &cpuZ80::op_unimpl<0x96>, &cpuZ80::op_unimpl<0x97>,
+  &cpuZ80::op_unimpl<0x98>, &cpuZ80::op_unimpl<0x99>,    &cpuZ80::op_unimpl<0x9a>, &cpuZ80::op_unimpl<0x9b>,
+  &cpuZ80::op_unimpl<0x9c>, &cpuZ80::op_unimpl<0x9d>,    &cpuZ80::op_unimpl<0x9e>, &cpuZ80::op_unimpl<0x9f>,
+  &cpuZ80::op_unimpl<0xa0>, &cpuZ80::op_unimpl<0xa1>,    &cpuZ80::op_unimpl<0xa2>, &cpuZ80::op_unimpl<0xa3>,
+  &cpuZ80::op_unimpl<0xa4>, &cpuZ80::op_unimpl<0xa5>,    &cpuZ80::op_unimpl<0xa6>, &cpuZ80::op_unimpl<0xa7>,
+  &cpuZ80::op_unimpl<0xa8>, &cpuZ80::op_unimpl<0xa9>,    &cpuZ80::op_unimpl<0xaa>, &cpuZ80::op_unimpl<0xab>,
+  &cpuZ80::op_unimpl<0xac>, &cpuZ80::op_unimpl<0xad>,    &cpuZ80::op_unimpl<0xae>, &cpuZ80::op_unimpl<0xaf>,
+  &cpuZ80::op_unimpl<0xb0>, &cpuZ80::op_unimpl<0xb1>,    &cpuZ80::op_unimpl<0xb2>, &cpuZ80::op_unimpl<0xb3>,
+  &cpuZ80::op_unimpl<0xb4>, &cpuZ80::op_unimpl<0xb5>,    &cpuZ80::op_unimpl<0xb6>, &cpuZ80::op_unimpl<0xb7>,
+  &cpuZ80::op_unimpl<0xb8>, &cpuZ80::op_unimpl<0xb9>,    &cpuZ80::op_unimpl<0xba>, &cpuZ80::op_unimpl<0xbb>,
+  &cpuZ80::op_unimpl<0xbc>, &cpuZ80::op_unimpl<0xbd>,    &cpuZ80::op_unimpl<0xbe>, &cpuZ80::op_unimpl<0xbf>,
+  &cpuZ80::op_unimpl<0xc0>, &cpuZ80::op_pop<0xc1>,       &cpuZ80::op_unimpl<0xc2>, &cpuZ80::op_jp<0xc3>,
+  &cpuZ80::op_unimpl<0xc4>, &cpuZ80::op_push<0xc5>,      &cpuZ80::op_unimpl<0xc6>, &cpuZ80::op_unimpl<0xc7>,
+  &cpuZ80::op_unimpl<0xc8>, &cpuZ80::op_ret<0xc9>,       &cpuZ80::op_unimpl<0xca>, &cpuZ80::cb_op_prefix<0xcb>,
+  &cpuZ80::op_unimpl<0xcc>, &cpuZ80::op_call<0xcd>,      &cpuZ80::op_unimpl<0xce>, &cpuZ80::op_unimpl<0xcf>,
+  &cpuZ80::op_unimpl<0xd0>, &cpuZ80::op_pop<0xd1>,       &cpuZ80::op_unimpl<0xd2>, &cpuZ80::op_unimpl<0xd3>,
+  &cpuZ80::op_unimpl<0xd4>, &cpuZ80::op_push<0xd5>,      &cpuZ80::op_unimpl<0xd6>, &cpuZ80::op_unimpl<0xd7>,
+  &cpuZ80::op_unimpl<0xd8>, &cpuZ80::op_exx<0xd9>,       &cpuZ80::op_unimpl<0xda>, &cpuZ80::op_unimpl<0xdb>,
   &cpuZ80::op_unimpl<0xdc>, &cpuZ80::dd_op_prefix<0xdd>, &cpuZ80::op_unimpl<0xde>, &cpuZ80::op_unimpl<0xdf>,
-  &cpuZ80::op_unimpl<0xe0>, &cpuZ80::op_unimpl<0xe1>, &cpuZ80::op_unimpl<0xe2>, &cpuZ80::op_unimpl<0xe3>,
-  &cpuZ80::op_unimpl<0xe4>, &cpuZ80::op_unimpl<0xe5>, &cpuZ80::op_unimpl<0xe6>, &cpuZ80::op_unimpl<0xe7>,
-  &cpuZ80::op_unimpl<0xe8>, &cpuZ80::op_unimpl<0xe9>, &cpuZ80::op_unimpl<0xea>, &cpuZ80::op_unimpl<0xeb>,
+  &cpuZ80::op_unimpl<0xe0>, &cpuZ80::op_pop<0xe1>,       &cpuZ80::op_unimpl<0xe2>, &cpuZ80::op_unimpl<0xe3>,
+  &cpuZ80::op_unimpl<0xe4>, &cpuZ80::op_push<0xe5>,      &cpuZ80::op_unimpl<0xe6>, &cpuZ80::op_unimpl<0xe7>,
+  &cpuZ80::op_unimpl<0xe8>, &cpuZ80::op_unimpl<0xe9>,    &cpuZ80::op_unimpl<0xea>, &cpuZ80::op_unimpl<0xeb>,
   &cpuZ80::op_unimpl<0xec>, &cpuZ80::ed_op_prefix<0xed>, &cpuZ80::op_unimpl<0xee>, &cpuZ80::op_unimpl<0xef>,
-  &cpuZ80::op_unimpl<0xf0>, &cpuZ80::op_unimpl<0xf1>, &cpuZ80::op_unimpl<0xf2>, &cpuZ80::op_di<0xf3>,
-  &cpuZ80::op_unimpl<0xf4>, &cpuZ80::op_unimpl<0xf5>, &cpuZ80::op_unimpl<0xf6>, &cpuZ80::op_unimpl<0xf7>,
-  &cpuZ80::op_unimpl<0xf8>, &cpuZ80::op_unimpl<0xf9>, &cpuZ80::op_unimpl<0xfa>, &cpuZ80::op_ei<0xfb>,
+  &cpuZ80::op_unimpl<0xf0>, &cpuZ80::op_pop<0xf1>,       &cpuZ80::op_unimpl<0xf2>, &cpuZ80::op_di<0xf3>,
+  &cpuZ80::op_unimpl<0xf4>, &cpuZ80::op_push<0xf5>,      &cpuZ80::op_unimpl<0xf6>, &cpuZ80::op_unimpl<0xf7>,
+  &cpuZ80::op_unimpl<0xf8>, &cpuZ80::op_unimpl<0xf9>,    &cpuZ80::op_unimpl<0xfa>, &cpuZ80::op_ei<0xfb>,
   &cpuZ80::op_unimpl<0xfc>, &cpuZ80::fd_op_prefix<0xfd>, &cpuZ80::op_unimpl<0xfe>, &cpuZ80::op_unimpl<0xff>
 };
 
@@ -212,8 +213,8 @@ std::array<z80OpPtr, 256> cpuZ80::dd_op_table = {
   &cpuZ80::op_unimpl<0xddd4>, &cpuZ80::op_unimpl<0xddd5>, &cpuZ80::op_unimpl<0xddd6>, &cpuZ80::op_unimpl<0xddd7>,
   &cpuZ80::op_unimpl<0xddd8>, &cpuZ80::op_unimpl<0xddd9>, &cpuZ80::op_unimpl<0xddda>, &cpuZ80::op_unimpl<0xdddb>,
   &cpuZ80::op_unimpl<0xdddc>, &cpuZ80::op_unimpl<0xdddd>, &cpuZ80::op_unimpl<0xddde>, &cpuZ80::op_unimpl<0xdddf>,
-  &cpuZ80::op_unimpl<0xdde0>, &cpuZ80::op_unimpl<0xdde1>, &cpuZ80::op_unimpl<0xdde2>, &cpuZ80::op_unimpl<0xdde3>,
-  &cpuZ80::op_unimpl<0xdde4>, &cpuZ80::op_unimpl<0xdde5>, &cpuZ80::op_unimpl<0xdde6>, &cpuZ80::op_unimpl<0xdde7>,
+  &cpuZ80::op_unimpl<0xdde0>, &cpuZ80::op_pop<0xdde1>,    &cpuZ80::op_unimpl<0xdde2>, &cpuZ80::op_unimpl<0xdde3>,
+  &cpuZ80::op_unimpl<0xdde4>, &cpuZ80::op_push<0xdde5>,   &cpuZ80::op_unimpl<0xdde6>, &cpuZ80::op_unimpl<0xdde7>,
   &cpuZ80::op_unimpl<0xdde8>, &cpuZ80::op_unimpl<0xdde9>, &cpuZ80::op_unimpl<0xddea>, &cpuZ80::op_unimpl<0xddeb>,
   &cpuZ80::op_unimpl<0xddec>, &cpuZ80::op_unimpl<0xdded>, &cpuZ80::op_unimpl<0xddee>, &cpuZ80::op_unimpl<0xddef>,
   &cpuZ80::op_unimpl<0xddf0>, &cpuZ80::op_unimpl<0xddf1>, &cpuZ80::op_unimpl<0xddf2>, &cpuZ80::op_unimpl<0xddf3>,
@@ -247,11 +248,11 @@ std::array<z80OpPtr, 256> cpuZ80::ed_op_table = {
   &cpuZ80::op_unimpl<0xed94>, &cpuZ80::op_unimpl<0xed95>, &cpuZ80::op_unimpl<0xed96>, &cpuZ80::op_unimpl<0xed97>,
   &cpuZ80::op_unimpl<0xed98>, &cpuZ80::op_unimpl<0xed99>, &cpuZ80::op_unimpl<0xed9a>, &cpuZ80::op_unimpl<0xed9b>,
   &cpuZ80::op_unimpl<0xed9c>, &cpuZ80::op_unimpl<0xed9d>, &cpuZ80::op_unimpl<0xed9e>, &cpuZ80::op_unimpl<0xed9f>,
-  &cpuZ80::op_unimpl<0xeda0>, &cpuZ80::op_unimpl<0xeda1>, &cpuZ80::op_unimpl<0xeda2>, &cpuZ80::op_unimpl<0xeda3>,
+  &cpuZ80::op_unimpl<0xeda0>, &cpuZ80::op_unimpl<0xeda1>, &cpuZ80::op_unimpl<0xeda2>, &cpuZ80::op_out<0xeda3>,
   &cpuZ80::op_unimpl<0xeda4>, &cpuZ80::op_unimpl<0xeda5>, &cpuZ80::op_unimpl<0xeda6>, &cpuZ80::op_unimpl<0xeda7>,
   &cpuZ80::op_unimpl<0xeda8>, &cpuZ80::op_unimpl<0xeda9>, &cpuZ80::op_unimpl<0xedaa>, &cpuZ80::op_unimpl<0xedab>,
   &cpuZ80::op_unimpl<0xedac>, &cpuZ80::op_unimpl<0xedad>, &cpuZ80::op_unimpl<0xedae>, &cpuZ80::op_unimpl<0xedaf>,
-  &cpuZ80::op_unimpl<0xedb0>, &cpuZ80::op_unimpl<0xedb1>, &cpuZ80::op_unimpl<0xedb2>, &cpuZ80::op_unimpl<0xedb3>,
+  &cpuZ80::op_unimpl<0xedb0>, &cpuZ80::op_unimpl<0xedb1>, &cpuZ80::op_unimpl<0xedb2>, &cpuZ80::op_out<0xedb3>,
   &cpuZ80::op_unimpl<0xedb4>, &cpuZ80::op_unimpl<0xedb5>, &cpuZ80::op_unimpl<0xedb6>, &cpuZ80::op_unimpl<0xedb7>,
   &cpuZ80::op_unimpl<0xedb8>, &cpuZ80::op_unimpl<0xedb9>, &cpuZ80::op_unimpl<0xedba>, &cpuZ80::op_unimpl<0xedbb>
 };
@@ -313,8 +314,8 @@ std::array<z80OpPtr, 256> cpuZ80::fd_op_table = {
   &cpuZ80::op_unimpl<0xfdd4>, &cpuZ80::op_unimpl<0xfdd5>, &cpuZ80::op_unimpl<0xfdd6>, &cpuZ80::op_unimpl<0xfdd7>,
   &cpuZ80::op_unimpl<0xfdd8>, &cpuZ80::op_unimpl<0xfdd9>, &cpuZ80::op_unimpl<0xfdda>, &cpuZ80::op_unimpl<0xfddb>,
   &cpuZ80::op_unimpl<0xfddc>, &cpuZ80::op_unimpl<0xfddd>, &cpuZ80::op_unimpl<0xfdde>, &cpuZ80::op_unimpl<0xfddf>,
-  &cpuZ80::op_unimpl<0xfde0>, &cpuZ80::op_unimpl<0xfde1>, &cpuZ80::op_unimpl<0xfde2>, &cpuZ80::op_unimpl<0xfde3>,
-  &cpuZ80::op_unimpl<0xfde4>, &cpuZ80::op_unimpl<0xfde5>, &cpuZ80::op_unimpl<0xfde6>, &cpuZ80::op_unimpl<0xfde7>,
+  &cpuZ80::op_unimpl<0xfde0>, &cpuZ80::op_pop<0xfde1>,    &cpuZ80::op_unimpl<0xfde2>, &cpuZ80::op_unimpl<0xfde3>,
+  &cpuZ80::op_unimpl<0xfde4>, &cpuZ80::op_push<0xfde5>,   &cpuZ80::op_unimpl<0xfde6>, &cpuZ80::op_unimpl<0xfde7>,
   &cpuZ80::op_unimpl<0xfde8>, &cpuZ80::op_unimpl<0xfde9>, &cpuZ80::op_unimpl<0xfdea>, &cpuZ80::op_unimpl<0xfdeb>,
   &cpuZ80::op_unimpl<0xfdec>, &cpuZ80::op_unimpl<0xfded>, &cpuZ80::op_unimpl<0xfdee>, &cpuZ80::op_unimpl<0xfdef>,
   &cpuZ80::op_unimpl<0xfdf0>, &cpuZ80::op_unimpl<0xfdf1>, &cpuZ80::op_unimpl<0xfdf2>, &cpuZ80::op_unimpl<0xfdf3>,
@@ -460,30 +461,35 @@ std::array<z80OpPtr, 256> cpuZ80::fdcb_op_table = {
 template <uint32_t OPCODE>
 uint64_t cpuZ80::cb_op_prefix(uint8_t opcode) {
     opcode = memory->readByte(pc++);
+    printf(" %x", opcode);
     return CALL_MEMBER_FN(this, cb_op_table[opcode])(opcode);
 }
 
 template <uint32_t OPCODE>
 uint64_t cpuZ80::dd_op_prefix(uint8_t opcode) {
     opcode = memory->readByte(pc++);
+    printf(" %x", opcode);
     return CALL_MEMBER_FN(this, dd_op_table[opcode])(opcode);
 }
 
 template <uint32_t OPCODE>
 uint64_t cpuZ80::ed_op_prefix(uint8_t opcode) {
     opcode = memory->readByte(pc++);
+    printf(" %x", opcode);
     return CALL_MEMBER_FN(this, ed_op_table[opcode - 0x40])(opcode);
 }
 
 template <uint32_t OPCODE>
 uint64_t cpuZ80::fd_op_prefix(uint8_t opcode) {
     opcode = memory->readByte(pc++);
+    printf(" %x", opcode);
     return CALL_MEMBER_FN(this, fd_op_table[opcode])(opcode);
 }
 
 template <uint32_t OPCODE>
 uint64_t cpuZ80::ddcb_op_prefix(uint8_t opcode) {
     opcode = memory->readByte(pc++);
+    printf(" %x", opcode);
     return CALL_MEMBER_FN(this, ddcb_op_table[opcode])(opcode);
 }
 
@@ -491,6 +497,7 @@ uint64_t cpuZ80::ddcb_op_prefix(uint8_t opcode) {
 template <uint32_t OPCODE>
 uint64_t cpuZ80::fdcb_op_prefix(uint8_t opcode) {
     opcode = memory->readByte(pc++);
+    printf(" %x", opcode);
     return CALL_MEMBER_FN(this, fdcb_op_table[opcode])(opcode);
 }
 
@@ -499,23 +506,26 @@ uint64_t cpuZ80::decode(uint8_t opcode) {
 }
 
 void cpuZ80::push(uint16_t val) {
+    std::printf("\tPush %04x to %04x", val, sp-2);
     memory->writeWord(sp - 2, val);
     sp -= 2;
 }
 
 uint16_t cpuZ80::pop() {
     uint16_t val = memory->readWord(sp);
+    std::printf("\tPop %04x from %04x", val, sp);
     sp += 2;
     return val;
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_unimpl(uint8_t opcode) {
-    std::cout<<"Opcode "<<std::hex<<OPCODE<<" not implemented."<<std::endl;
+    std::cout<<"\nOpcode "<<std::hex<<OPCODE<<" not implemented.\n";
     return -1;
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_call(uint8_t opcode) { // CALL 17
     uint16_t address = memory->readWord(pc);
+    std::printf(" %04x", address);
     pc+=2;
     push(pc);
     pc = address;
@@ -563,6 +573,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_jp(uint8_t opcode) {
     switch(OPCODE) {
     case 0xc3: { //JP nn 4,3,3
             uint16_t jump_addr = memory->readWord(pc);
+            std::printf(" %04x", jump_addr);
             pc = jump_addr;
             return 1;
         }
@@ -575,6 +586,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_ld8ri(uint8_t opcode) { //LD r,im
                                &(hl.hi), &(hl.low),  &dummy8, &(af.hi)};
     constexpr uint8_t dest_index = ((OPCODE>>3) & 0x07);
     *regset[dest_index] = memory->readByte(pc++);
+    std::printf(" %02x", *regset[dest_index]);
 
     return 1;
 }
@@ -590,34 +602,71 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_ld8rr(uint8_t opcode) { //LD r,r 
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_ld16(uint8_t opcode) {
+    uint16_t immediate = memory->readWord(pc);
+    std::printf(" %04x", immediate);
+    pc+=2;
     switch(OPCODE) {
-    case 0x01: { //LD BC, nn 4,3,3
-            uint16_t immediate = memory->readWord(pc);
-            pc+=2;
+    case 0x01: //LD BC, nn 4,3,3
             bc.pair = immediate;
-            return 1;
-        }
-    case 0x11: { //LD DE, nn 4,3,3
-            uint16_t immediate = memory->readWord(pc);
-            pc+=2;
+            break;
+    case 0x11: //LD DE, nn 4,3,3
             de.pair = immediate;
-            return 1;
-        }
-    case 0x21: { //LD HL, nn 4,3,3
-            uint16_t immediate = memory->readWord(pc);
-            pc+=2;
+            break;
+    case 0x21: //LD HL, nn 4,3,3
             hl.pair = immediate;
-            return 1;
-        }
-    case 0x31: { //LD SP, nn 4,3,3
-            uint16_t immediate = memory->readWord(pc);
-            pc+=2;
+            break;
+    case 0x31: //LD SP, nn 4,3,3
             sp = immediate;
-            return 1;
-        }
+            break;
     }
+    return 1;
 }
 
-template <uint32_t OPCODE> uint64_t cpuZ80::op_nop(uint8_t opcode) { // NOP
+template <uint32_t OPCODE> uint64_t cpuZ80::op_nop(uint8_t opcode) { // NOP 4
     return 1;
+}
+
+template <uint32_t OPCODE> uint64_t cpuZ80::op_out(uint8_t opcode) { // OUTI 16 OTIR 21/16
+    uint8_t val = memory->readByte(hl.pair);
+    memory->writePortByte(bc.low, val);
+    hl.pair++;
+    bc.hi--;
+
+    if(OPCODE == 0xedb3) {
+        if(bc.hi != 0) {
+            pc -= 2; // repeat the same opcode
+            return 21;
+        }
+    }
+
+    return 16;
+}
+
+template <uint32_t OPCODE> uint64_t cpuZ80::op_pop(uint8_t opcode) { // PUSH bc/de/hl/af 10 PUSH ix/iy 14
+    switch(OPCODE) {
+    case 0xC1: bc.pair = pop(); break;
+    case 0xD1: de.pair = pop(); break;
+    case 0xE1: hl.pair = pop(); break;
+    case 0xF1: af.pair = pop(); break;
+    case 0xDDE1: ix.pair = pop(); return 14;
+    case 0xFDE1: iy.pair = pop(); return 14;
+    }
+    return 10;
+}
+
+template <uint32_t OPCODE> uint64_t cpuZ80::op_push(uint8_t opcode) { // PUSH bc/de/hl/af 11 PUSH ix/iy 15
+    switch(OPCODE) {
+    case 0xC5: push(bc.pair); break;
+    case 0xD5: push(de.pair); break;
+    case 0xE5: push(hl.pair); break;
+    case 0xF5: push(af.pair); break;
+    case 0xDDE5: push(ix.pair); return 15;
+    case 0xFDE5: push(iy.pair); return 15;
+    }
+    return 11;
+}
+
+template <uint32_t OPCODE> uint64_t cpuZ80::op_ret(uint8_t opcode) { // RET 10
+    pc = pop();
+    return 10;
 }

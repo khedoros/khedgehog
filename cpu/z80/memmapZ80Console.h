@@ -14,6 +14,9 @@ public:
     uint16_t& readWord(uint32_t addr) override;
     uint32_t& readLong(uint32_t addr) override;
 
+    uint8_t readPortByte(uint8_t port);
+    void writePortByte(uint8_t port, uint8_t val);
+
 private:
     uint8_t& map(uint32_t addr) override;
 

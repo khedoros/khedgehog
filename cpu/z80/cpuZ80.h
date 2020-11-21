@@ -1,6 +1,7 @@
 #pragma once
 #include "../cpu.h"
-#include "../../memmap.h"
+//#include "../../memmap.h"
+#include "memmapZ80Console.h"
 #include<memory>
 #include<array>
 #include<cstdint>
@@ -13,7 +14,7 @@ using z80OpPtr = uint64_t (cpuZ80::*)(uint8_t);
 
 class cpuZ80 : public cpu {
 private:
-    std::shared_ptr<memmap> memory;
+    std::shared_ptr<memmapZ80Console> memory;
 
     struct regpair {
         union {
@@ -78,6 +79,10 @@ private:
     template <uint32_t OPCODE> uint64_t op_ld8ri(uint8_t);
     template <uint32_t OPCODE> uint64_t op_ld8rr(uint8_t);
     template <uint32_t OPCODE> uint64_t op_nop(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_out(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_pop(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_push(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_ret(uint8_t);
 
     uint64_t decode(uint8_t opcode);
     void push(uint16_t);
@@ -90,6 +95,6 @@ private:
 
 
 public:
-    cpuZ80(std::shared_ptr<memmap>);
+    cpuZ80(std::shared_ptr<memmapZ80Console>);
     uint64_t calc(uint64_t);
 };
