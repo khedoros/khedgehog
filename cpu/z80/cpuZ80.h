@@ -70,6 +70,9 @@ private:
     template <uint32_t OPCODE> uint64_t ddcb_op_prefix(uint8_t);
     template <uint32_t OPCODE> uint64_t fdcb_op_prefix(uint8_t);
     template <uint32_t OPCODE> uint64_t op_call(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_ccf(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_cpl(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_daa(uint8_t);
     template <uint32_t OPCODE> uint64_t op_decr16(uint8_t);
     template <uint32_t OPCODE> uint64_t op_decr8(uint8_t);
     template <uint32_t OPCODE> uint64_t op_di(uint8_t);
@@ -79,6 +82,7 @@ private:
     template <uint32_t OPCODE> uint64_t op_incr16(uint8_t);
     template <uint32_t OPCODE> uint64_t op_incr8(uint8_t);
     template <uint32_t OPCODE> uint64_t op_jp(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_jr(uint8_t);
     template <uint32_t OPCODE> uint64_t op_ld16(uint8_t);
     template <uint32_t OPCODE> uint64_t op_ld8ri(uint8_t);
     template <uint32_t OPCODE> uint64_t op_ld8rr(uint8_t);
@@ -87,10 +91,13 @@ private:
     template <uint32_t OPCODE> uint64_t op_pop(uint8_t);
     template <uint32_t OPCODE> uint64_t op_push(uint8_t);
     template <uint32_t OPCODE> uint64_t op_ret(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_scf(uint8_t);
 
     uint64_t decode(uint8_t opcode);
     void push(uint16_t);
     uint16_t pop();
+    static constexpr std::array<bool, 256> setParityArray(); //utility for parity-calculation
+    static std::array<bool, 256> parity;
 
     template <uint32_t OPCODE> uint64_t op_unimpl(uint8_t);
 
