@@ -71,6 +71,10 @@ private:
     template <uint32_t OPCODE> uint64_t fdcb_op_prefix(uint8_t);
     template <uint32_t OPCODE> uint64_t op_alu(uint8_t);
     template <uint32_t OPCODE> uint64_t op_call(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_cbrot(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_cbbit(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_cbres(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_cbset(uint8_t);
     template <uint32_t OPCODE> uint64_t op_ccf(uint8_t);
     template <uint32_t OPCODE> uint64_t op_cpl(uint8_t);
     template <uint32_t OPCODE> uint64_t op_daa(uint8_t);
@@ -99,6 +103,10 @@ private:
     uint16_t pop();
     static constexpr std::array<bool, 256> setParityArray(); //utility for parity-calculation
     static std::array<bool, 256> parity;
+    bool addition_overflows(int8_t a, int8_t b);
+    bool addition_underflows(int8_t a, int8_t b);
+    bool subtraction_overflows(int8_t a, int8_t b);
+    bool subtraction_underflows(int8_t a, int8_t b);
 
     template <uint32_t OPCODE> uint64_t op_unimpl(uint8_t);
 

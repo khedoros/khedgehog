@@ -1,5 +1,6 @@
 #include "cpuZ80.h"
 #include<iostream>
+#include<limits>
 
 uint64_t cpuZ80::calc(uint64_t cycles_to_run) {
     cycles_remaining += cycles_to_run;
@@ -509,17 +510,19 @@ uint64_t cpuZ80::fd_op_prefix(uint8_t opcode) {
 
 template <uint32_t OPCODE>
 uint64_t cpuZ80::ddcb_op_prefix(uint8_t opcode) {
+    uint8_t displacement = memory->readByte(pc++);
     opcode = memory->readByte(pc++);
-    printf(" %x", opcode);
-    return CALL_MEMBER_FN(this, ddcb_op_table[opcode])(opcode);
+    printf(" %x %x", displacement, opcode);
+    return CALL_MEMBER_FN(this, ddcb_op_table[opcode])(displacement);
 }
 
 
 template <uint32_t OPCODE>
 uint64_t cpuZ80::fdcb_op_prefix(uint8_t opcode) {
+    uint8_t displacement = memory->readByte(pc++);
     opcode = memory->readByte(pc++);
     printf(" %x", opcode);
-    return CALL_MEMBER_FN(this, fdcb_op_table[opcode])(opcode);
+    return CALL_MEMBER_FN(this, fdcb_op_table[opcode])(displacement);
 }
 
 uint64_t cpuZ80::decode(uint8_t opcode) {
@@ -558,6 +561,22 @@ constexpr std::array<bool,256> cpuZ80::setParityArray() { // Calculate number of
     return parArray;
 }
 
+bool cpuZ80::addition_overflows(int8_t a, int8_t b) {
+    return (b >= 0) && ( a > std::numeric_limits<int8_t>::max() - b);
+}
+
+bool cpuZ80::addition_underflows(int8_t a, int8_t b) {
+    return (b < 0) && (a < std::numeric_limits<int8_t>::min() - b);
+}
+
+bool cpuZ80::subtraction_overflows(int8_t a, int8_t b) {
+    return (b < 0) && (a > std::numeric_limits<int8_t>::max() + b);
+}
+
+bool cpuZ80::subtraction_underflows(int8_t a, int8_t b) {
+    return (b >= 0) && (a < std::numeric_limits<int8_t>::min() + b);
+}
+
 template <uint32_t OPCODE> uint64_t cpuZ80::op_unimpl(uint8_t opcode) {
     std::cout<<"\nOpcode "<<std::hex<<OPCODE<<" not implemented.\n";
     return -1;
@@ -583,7 +602,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { //
         if(temp_a > 0xff) set(CARRY_FLAG);
         else              clear(CARRY_FLAG);
 
-        if(!((af.hi ^ *regset[reg]) & 0x80) && ((af.hi ^ temp_a) & 0x80)) set(OVERFLOW_FLAG);
+        if(addition_overflows(af.hi, *regset[reg]) || addition_underflows(af.hi, *regset[reg])) set(OVERFLOW_FLAG);
         else clear(OVERFLOW_FLAG);
 
         if((af.hi & 0xf) + (*regset[reg] & 0xf) >= 0x10) set(HALF_CARRY_FLAG);
@@ -600,7 +619,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { //
         if(temp_a > 0xff) set(CARRY_FLAG);
         else              clear(CARRY_FLAG);
 
-        if(!((af.hi ^ *regset[reg]) & 0x80) && ((af.hi ^ temp_a) & 0x80)) set(OVERFLOW_FLAG);
+        if(addition_overflows(af.hi, *regset[reg] + (carry()?1:0)) || addition_underflows(af.hi, *regset[reg] + (carry()?1:0))) set(OVERFLOW_FLAG);
         else clear(OVERFLOW_FLAG);
 
         if((af.hi & 0xf) + (*regset[reg] & 0xf) >= 0x10) set(HALF_CARRY_FLAG);
@@ -618,6 +637,9 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { //
         if((*regset[reg] & 0xf) > (af.hi & 0xf)) set(HALF_CARRY_FLAG);
         else clear(HALF_CARRY_FLAG);
 
+        if(subtraction_overflows(af.hi, *regset[reg] - (carry()?1:0)) || subtraction_underflows(af.hi, *regset[reg] - (carry()?1:0))) set(OVERFLOW_FLAG);
+        else clear(OVERFLOW_FLAG);
+
         // TODO: Fix flags
 
         af.hi = temp_a;
@@ -631,6 +653,9 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { //
         else               clear(CARRY_FLAG);
 
         if((*regset[reg] & 0xf) + (carry()?1:0) > (af.hi & 0xf)) set(HALF_CARRY_FLAG);
+
+        if(subtraction_overflows(af.hi, *regset[reg] - (carry()?1:0)) || subtraction_underflows(af.hi, *regset[reg] - (carry()?1:0))) set(OVERFLOW_FLAG);
+        else clear(OVERFLOW_FLAG);
 
         // TODO: Fix flags
 
@@ -664,6 +689,15 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { //
         temp_a -= *regset[reg];
         set(SUB_FLAG);
 
+        if(temp_a > af.hi) set(CARRY_FLAG);
+        else               clear(CARRY_FLAG);
+
+        if((*regset[reg] & 0xf) > (af.hi & 0xf)) set(HALF_CARRY_FLAG);
+        else clear(HALF_CARRY_FLAG);
+
+        if(subtraction_overflows(af.hi, *regset[reg] - (carry()?1:0)) || subtraction_underflows(af.hi, *regset[reg] - (carry()?1:0))) set(OVERFLOW_FLAG);
+        else clear(OVERFLOW_FLAG);
+
         // TODO: Fix flags
 
         break;
@@ -686,6 +720,22 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_call(uint8_t opcode) { // CALL 17
     push(pc);
     pc = address;
     return 1;
+}
+
+template <uint32_t OPCODE> uint64_t cpuZ80::op_cbrot(uint8_t opcode) { // CB00 -> CB3F, DDCB00->DDCB3F, FDCB00->FDCB3F
+       return -1;
+}
+
+template <uint32_t OPCODE> uint64_t cpuZ80::op_cbbit(uint8_t opcode) { // CB40 -> CB7F, DDCB40->DDCB7F, FDCB40->FDCB7F
+       return -1;
+}
+
+template <uint32_t OPCODE> uint64_t cpuZ80::op_cbres(uint8_t opcode) { // CB80 -> CBBF, DDCB80->DDCBBF, FDCB80->FDCBBF
+       return -1;
+}
+
+template <uint32_t OPCODE> uint64_t cpuZ80::op_cbset(uint8_t opcode) { // CBC0 -> CBFF, DDCBC0->DDCBFF, FDCC40->FDCBFF
+       return -1;
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_ccf(uint8_t opcode) { // CCF 4
@@ -987,3 +1037,5 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_scf(uint8_t opcode) { // SCF 4
     set(CARRY_FLAG);
     return 4;
 }
+
+
