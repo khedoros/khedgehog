@@ -69,6 +69,7 @@ private:
     template <uint32_t OPCODE> uint64_t fd_op_prefix(uint8_t);
     template <uint32_t OPCODE> uint64_t ddcb_op_prefix(uint8_t);
     template <uint32_t OPCODE> uint64_t fdcb_op_prefix(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_alu(uint8_t);
     template <uint32_t OPCODE> uint64_t op_call(uint8_t);
     template <uint32_t OPCODE> uint64_t op_ccf(uint8_t);
     template <uint32_t OPCODE> uint64_t op_cpl(uint8_t);
