@@ -107,6 +107,7 @@ private:
     bool addition_underflows(int8_t a, int8_t b);
     bool subtraction_overflows(int8_t a, int8_t b);
     bool subtraction_underflows(int8_t a, int8_t b);
+    bool condition(int condition_number);
 
     template <uint32_t OPCODE> uint64_t op_unimpl(uint8_t);
 
