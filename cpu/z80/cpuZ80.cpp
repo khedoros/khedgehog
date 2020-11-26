@@ -45,21 +45,21 @@ cpuZ80::cpuZ80(std::shared_ptr<memmapZ80Console> memmap): memory(memmap), cycles
 #define carry() ((af.low & CARRY_FLAG))
 
 std::array<z80OpPtr, 256> cpuZ80::op_table = {
-  &cpuZ80::op_nop<0x00>,    &cpuZ80::op_ld16<0x01>,     &cpuZ80::op_unimpl<0x02>, &cpuZ80::op_incr16<0x03>,
+  &cpuZ80::op_nop<0x00>,    &cpuZ80::op_ld16<0x01>,     &cpuZ80::op_ld8rm<0x02>, &cpuZ80::op_incr16<0x03>,
   &cpuZ80::op_incr8<0x04>,  &cpuZ80::op_decr8<0x05>,    &cpuZ80::op_ld8ri<0x06>, &cpuZ80::op_unimpl<0x07>,
-  &cpuZ80::op_exx<0x08>,    &cpuZ80::op_unimpl<0x09>,   &cpuZ80::op_unimpl<0x0a>, &cpuZ80::op_decr16<0x0b>,
+  &cpuZ80::op_exx<0x08>,    &cpuZ80::op_unimpl<0x09>,   &cpuZ80::op_ld8rm<0x0a>, &cpuZ80::op_decr16<0x0b>,
   &cpuZ80::op_incr8<0x0c>,  &cpuZ80::op_decr8<0x0d>,    &cpuZ80::op_ld8ri<0x0e>, &cpuZ80::op_unimpl<0x0f>,
-  &cpuZ80::op_jr<0x10>,     &cpuZ80::op_ld16<0x11>,     &cpuZ80::op_unimpl<0x12>, &cpuZ80::op_incr16<0x13>,
+  &cpuZ80::op_jr<0x10>,     &cpuZ80::op_ld16<0x11>,     &cpuZ80::op_ld8rm<0x12>, &cpuZ80::op_incr16<0x13>,
   &cpuZ80::op_incr8<0x14>,  &cpuZ80::op_decr8<0x15>,    &cpuZ80::op_ld8ri<0x16>, &cpuZ80::op_unimpl<0x17>,
-  &cpuZ80::op_jr<0x18>,     &cpuZ80::op_unimpl<0x19>,   &cpuZ80::op_unimpl<0x1a>, &cpuZ80::op_decr16<0x1b>,
+  &cpuZ80::op_jr<0x18>,     &cpuZ80::op_unimpl<0x19>,   &cpuZ80::op_ld8rm<0x1a>, &cpuZ80::op_decr16<0x1b>,
   &cpuZ80::op_incr8<0x1c>,  &cpuZ80::op_decr8<0x1d>,    &cpuZ80::op_ld8ri<0x1e>, &cpuZ80::op_unimpl<0x1f>,
-  &cpuZ80::op_jr<0x20>,     &cpuZ80::op_ld16<0x21>,     &cpuZ80::op_unimpl<0x22>, &cpuZ80::op_incr16<0x23>,
+  &cpuZ80::op_jr<0x20>,     &cpuZ80::op_ld16<0x21>,     &cpuZ80::op_ld16rm<0x22>, &cpuZ80::op_incr16<0x23>,
   &cpuZ80::op_incr8<0x24>,  &cpuZ80::op_decr8<0x25>,    &cpuZ80::op_ld8ri<0x26>, &cpuZ80::op_daa<0x27>,
-  &cpuZ80::op_jr<0x28>,     &cpuZ80::op_unimpl<0x29>,   &cpuZ80::op_unimpl<0x2a>, &cpuZ80::op_decr16<0x2b>,
+  &cpuZ80::op_jr<0x28>,     &cpuZ80::op_unimpl<0x29>,   &cpuZ80::op_ld16rm<0x2a>, &cpuZ80::op_decr16<0x2b>,
   &cpuZ80::op_incr8<0x2c>,  &cpuZ80::op_decr8<0x2d>,    &cpuZ80::op_ld8ri<0x2e>, &cpuZ80::op_cpl<0x2f>,
-  &cpuZ80::op_jr<0x30>,     &cpuZ80::op_ld16<0x31>,     &cpuZ80::op_unimpl<0x32>, &cpuZ80::op_incr16<0x33>,
-  &cpuZ80::op_unimpl<0x34>, &cpuZ80::op_unimpl<0x35>,   &cpuZ80::op_unimpl<0x36>, &cpuZ80::op_scf<0x37>,
-  &cpuZ80::op_jr<0x38>,     &cpuZ80::op_unimpl<0x39>,   &cpuZ80::op_unimpl<0x3a>, &cpuZ80::op_decr16<0x3b>,
+  &cpuZ80::op_jr<0x30>,     &cpuZ80::op_ld16<0x31>,     &cpuZ80::op_ld8rm<0x32>, &cpuZ80::op_incr16<0x33>,
+  &cpuZ80::op_unimpl<0x34>, &cpuZ80::op_unimpl<0x35>,   &cpuZ80::op_ld8ri<0x36>, &cpuZ80::op_scf<0x37>,
+  &cpuZ80::op_jr<0x38>,     &cpuZ80::op_unimpl<0x39>,   &cpuZ80::op_ld8rm<0x3a>, &cpuZ80::op_decr16<0x3b>,
   &cpuZ80::op_incr8<0x3c>,  &cpuZ80::op_decr8<0x3d>,    &cpuZ80::op_ld8ri<0x3e>, &cpuZ80::op_ccf<0x3f>,
   &cpuZ80::op_ld8rr<0x40>,  &cpuZ80::op_ld8rr<0x41>,    &cpuZ80::op_ld8rr<0x42>, &cpuZ80::op_ld8rr<0x43>,
   &cpuZ80::op_ld8rr<0x44>,  &cpuZ80::op_ld8rr<0x45>,    &cpuZ80::op_ld8rr<0x46>, &cpuZ80::op_ld8rr<0x47>,
@@ -968,15 +968,52 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_jr(uint8_t opcode) { //DJNZ and v
     return cycles;
 }
 
+template <uint32_t OPCODE> uint64_t cpuZ80::op_ld16rm(uint8_t opcode) {  //LD r16,(**), LD (**), r16
+    uint16_t address = memory->readWord(pc);
+    pc+=2;
+    if(OPCODE == 0x22) {
+        memory->writeWord(address, hl.pair);
+    }
+    else if(OPCODE == 0x2a) {
+        hl.pair = memory->readWord(address);
+    }
+    return 16;
+}
+
 template <uint32_t OPCODE> uint64_t cpuZ80::op_ld8ri(uint8_t opcode) { //LD r,immed 7
     uint8_t* const regset[] = {&(bc.hi), &(bc.low), &(de.hi), &(de.low),
                                &(hl.hi), &(hl.low),  &dummy8, &(af.hi)};
     constexpr uint8_t dest_index = ((OPCODE>>3) & 0x07);
+    uint64_t cycles = 7;
     *regset[dest_index] = memory->readByte(pc++);
+    if(dest_index == 6) {
+        cycles = 10;
+        memory->writeByte(hl.pair, dummy8);
+    }
     std::printf(" %02x", *regset[dest_index]);
 
-    return 7;
+    return cycles;
 }
+
+template <uint32_t OPCODE> uint64_t cpuZ80::op_ld8rm(uint8_t opcode) { //LD a,(r16) 7,  LD (r16), a 7, LD (**), a 13, LD a, (**) 13
+    uint16_t* const regset[] = {&(bc.pair), &(de.pair), &dummy16, &dummy16};
+    constexpr uint8_t index = (OPCODE>>4);
+    uint64_t cycles = 7;
+    if(index == 3) {
+        dummy16 = memory->readWord(pc);
+        pc+=2;
+        cycles = 13;
+        std::printf(" %04x", dummy16);
+    }
+    if((OPCODE & 0x8) == 0x8) { // read from memory
+        af.hi = memory->readByte(*regset[index]);
+    }
+    else { // write to memory
+        memory->writeByte(*regset[index], af.hi);
+    }
+    return cycles;
+}
+
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_ld8rr(uint8_t opcode) { //LD r,r 4
     uint8_t* const regset[] = {&(bc.hi), &(bc.low), &(de.hi), &(de.low),
