@@ -45,6 +45,16 @@ uint8_t& memmapZ80Console::readByte(uint32_t addr) {
 uint8_t memmapZ80Console::readPortByte(uint8_t port) {
     // TODO: Implement :-D
     std::printf(" port %02x >> [dummy]", port);
+    switch(port) {
+        case 0x7e: case 0x7f: std::printf(" (current video line)"); break;
+        case 0xbd: case 0xbf: std::printf(" (read VDP status bits)"); break;
+        case 0xbe: std::printf(" (read VDP data)"); break;
+        case 0xc0: case 0xdc: std::printf(" (joystick port 1)"); break;
+        case 0xc1: case 0xdd: std::printf(" (joystick port 2 + nationalization)"); break;
+        case 0xde: case 0xdf: std::printf(" (unknown port)"); break;
+        case 0xf2: std::printf(" (YM2413 control register)"); break;
+        default: std::printf(" (no info on port)"); break;
+    }
     return 0xff;
 }
 
@@ -71,6 +81,17 @@ void memmapZ80Console::writeLong(uint32_t addr, uint32_t val) {}
 
 void memmapZ80Console::writePortByte(uint8_t port, uint8_t val) {
     std::printf(" port %02x << %02x", port, val);
+    switch(port) {
+        case 0x3f: std::printf(" (automatic nationalization)"); break;
+        case 0x7e: case 0x7f: std::printf(" (PSG SN76489 output control)"); break;
+        case 0xbd: case 0xbf: std::printf(" write VDP address)"); break;
+        case 0xbe: std::printf(" (write VDP data)"); break;
+        case 0xde: case 0xdf: std::printf(" (unknown port)"); break;
+        case 0xf0: std::printf(" (YM2413 address register)"); break;
+        case 0xf1: std::printf(" (YM2413 data register)"); break;
+        case 0xf2: std::printf(" (YM2413 control register)"); break;
+        default: std::printf(" (no info on port)"); break;
+    }
 }
 
 uint8_t& memmapZ80Console::map(uint32_t addr) {
