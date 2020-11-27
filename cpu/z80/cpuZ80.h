@@ -54,6 +54,7 @@ private:
     //interrupt mode 2: I (int_vect) contains high byte, device provides low byte, CPU executes indirect call
 
     int64_t cycles_remaining;
+    uint64_t total_cycles;
 
     static std::array<z80OpPtr, 256> op_table;
     static std::array<z80OpPtr, 256> cb_op_table;
