@@ -26,8 +26,8 @@ uint64_t cpuZ80::calc(uint64_t cycles_to_run) {
     return 1;
 }
 
-cpuZ80::cpuZ80(std::shared_ptr<memmapZ80Console> memmap): memory(memmap), cycles_remaining(0), pc(0), iff1(false), iff2(false), total_cycles(0)  {
-
+cpuZ80::cpuZ80(std::shared_ptr<memmapZ80Console> memmap): memory(memmap), cycles_remaining(0), pc(0), iff1(false), iff2(false), total_cycles(0), halted(false)  {
+    reset();
 }
 
 //CPU status flags
@@ -50,6 +50,18 @@ cpuZ80::cpuZ80(std::shared_ptr<memmapZ80Console> memmap): memory(memmap), cycles
 #define overflow() ((af.low & OVERFLOW_FLAG)>>(2))
 #define sub() ((af.low & SUB_FLAG)>>(1))
 #define carry() ((af.low & CARRY_FLAG))
+
+void cpuZ80::reset() { // Jump to 0
+
+}
+
+void cpuZ80::nmi() { // Pause button, jump to 66h
+
+}
+
+void cpuZ80::interrupt(uint8_t vector) { // Maskable interrupts, no vector provided on data bus, so it jumps to 38h
+
+}
 
 std::array<z80OpPtr, 256> cpuZ80::op_table = {
   &cpuZ80::op_nop<0x00>,     &cpuZ80::op_ld16<0x01>,      &cpuZ80::op_ld8rm<0x02>,  &cpuZ80::op_incr16<0x03>,

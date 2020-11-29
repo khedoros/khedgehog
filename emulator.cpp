@@ -20,7 +20,7 @@ std::shared_ptr<emulator> emulator::getEmulator(std::shared_ptr<config> cfg) {
     switch(cfg->getSystemType()) {
         case sg_1000: return std::make_shared<smsEmulator>(cfg);
         case masterSystem: return std::make_shared<smsEmulator>(cfg);
-        case gameGear: return std::make_shared<ggEmulator>(cfg);
+        case gameGear: return std::make_shared<smsEmulator>(cfg);
         case genesis: return std::make_shared<genesisEmulator>(cfg);
         case invalidSystem: std::cerr<<"Detected an invalid system type.\n"; break;
         case uncheckedSystem: std::cerr<<"System type hasn't been checked.\n"; break;
@@ -71,30 +71,15 @@ int genesisEmulator::run() {
 
 smsEmulator::smsEmulator(std::shared_ptr<config> config) {
     cfg = config;
-    cpu_map = std::make_shared<memmapZ80Console>(config);
-    cpu_dev = std::make_shared<cpuZ80>(cpu_map);
-    apu_dev = std::make_shared<apuMS>();
     io = std::make_shared<ioMgr>();
+    apu_dev = std::make_shared<apuMS>();
     vdp_dev = std::make_shared<vdpMS>();
+    cpu_map = std::make_shared<memmapZ80Console>(config, vdp_dev, apu_dev);
+    cpu_dev = std::make_shared<cpuZ80>(cpu_map);
 }
 
 int smsEmulator::run() {
     std::cout<<"Hi, I'm the Master System emulator!"<<std::endl;
-    emulator::run();
-    return -1;
-}
-
-ggEmulator::ggEmulator(std::shared_ptr<config> config) {
-    cfg = config;
-    cpu_map = std::make_shared<memmapZ80Console>(config);
-    cpu_dev = std::make_shared<cpuZ80>(cpu_map);
-    apu_dev = std::make_shared<apuGG>();
-    io = std::make_shared<ioMgr>();
-    vdp_dev = std::make_shared<vdpGG>();
-}
-
-int ggEmulator::run() {
-    std::cout<<"Hi, I'm the Game Gear emulator!"<<std::endl;
     emulator::run();
     return -1;
 }

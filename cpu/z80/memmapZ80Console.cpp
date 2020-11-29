@@ -1,27 +1,10 @@
-/*#include "memmapZ80Console.h"
-
-uint8_t memmapZ80Console::readByte(uint32_t addr) {
-    return dummy8;
-}
-
-uint16_t memmapZ80Console::readWord(uint32_t addr) {
-    return dummy16;
-}
-
-uint32_t memmapZ80Console::readLong(uint32_t addr) {
-    return dummy32;
-}
-
-void memmapZ80Console::writeByte(uint32_t addr, uint8_t val) {}
-void memmapZ80Console::writeWord(uint32_t addr, uint16_t val) {}
-void memmapZ80Console::writeLong(uint32_t addr, uint32_t val) {}
-*/
-
 #include "memmapZ80Console.h"
+#include "../../vdp/masterSystem/vdpMS.h"
+#include "../../apu/masterSystem/apuMS.h"
 #include<iostream>
 #include<fstream>
 
-memmapZ80Console::memmapZ80Console(std::shared_ptr<config> cfg) : map_ctrl(0), map_slot0(0), map_slot1(1), map_slot2(2) {
+memmapZ80Console::memmapZ80Console(std::shared_ptr<config> cfg, std::shared_ptr<vdpMS> v, std::shared_ptr<apuMS> a) : map_ctrl(0), map_slot0(0), map_slot1(1), map_slot2(2), vdp(v), apu(a) {
     std::ifstream romfile(cfg->getRomPath().c_str());
     if(!romfile.is_open()) {
         std::cerr<<"Couldn't open ROM at path \""<<cfg->getRomPath()<<"\"\n";

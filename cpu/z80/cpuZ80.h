@@ -41,6 +41,7 @@ private:
     uint8_t mem_refresh;
     uint16_t sp, pc;
     bool iff1, iff2; //interrupt enable registers
+    bool halted;
 
     enum intMode {
         mode0,
@@ -128,4 +129,7 @@ private:
 public:
     cpuZ80(std::shared_ptr<memmapZ80Console>);
     uint64_t calc(uint64_t);
+    void reset();
+    void nmi();
+    void interrupt(uint8_t vector);
 };
