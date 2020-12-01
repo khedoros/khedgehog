@@ -1,6 +1,6 @@
-objects:=config.o cpu/m68k/memmapM68k.o emulator.o main.o cpu/m68k/cpuM68k.o util.o cpu/z80/cpuZ80.o cpu/z80/memmapZ80Console.o
+objects:=config.o cpu/m68k/memmapM68k.o emulator.o main.o cpu/m68k/cpuM68k.o util.o cpu/z80/cpuZ80.o cpu/z80/memmapZ80Console.o vdp/masterSystem/vdpMS.o
 
-CXXFLAGS:=-std=c++17
+CXXFLAGS:=-std=c++17 -flto -O3
 
 ifdef DEBUG
     debug:=-g
@@ -10,7 +10,7 @@ else
 endif
 
 khedgehog: $(objects)
-	g++ $(debug) -o $@ $^
+	g++ $(debug) -flto -O3 -o $@ $^
 
 clean:
 	-rm khedgehog $(objects) 

@@ -1,29 +1,26 @@
 #include "cpuZ80.h"
 #include<iostream>
 #include<limits>
+#include "../../util.h"
 
-#define dbg_printf std::printf
-//#define dbg_printf dummy
-
-void dummy(const char* format, ...) {}
-
-uint64_t cpuZ80::calc(uint64_t cycles_to_run) {
+uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
     cycles_remaining += cycles_to_run;
     while(cycles_remaining > 0) {
-        uint8_t opcode = memory->readByte(pc++);
+        const uint8_t opcode = memory->readByte(pc++);
         dbg_printf("%04X: %02x", pc-1, opcode);
-        uint64_t inst_cycles = CALL_MEMBER_FN(this, op_table[opcode])(opcode);
+        const uint64_t inst_cycles = CALL_MEMBER_FN(this, op_table[opcode])(opcode);
         dbg_printf("\n");
 
         if(inst_cycles == uint64_t(-1)) {
             return 0;
         }
+
         cycles_remaining -= inst_cycles;
         total_cycles+=inst_cycles;
     }
-    //std::printf("total_cycles: %lld\n", total_cycles);
+    std::printf("total_cycles: %lld\n", total_cycles);
 
-    return 1;
+    return cycles_to_run - cycles_remaining;
 }
 
 cpuZ80::cpuZ80(std::shared_ptr<memmapZ80Console> memmap): memory(memmap), cycles_remaining(0), pc(0), iff1(false), iff2(false), total_cycles(0), halted(false)  {
@@ -63,7 +60,7 @@ void cpuZ80::interrupt(uint8_t vector) { // Maskable interrupts, no vector provi
 
 }
 
-std::array<z80OpPtr, 256> cpuZ80::op_table = {
+const std::array<z80OpPtr, 256> cpuZ80::op_table = {
   &cpuZ80::op_nop<0x00>,     &cpuZ80::op_ld16<0x01>,      &cpuZ80::op_ld8rm<0x02>,  &cpuZ80::op_incr16<0x03>,
   &cpuZ80::op_incr8<0x04>,   &cpuZ80::op_decr8<0x05>,     &cpuZ80::op_ld8ri<0x06>,  &cpuZ80::op_rot_a<0x07>,
   &cpuZ80::op_exx<0x08>,     &cpuZ80::op_add16<0x09>,     &cpuZ80::op_ld8rm<0x0a>,  &cpuZ80::op_decr16<0x0b>,
@@ -130,7 +127,7 @@ std::array<z80OpPtr, 256> cpuZ80::op_table = {
   &cpuZ80::op_call_cc<0xfc>, &cpuZ80::fd_op_prefix<0xfd>, &cpuZ80::op_alu<0xfe>,    &cpuZ80::op_call<0xff>
 };
 
-std::array<z80OpPtr, 256> cpuZ80::cb_op_table = {
+const std::array<z80OpPtr, 256> cpuZ80::cb_op_table = {
   &cpuZ80::op_cbrot<0xcb00>, &cpuZ80::op_cbrot<0xcb01>, &cpuZ80::op_cbrot<0xcb02>, &cpuZ80::op_cbrot<0xcb03>,
   &cpuZ80::op_cbrot<0xcb04>, &cpuZ80::op_cbrot<0xcb05>, &cpuZ80::op_cbrot<0xcb06>, &cpuZ80::op_cbrot<0xcb07>,
   &cpuZ80::op_cbrot<0xcb08>, &cpuZ80::op_cbrot<0xcb09>, &cpuZ80::op_cbrot<0xcb0a>, &cpuZ80::op_cbrot<0xcb0b>,
@@ -197,7 +194,7 @@ std::array<z80OpPtr, 256> cpuZ80::cb_op_table = {
   &cpuZ80::op_cbset<0xcbfc>, &cpuZ80::op_cbset<0xcbfd>, &cpuZ80::op_cbset<0xcbfe>, &cpuZ80::op_cbset<0xcbff>
 };
 
-std::array<z80OpPtr, 256> cpuZ80::dd_op_table = {
+const std::array<z80OpPtr, 256> cpuZ80::dd_op_table = {
   &cpuZ80::op_unimpl<0xdd00>, &cpuZ80::op_unimpl<0xdd01>, &cpuZ80::op_unimpl<0xdd02>, &cpuZ80::op_unimpl<0xdd03>,
   &cpuZ80::op_unimpl<0xdd04>, &cpuZ80::op_unimpl<0xdd05>, &cpuZ80::op_unimpl<0xdd06>, &cpuZ80::op_unimpl<0xdd07>,
   &cpuZ80::op_unimpl<0xdd08>, &cpuZ80::op_unimpl<0xdd09>, &cpuZ80::op_unimpl<0xdd0a>, &cpuZ80::op_unimpl<0xdd0b>,
@@ -264,7 +261,7 @@ std::array<z80OpPtr, 256> cpuZ80::dd_op_table = {
   &cpuZ80::op_unimpl<0xddfc>, &cpuZ80::op_unimpl<0xddfd>, &cpuZ80::op_unimpl<0xddfe>, &cpuZ80::op_unimpl<0xddff>
 };
 
-std::array<z80OpPtr, 256> cpuZ80::ed_op_table = {
+const std::array<z80OpPtr, 256> cpuZ80::ed_op_table = {
   &cpuZ80::op_in<0xed40>,     &cpuZ80::op_out<0xed41>,    &cpuZ80::op_unimpl<0xed42>, &cpuZ80::op_ld16rim<0xed43>,
   &cpuZ80::op_unimpl<0xed44>, &cpuZ80::op_unimpl<0xed45>, &cpuZ80::op_im<0xed46>, &cpuZ80::op_unimpl<0xed47>,
   &cpuZ80::op_in<0xed48>,     &cpuZ80::op_out<0xed49>,    &cpuZ80::op_unimpl<0xed4a>, &cpuZ80::op_ld16rim<0xed4b>,
@@ -298,7 +295,7 @@ std::array<z80OpPtr, 256> cpuZ80::ed_op_table = {
   &cpuZ80::op_ld8mm<0xedb8>,  &cpuZ80::op_unimpl<0xedb9>, &cpuZ80::op_in<0xedba>,     &cpuZ80::op_out<0xedbb>
 };
 
-std::array<z80OpPtr, 256> cpuZ80::fd_op_table = {
+const std::array<z80OpPtr, 256> cpuZ80::fd_op_table = {
   &cpuZ80::op_unimpl<0xfd00>, &cpuZ80::op_unimpl<0xfd01>, &cpuZ80::op_unimpl<0xfd02>, &cpuZ80::op_unimpl<0xfd03>,
   &cpuZ80::op_unimpl<0xfd04>, &cpuZ80::op_unimpl<0xfd05>, &cpuZ80::op_unimpl<0xfd06>, &cpuZ80::op_unimpl<0xfd07>,
   &cpuZ80::op_unimpl<0xfd08>, &cpuZ80::op_unimpl<0xfd09>, &cpuZ80::op_unimpl<0xfd0a>, &cpuZ80::op_unimpl<0xfd0b>,
@@ -365,7 +362,7 @@ std::array<z80OpPtr, 256> cpuZ80::fd_op_table = {
   &cpuZ80::op_unimpl<0xfdfc>, &cpuZ80::op_unimpl<0xfdfd>, &cpuZ80::op_unimpl<0xfdfe>, &cpuZ80::op_unimpl<0xfdff>
 };
 
-std::array<z80OpPtr, 256> cpuZ80::ddcb_op_table = {
+const std::array<z80OpPtr, 256> cpuZ80::ddcb_op_table = {
   &cpuZ80::op_cbrot<0xddcb00>, &cpuZ80::op_cbrot<0xddcb01>, &cpuZ80::op_cbrot<0xddcb02>, &cpuZ80::op_cbrot<0xddcb03>,
   &cpuZ80::op_cbrot<0xddcb04>, &cpuZ80::op_cbrot<0xddcb05>, &cpuZ80::op_cbrot<0xddcb06>, &cpuZ80::op_cbrot<0xddcb07>,
   &cpuZ80::op_cbrot<0xddcb08>, &cpuZ80::op_cbrot<0xddcb09>, &cpuZ80::op_cbrot<0xddcb0a>, &cpuZ80::op_cbrot<0xddcb0b>,
@@ -432,7 +429,7 @@ std::array<z80OpPtr, 256> cpuZ80::ddcb_op_table = {
   &cpuZ80::op_cbset<0xddcbfc>, &cpuZ80::op_cbset<0xddcbfd>, &cpuZ80::op_cbset<0xddcbfe>, &cpuZ80::op_cbset<0xddcbff>
 };
 
-std::array<z80OpPtr, 256> cpuZ80::fdcb_op_table = {
+const std::array<z80OpPtr, 256> cpuZ80::fdcb_op_table = {
   &cpuZ80::op_cbrot<0xfdcb00>, &cpuZ80::op_cbrot<0xfdcb01>, &cpuZ80::op_cbrot<0xfdcb02>, &cpuZ80::op_cbrot<0xfdcb03>,
   &cpuZ80::op_cbrot<0xfdcb04>, &cpuZ80::op_cbrot<0xfdcb05>, &cpuZ80::op_cbrot<0xfdcb06>, &cpuZ80::op_cbrot<0xfdcb07>,
   &cpuZ80::op_cbrot<0xfdcb08>, &cpuZ80::op_cbrot<0xfdcb09>, &cpuZ80::op_cbrot<0xfdcb0a>, &cpuZ80::op_cbrot<0xfdcb0b>,
@@ -502,28 +499,28 @@ std::array<z80OpPtr, 256> cpuZ80::fdcb_op_table = {
 template <uint32_t OPCODE>
 uint64_t cpuZ80::cb_op_prefix(uint8_t opcode) {
     opcode = memory->readByte(pc++);
-    printf(" %x", opcode);
+    dbg_printf(" %x", opcode);
     return CALL_MEMBER_FN(this, cb_op_table[opcode])(opcode);
 }
 
 template <uint32_t OPCODE>
 uint64_t cpuZ80::dd_op_prefix(uint8_t opcode) {
     opcode = memory->readByte(pc++);
-    printf(" %x", opcode);
+    dbg_printf(" %x", opcode);
     return CALL_MEMBER_FN(this, dd_op_table[opcode])(opcode);
 }
 
 template <uint32_t OPCODE>
 uint64_t cpuZ80::ed_op_prefix(uint8_t opcode) {
     opcode = memory->readByte(pc++);
-    printf(" %x", opcode);
+    dbg_printf(" %x", opcode);
     return CALL_MEMBER_FN(this, ed_op_table[opcode - 0x40])(opcode);
 }
 
 template <uint32_t OPCODE>
 uint64_t cpuZ80::fd_op_prefix(uint8_t opcode) {
     opcode = memory->readByte(pc++);
-    printf(" %x", opcode);
+    dbg_printf(" %x", opcode);
     return CALL_MEMBER_FN(this, fd_op_table[opcode])(opcode);
 }
 
@@ -531,7 +528,7 @@ template <uint32_t OPCODE>
 uint64_t cpuZ80::ddcb_op_prefix(uint8_t opcode) {
     uint8_t displacement = memory->readByte(pc++);
     opcode = memory->readByte(pc++);
-    printf(" %x %x", displacement, opcode);
+    dbg_printf(" %x %x", displacement, opcode);
     return CALL_MEMBER_FN(this, ddcb_op_table[opcode])(displacement);
 }
 
@@ -540,7 +537,7 @@ template <uint32_t OPCODE>
 uint64_t cpuZ80::fdcb_op_prefix(uint8_t opcode) {
     uint8_t displacement = memory->readByte(pc++);
     opcode = memory->readByte(pc++);
-    printf(" %x", opcode);
+    dbg_printf(" %x", opcode);
     return CALL_MEMBER_FN(this, fdcb_op_table[opcode])(displacement);
 }
 
@@ -1148,7 +1145,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_im(uint8_t opcode) { // IM0 IM1 I
         int_mode = mode2;
         break;
     }
-    return 1;
+    return 8;
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_in(uint8_t opcode) { // OUTI 16 OTIR 21/16 OUT 11

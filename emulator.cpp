@@ -11,10 +11,8 @@
 #include "cpu/z80/cpuZ80.h"
 #include "apu/genesis/apuGenesis.h"
 #include "apu/masterSystem/apuMS.h"
-#include "apu/gameGear/apuGG.h"
 #include "vdp/genesis/vdpGenesis.h"
 #include "vdp/masterSystem/vdpMS.h"
-#include "vdp/gameGear/vdpGG.h"
 
 std::shared_ptr<emulator> emulator::getEmulator(std::shared_ptr<config> cfg) {
     switch(cfg->getSystemType()) {

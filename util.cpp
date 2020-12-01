@@ -13,3 +13,4 @@ uint16_t bswap(uint16_t in) {
     return in;
 }
 
+void dummy(const char* format, ...) {}
