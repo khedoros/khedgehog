@@ -30,7 +30,8 @@ uint8_t memmapZ80Console::readPortByte(uint8_t port) {
     // TODO: Implement :-D
     dbg_printf(" port %02x >> [dummy]", port);
     switch(port) {
-        case 0x7e: case 0x7f: dbg_printf(" (current video line)"); break;
+        case 0x7e: dbg_printf(" (V counter)"); break;
+        case 0x7f: dbg_printf(" (H counter)"); break;
         case 0xbd: case 0xbf: dbg_printf(" (read VDP status bits)"); break;
         case 0xbe: dbg_printf(" (read VDP data)"); break;
         case 0xc0: case 0xdc: dbg_printf(" (joystick port 1)"); break;

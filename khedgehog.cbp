@@ -68,7 +68,6 @@
 		<Unit filename="cpu/m68k/memmapM68k.h" />
 		<Unit filename="cpu/z80/cpuZ80.cpp" />
 		<Unit filename="cpu/z80/cpuZ80.h" />
-		<Unit filename="cpu/z80/cpuZ80instructions.cpp" />
 		<Unit filename="cpu/z80/memmapZ80Console.cpp" />
 		<Unit filename="cpu/z80/memmapZ80Console.h" />
 		<Unit filename="emulator.cpp" />

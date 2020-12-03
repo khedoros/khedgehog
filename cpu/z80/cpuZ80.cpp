@@ -18,7 +18,7 @@ uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
         cycles_remaining -= inst_cycles;
         total_cycles+=inst_cycles;
     }
-    std::printf("total_cycles: %lld\n", total_cycles);
+    std::printf("total_cycles: %lu\n", total_cycles);
 
     return cycles_to_run - cycles_remaining;
 }
