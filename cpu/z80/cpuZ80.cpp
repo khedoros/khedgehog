@@ -60,6 +60,11 @@ void cpuZ80::interrupt(uint8_t vector) { // Maskable interrupts, no vector provi
 
 }
 
+cpuZ80::int_type_t cpuZ80::check_interrupts() {
+	// TODO: implement real interrupt checking
+	return int_type_t::irq_int;
+}
+
 const std::array<z80OpPtr, 256> cpuZ80::op_table = {
   &cpuZ80::op_nop<0x00>,     &cpuZ80::op_ld16<0x01>,      &cpuZ80::op_ld8rm<0x02>,  &cpuZ80::op_incr16<0x03>,
   &cpuZ80::op_incr8<0x04>,   &cpuZ80::op_decr8<0x05>,     &cpuZ80::op_ld8ri<0x06>,  &cpuZ80::op_rot_a<0x07>,
@@ -90,7 +95,7 @@ const std::array<z80OpPtr, 256> cpuZ80::op_table = {
   &cpuZ80::op_ld8rr<0x68>,   &cpuZ80::op_ld8rr<0x69>,     &cpuZ80::op_ld8rr<0x6a>,  &cpuZ80::op_ld8rr<0x6b>,
   &cpuZ80::op_ld8rr<0x6c>,   &cpuZ80::op_ld8rr<0x6d>,     &cpuZ80::op_ld8rr<0x6e>,  &cpuZ80::op_ld8rr<0x6f>,
   &cpuZ80::op_ld8rr<0x70>,   &cpuZ80::op_ld8rr<0x71>,     &cpuZ80::op_ld8rr<0x72>,  &cpuZ80::op_ld8rr<0x73>,
-  &cpuZ80::op_ld8rr<0x74>,   &cpuZ80::op_ld8rr<0x75>,     &cpuZ80::op_unimpl<0x76>, &cpuZ80::op_ld8rr<0x77>,
+  &cpuZ80::op_ld8rr<0x74>,   &cpuZ80::op_ld8rr<0x75>,     &cpuZ80::op_halt<0x76>,   &cpuZ80::op_ld8rr<0x77>,
   &cpuZ80::op_ld8rr<0x78>,   &cpuZ80::op_ld8rr<0x79>,     &cpuZ80::op_ld8rr<0x7a>,  &cpuZ80::op_ld8rr<0x7b>,
   &cpuZ80::op_ld8rr<0x7c>,   &cpuZ80::op_ld8rr<0x7d>,     &cpuZ80::op_ld8rr<0x7e>,  &cpuZ80::op_ld8rr<0x7f>,
   &cpuZ80::op_alu<0x80>,     &cpuZ80::op_alu<0x81>,       &cpuZ80::op_alu<0x82>,    &cpuZ80::op_alu<0x83>,
@@ -262,22 +267,22 @@ const std::array<z80OpPtr, 256> cpuZ80::dd_op_table = {
 };
 
 const std::array<z80OpPtr, 256> cpuZ80::ed_op_table = {
-  &cpuZ80::op_in<0xed40>,     &cpuZ80::op_out<0xed41>,    &cpuZ80::op_unimpl<0xed42>, &cpuZ80::op_ld16rim<0xed43>,
-  &cpuZ80::op_unimpl<0xed44>, &cpuZ80::op_unimpl<0xed45>, &cpuZ80::op_im<0xed46>, &cpuZ80::op_unimpl<0xed47>,
+  &cpuZ80::op_in<0xed40>,     &cpuZ80::op_out<0xed41>,    &cpuZ80::op_sbc16<0xed42>,  &cpuZ80::op_ld16rim<0xed43>,
+  &cpuZ80::op_unimpl<0xed44>, &cpuZ80::op_unimpl<0xed45>, &cpuZ80::op_im<0xed46>,     &cpuZ80::op_unimpl<0xed47>,
   &cpuZ80::op_in<0xed48>,     &cpuZ80::op_out<0xed49>,    &cpuZ80::op_unimpl<0xed4a>, &cpuZ80::op_ld16rim<0xed4b>,
   &cpuZ80::op_unimpl<0xed4c>, &cpuZ80::op_unimpl<0xed4d>, &cpuZ80::op_unimpl<0xed4e>, &cpuZ80::op_unimpl<0xed4f>,
-  &cpuZ80::op_in<0xed50>,     &cpuZ80::op_out<0xed51>,    &cpuZ80::op_unimpl<0xed52>, &cpuZ80::op_ld16rim<0xed53>,
-  &cpuZ80::op_unimpl<0xed54>, &cpuZ80::op_unimpl<0xed55>, &cpuZ80::op_im<0xed56>, &cpuZ80::op_unimpl<0xed57>,
+  &cpuZ80::op_in<0xed50>,     &cpuZ80::op_out<0xed51>,    &cpuZ80::op_sbc16<0xed52>,  &cpuZ80::op_ld16rim<0xed53>,
+  &cpuZ80::op_unimpl<0xed54>, &cpuZ80::op_unimpl<0xed55>, &cpuZ80::op_im<0xed56>,     &cpuZ80::op_unimpl<0xed57>,
   &cpuZ80::op_in<0xed58>,     &cpuZ80::op_out<0xed59>,    &cpuZ80::op_unimpl<0xed5a>, &cpuZ80::op_ld16rim<0xed5b>,
-  &cpuZ80::op_unimpl<0xed5c>, &cpuZ80::op_unimpl<0xed5d>, &cpuZ80::op_im<0xed5e>, &cpuZ80::op_unimpl<0xed5f>,
-  &cpuZ80::op_in<0xed60>,     &cpuZ80::op_out<0xed61>,    &cpuZ80::op_unimpl<0xed62>, &cpuZ80::op_ld16rim<0xed63>,
-  &cpuZ80::op_unimpl<0xed64>, &cpuZ80::op_unimpl<0xed65>, &cpuZ80::op_im<0xed66>, &cpuZ80::op_unimpl<0xed67>,
+  &cpuZ80::op_unimpl<0xed5c>, &cpuZ80::op_unimpl<0xed5d>, &cpuZ80::op_im<0xed5e>,     &cpuZ80::op_unimpl<0xed5f>,
+  &cpuZ80::op_in<0xed60>,     &cpuZ80::op_out<0xed61>,    &cpuZ80::op_sbc16<0xed62>,  &cpuZ80::op_ld16rim<0xed63>,
+  &cpuZ80::op_unimpl<0xed64>, &cpuZ80::op_unimpl<0xed65>, &cpuZ80::op_im<0xed66>,     &cpuZ80::op_unimpl<0xed67>,
   &cpuZ80::op_in<0xed68>,     &cpuZ80::op_out<0xed69>,    &cpuZ80::op_unimpl<0xed6a>, &cpuZ80::op_ld16rim<0xed6b>,
   &cpuZ80::op_unimpl<0xed6c>, &cpuZ80::op_unimpl<0xed6d>, &cpuZ80::op_unimpl<0xed6e>, &cpuZ80::op_unimpl<0xed6f>,
-  &cpuZ80::op_in<0xed70>,     &cpuZ80::op_out<0xed71>,    &cpuZ80::op_unimpl<0xed72>, &cpuZ80::op_ld16rim<0xed73>,
-  &cpuZ80::op_unimpl<0xed74>, &cpuZ80::op_unimpl<0xed75>, &cpuZ80::op_im<0xed76>, &cpuZ80::op_unimpl<0xed77>,
+  &cpuZ80::op_in<0xed70>,     &cpuZ80::op_out<0xed71>,    &cpuZ80::op_sbc16<0xed72>,  &cpuZ80::op_ld16rim<0xed73>,
+  &cpuZ80::op_unimpl<0xed74>, &cpuZ80::op_unimpl<0xed75>, &cpuZ80::op_im<0xed76>,     &cpuZ80::op_unimpl<0xed77>,
   &cpuZ80::op_in<0xed78>,     &cpuZ80::op_out<0xed79>,    &cpuZ80::op_unimpl<0xed7a>, &cpuZ80::op_ld16rim<0xed7b>,
-  &cpuZ80::op_unimpl<0xed7c>, &cpuZ80::op_unimpl<0xed7d>, &cpuZ80::op_im<0xed7e>, &cpuZ80::op_unimpl<0xed7f>,
+  &cpuZ80::op_unimpl<0xed7c>, &cpuZ80::op_unimpl<0xed7d>, &cpuZ80::op_im<0xed7e>,     &cpuZ80::op_unimpl<0xed7f>,
   &cpuZ80::op_unimpl<0xed80>, &cpuZ80::op_unimpl<0xed81>, &cpuZ80::op_unimpl<0xed82>, &cpuZ80::op_unimpl<0xed83>,
   &cpuZ80::op_unimpl<0xed84>, &cpuZ80::op_unimpl<0xed85>, &cpuZ80::op_unimpl<0xed86>, &cpuZ80::op_unimpl<0xed87>,
   &cpuZ80::op_unimpl<0xed88>, &cpuZ80::op_unimpl<0xed89>, &cpuZ80::op_unimpl<0xed8a>, &cpuZ80::op_unimpl<0xed8b>,
@@ -585,12 +590,14 @@ bool cpuZ80::addition_underflows(int8_t a, int8_t b) {
     return (b < 0) && (a < std::numeric_limits<int8_t>::min() - b);
 }
 
-bool cpuZ80::subtraction_overflows(int8_t a, int8_t b) {
-    return (b < 0) && (a > std::numeric_limits<int8_t>::max() + b);
+template<typename T>
+bool cpuZ80::subtraction_overflows(T a, T b) {
+    return (b < 0) && (a > std::numeric_limits<T>::max() + b);
 }
 
-bool cpuZ80::subtraction_underflows(int8_t a, int8_t b) {
-    return (b >= 0) && (a < std::numeric_limits<int8_t>::min() + b);
+template<typename T>
+bool cpuZ80::subtraction_underflows(T a, T b) {
+    return (b >= 0) && (a < std::numeric_limits<T>::min() + b);
 }
 
 bool cpuZ80::condition(int condition_number) {
@@ -692,7 +699,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
         if((*regset[reg] & 0xf) > (af.hi & 0xf)) set(HALF_CARRY_FLAG);
         else clear(HALF_CARRY_FLAG);
 
-        if(subtraction_overflows(af.hi, *regset[reg] - carry()) || subtraction_underflows(af.hi, *regset[reg] - carry())) set(OVERFLOW_FLAG);
+        if(subtraction_overflows(int8_t(af.hi), int8_t(*regset[reg] - carry())) || subtraction_underflows(int8_t(af.hi), int8_t(*regset[reg] - carry()))) set(OVERFLOW_FLAG);
         else clear(OVERFLOW_FLAG);
 
         // TODO: Fix flags
@@ -709,7 +716,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
 
         if((*regset[reg] & 0xf) + carry() > (af.hi & 0xf)) set(HALF_CARRY_FLAG);
 
-        if(subtraction_overflows(af.hi, *regset[reg] - carry()) || subtraction_underflows(af.hi, *regset[reg] - carry())) set(OVERFLOW_FLAG);
+        if(subtraction_overflows(int8_t(af.hi), int8_t(*regset[reg] - carry())) || subtraction_underflows(int8_t(af.hi), int8_t(*regset[reg] - carry()))) set(OVERFLOW_FLAG);
         else clear(OVERFLOW_FLAG);
 
         // TODO: Fix flags
@@ -750,7 +757,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
         if((*regset[reg] & 0xf) > (af.hi & 0xf)) set(HALF_CARRY_FLAG);
         else clear(HALF_CARRY_FLAG);
 
-        if(subtraction_overflows(af.hi, *regset[reg] - carry()) || subtraction_underflows(af.hi, *regset[reg] - carry())) set(OVERFLOW_FLAG);
+        if(subtraction_overflows(int8_t(af.hi), int8_t(*regset[reg] - carry())) || subtraction_underflows(int8_t(af.hi), int8_t(*regset[reg] - carry()))) set(OVERFLOW_FLAG);
         else clear(OVERFLOW_FLAG);
 
         // TODO: Fix flags
@@ -1128,6 +1135,14 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_exx(uint8_t opcode) { // EXX 4
         std::swap(hl.pair, hl_1.pair);
     }
     return 4;
+}
+
+template <uint32_t OPCODE> uint64_t cpuZ80::op_halt(uint8_t opcode) {
+	if(check_interrupts() == int_type_t::no_int) {
+		pc--;
+		dbg_printf("halted\n");
+	}
+	return 4;
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_im(uint8_t opcode) { // IM0 IM1 IM2 8
@@ -1561,4 +1576,29 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_scf(uint8_t opcode) { // SCF 4
     return 4;
 }
 
+template <uint32_t OPCODE> uint64_t cpuZ80::op_sbc16(uint8_t) { // SBC HL, ss 4
+    uint16_t* const regset[] {&(bc.pair), &(de.pair), &(hl.pair), &(sp)};
 
+	int reg = ((OPCODE>>4) & 0x3);
+
+	uint16_t temp = hl.pair;
+
+	temp -= *regset[reg];
+	if(carry()) temp--;
+	set(SUB_FLAG);
+
+	if(temp > hl.pair) set(CARRY_FLAG);
+	else               clear(CARRY_FLAG);
+
+    if((*regset[reg] & 0xfff) + carry() > (hl.pair & 0xfff)) set(HALF_CARRY_FLAG);
+	else clear(HALF_CARRY_FLAG);
+
+    if(subtraction_overflows(int16_t(hl.pair), int16_t(*regset[reg] - carry())) || subtraction_underflows(int16_t(hl.pair), int16_t(*regset[reg] - carry()))) set(OVERFLOW_FLAG);
+    else clear(OVERFLOW_FLAG);
+
+        // TODO: Fix flags
+
+    hl.pair = temp;
+
+	return 4;
+}

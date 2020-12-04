@@ -49,6 +49,12 @@ private:
         mode2
     } int_mode;
 
+	enum int_type_t {
+		no_int,
+		irq_int,
+		nm_int
+	};
+
     //NMI does call to 0066h
     //interrupt mode 0: interrupting device puts an instruction on data bus, CPU executes it
     //interrupt mode 1: interrupt calls to 0038h
@@ -88,6 +94,7 @@ private:
     template <uint32_t OPCODE> uint64_t op_ei(uint8_t);
     template <uint32_t OPCODE> uint64_t op_ex16(uint8_t);
     template <uint32_t OPCODE> uint64_t op_exx(uint8_t);
+	template <uint32_t OPCODE> uint64_t op_halt(uint8_t);
     template <uint32_t OPCODE> uint64_t op_im(uint8_t);
     template <uint32_t OPCODE> uint64_t op_in(uint8_t);
     template <uint32_t OPCODE> uint64_t op_incr16(uint8_t);
@@ -108,6 +115,7 @@ private:
     template <uint32_t OPCODE> uint64_t op_ret(uint8_t);
     template <uint32_t OPCODE> uint64_t op_rot_a(uint8_t);
     template <uint32_t OPCODE> uint64_t op_scf(uint8_t);
+	template <uint32_t OPCODE> uint64_t op_sbc16(uint8_t);
 
     uint64_t decode(uint8_t opcode);
     void push(uint16_t);
@@ -116,15 +124,17 @@ private:
     static std::array<bool, 256> parity;
     bool addition_overflows(int8_t a, int8_t b);
     bool addition_underflows(int8_t a, int8_t b);
-    bool subtraction_overflows(int8_t a, int8_t b);
-    bool subtraction_underflows(int8_t a, int8_t b);
+	template <typename T>
+    bool subtraction_overflows(T a, T b);
+	template <typename T>
+    bool subtraction_underflows(T a, T b);
     bool condition(int condition_number);
+	int_type_t check_interrupts();
 
     template <uint32_t OPCODE> uint64_t op_unimpl(uint8_t);
 
     uint8_t dummy8;
     uint16_t dummy16;
-
 
 public:
     cpuZ80(std::shared_ptr<memmapZ80Console>);

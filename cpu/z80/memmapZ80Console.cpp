@@ -28,7 +28,7 @@ uint8_t& memmapZ80Console::readByte(uint32_t addr) {
 
 uint8_t memmapZ80Console::readPortByte(uint8_t port) {
     // TODO: Implement :-D
-    dbg_printf(" port %02x >> [dummy]", port);
+    dbg_printf(" read port %02x >> [dummy]", port);
     switch(port) {
         case 0x7e: dbg_printf(" (V counter)"); break;
         case 0x7f: dbg_printf(" (H counter)"); break;
@@ -65,17 +65,17 @@ void memmapZ80Console::writeWord(uint32_t addr, uint16_t val) {
 void memmapZ80Console::writeLong(uint32_t addr, uint32_t val) {}
 
 void memmapZ80Console::writePortByte(uint8_t port, uint8_t val) {
-    dbg_printf(" port %02x << %02x", port, val);
+    dbg_printf(" wrote %02x to port %02x", val, port);
     switch(port) {
         case 0x3f: dbg_printf(" (automatic nationalization)"); break;
         case 0x7e: case 0x7f: dbg_printf(" (PSG SN76489 output control)"); break;
         case 0xbd: case 0xbf:
             vdp->writeAddress(val);
-            dbg_printf(" write VDP address)");
+            dbg_printf(" (VDP address/register)");
             break;
         case 0xbe:
             vdp->writeData(val);
-            dbg_printf(" (write VDP data)");
+            dbg_printf(" (VDP data)");
             break;
         case 0xde: case 0xdf: dbg_printf(" (unknown port)"); break;
         case 0xf0: dbg_printf(" (YM2413 address register)"); break;
