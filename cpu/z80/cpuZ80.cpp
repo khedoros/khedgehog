@@ -9,6 +9,7 @@ uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
         const uint8_t opcode = memory->readByte(pc++);
         dbg_printf("%04X: %02x", pc-1, opcode);
         const uint64_t inst_cycles = CALL_MEMBER_FN(this, op_table[opcode])(opcode);
+        print_registers();
         dbg_printf("\n");
 
         if(inst_cycles == uint64_t(-1)) {
@@ -598,6 +599,17 @@ bool cpuZ80::subtraction_overflows(T a, T b) {
 template<typename T>
 bool cpuZ80::subtraction_underflows(T a, T b) {
     return (b >= 0) && (a < std::numeric_limits<T>::min() + b);
+}
+
+void cpuZ80::print_registers() {
+    dbg_printf("\t\tA: %02x BC: %04x DE: %04x HL: %04x SP: %04x status: %c%c0%c0%c%c%c", af.hi, bc.pair, de.pair, hl.pair, sp,
+     sign()?'S':'s',
+     zero()?'Z':'z',
+     hc()?'H':'h',
+     parity()?'P':'p',
+     sub()?'N':'n',
+     carry()?'C':'c'
+     );
 }
 
 bool cpuZ80::condition(int condition_number) {

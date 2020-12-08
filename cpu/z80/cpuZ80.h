@@ -128,6 +128,7 @@ private:
     bool subtraction_overflows(T a, T b);
 	template <typename T>
     bool subtraction_underflows(T a, T b);
+    void print_registers();
     bool condition(int condition_number);
 	int_type_t check_interrupts();
 
