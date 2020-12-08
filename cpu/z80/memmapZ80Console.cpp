@@ -4,6 +4,7 @@
 #include<iostream>
 #include<fstream>
 #include "../../util.h"
+#include "../../debug_console.h"
 
 memmapZ80Console::memmapZ80Console(std::shared_ptr<config> cfg, std::shared_ptr<vdpMS> v, std::shared_ptr<apuMS> a) : map_ctrl(0), map_slot0(0), map_slot1(1), map_slot2(2), vdp(v), apu(a) {
     std::ifstream romfile(cfg->getRomPath().c_str());
@@ -81,6 +82,8 @@ void memmapZ80Console::writePortByte(uint8_t port, uint8_t val) {
         case 0xf0: dbg_printf(" (YM2413 address register)"); break;
         case 0xf1: dbg_printf(" (YM2413 data register)"); break;
         case 0xf2: dbg_printf(" (YM2413 control register)"); break;
+        case 0xfc: write_control(val); break;
+        case 0xfd: write_data(val); break;
         default: dbg_printf(" (no info on port)"); break;
     }
 }

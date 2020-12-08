@@ -760,15 +760,23 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
         if(subtraction_overflows(int8_t(af.hi), int8_t(*regset[reg] - carry())) || subtraction_underflows(int8_t(af.hi), int8_t(*regset[reg] - carry()))) set(OVERFLOW_FLAG);
         else clear(OVERFLOW_FLAG);
 
+        if(!temp_a) set(ZERO_FLAG);
+        else clear(ZERO_FLAG);
+
+        if((temp_a & 0x80) > 0) set(SIGN_FLAG);
+        else clear(SIGN_FLAG);
+
         // TODO: Fix flags
 
         break;
     }
 
-    if((af.hi & 0x80) > 0) set(SIGN_FLAG);
-    else                   clear(SIGN_FLAG);
-    if(!af.hi) set(ZERO_FLAG);
-    else       clear(ZERO_FLAG);
+    if(operation != 0x07) { //if op isn't a compare
+        if((af.hi & 0x80) > 0) set(SIGN_FLAG);
+        else                   clear(SIGN_FLAG);
+        if(!af.hi) set(ZERO_FLAG);
+        else       clear(ZERO_FLAG);
+    }
 
     dbg_printf(" %02x", *regset[reg]);
 
