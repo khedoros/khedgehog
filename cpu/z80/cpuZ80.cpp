@@ -1,6 +1,7 @@
 #include "cpuZ80.h"
 #include<iostream>
 #include<limits>
+#include<cassert>
 #include "../../util.h"
 
 uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
@@ -9,6 +10,7 @@ uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
         const uint8_t opcode = memory->readByte(pc++);
         dbg_printf("%04X: %02x", pc-1, opcode);
         const uint64_t inst_cycles = CALL_MEMBER_FN(this, op_table[opcode])(opcode);
+        print_registers();
         dbg_printf("\n");
 
         if(inst_cycles == uint64_t(-1)) {
@@ -18,7 +20,7 @@ uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
         cycles_remaining -= inst_cycles;
         total_cycles+=inst_cycles;
     }
-    std::printf("total_cycles: %lu\n", total_cycles);
+    //std::printf("total_cycles: %lu\n", total_cycles);
 
     return cycles_to_run - cycles_remaining;
 }
@@ -551,14 +553,14 @@ uint64_t cpuZ80::decode(uint8_t opcode) {
 }
 
 void cpuZ80::push(uint16_t val) {
-    dbg_printf("\tPush %04x to %04x", val, sp-2);
+    //dbg_printf("\tPush %04x to %04x", val, sp-2);
     memory->writeWord(sp - 2, val);
     sp -= 2;
 }
 
 uint16_t cpuZ80::pop() {
     uint16_t val = memory->readWord(sp);
-    dbg_printf("\tPop %04x from %04x", val, sp);
+    //dbg_printf("\tPop %04x from %04x", val, sp);
     sp += 2;
     return val;
 }
@@ -598,6 +600,17 @@ bool cpuZ80::subtraction_overflows(T a, T b) {
 template<typename T>
 bool cpuZ80::subtraction_underflows(T a, T b) {
     return (b >= 0) && (a < std::numeric_limits<T>::min() + b);
+}
+
+void cpuZ80::print_registers() {
+    dbg_printf("\t\tA: %02x BC: %04x DE: %04x HL: %04x SP: %04x status: %c%c0%c0%c%c%c", af.hi, bc.pair, de.pair, hl.pair, sp,
+     sign()?'S':'s',
+     zero()?'Z':'z',
+     hc()?'H':'h',
+     parity()?'P':'p',
+     sub()?'N':'n',
+     carry()?'C':'c'
+     );
 }
 
 bool cpuZ80::condition(int condition_number) {
@@ -802,13 +815,16 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_call(uint8_t opcode) { // CALL 17
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_call_cc(uint8_t opcode) { // CALL cc 17/10
     uint64_t cycles = 10;
+	uint64_t address = memory->readWord(pc);
     if(condition((OPCODE>>3) & 0x7)) {
-        uint64_t address = memory->readWord(pc);
         cycles = 17;
         push(pc+2);
         pc = address;
     }
-    pc += 2;
+	else {
+		pc+=2;
+	}
+	dbg_printf(" %04x", address);
     return cycles;
 }
 

@@ -130,6 +130,7 @@ private:
     bool subtraction_underflows(T a, T b);
     bool condition(int condition_number);
 	int_type_t check_interrupts();
+    void print_registers();
 
     template <uint32_t OPCODE> uint64_t op_unimpl(uint8_t);
 

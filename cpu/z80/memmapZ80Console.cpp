@@ -21,6 +21,7 @@ memmapZ80Console::memmapZ80Console(std::shared_ptr<config> cfg, std::shared_ptr<
     }
     valid = true;
     std::cout<<"Opened ROM at path \""<<cfg->getRomPath()<<"\" with filesize "<<filesize<<" bytes.\n";
+    dbg_con::init();
 }
 
 uint8_t& memmapZ80Console::readByte(uint32_t addr) {
@@ -82,8 +83,8 @@ void memmapZ80Console::writePortByte(uint8_t port, uint8_t val) {
         case 0xf0: dbg_printf(" (YM2413 address register)"); break;
         case 0xf1: dbg_printf(" (YM2413 data register)"); break;
         case 0xf2: dbg_printf(" (YM2413 control register)"); break;
-        case 0xfc: write_control(val); break;
-        case 0xfd: write_data(val); break;
+        case 0xfc: dbg_con::write_control(val); break;
+        case 0xfd: dbg_con::write_data(val); break;
         default: dbg_printf(" (no info on port)"); break;
     }
 }
