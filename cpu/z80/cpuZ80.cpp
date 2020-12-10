@@ -791,8 +791,6 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
         else       clear(ZERO_FLAG);
     }
 
-    dbg_printf(" %02x", *regset[reg]);
-
     return cycles;
 }
 
@@ -815,7 +813,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_call(uint8_t opcode) { // CALL 17
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_call_cc(uint8_t opcode) { // CALL cc 17/10
     uint64_t cycles = 10;
-	uint64_t address = memory->readWord(pc);
+    uint16_t address = memory->readWord(pc);
     if(condition((OPCODE>>3) & 0x7)) {
         cycles = 17;
         push(pc+2);
@@ -1292,6 +1290,10 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_jp(uint8_t opcode) {
         if(condition((OPCODE>>3) & 7)) {
             pc = jump_addr;
         }
+        else {
+            // skip the operand
+            pc += 2;
+        }
         return 10;
     }
     return -1;
@@ -1328,14 +1330,15 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_jr(uint8_t opcode) { //DJNZ and v
         if(carry()) branch = true;
         else cycles = 7;
     }
+
+    int8_t offset = memory->readByte(pc++);
+    uint16_t address = pc + offset;
+    dbg_printf(" %04x", address);
+
     if(branch) {
-        int8_t offset = memory->readByte(pc);
-        dbg_printf(" %02x", offset);
-        pc += (offset +1);
+        pc = address;
     }
-    else {
-        pc++; //skip the offset parameter
-    }
+
     return cycles;
 }
 
@@ -1357,6 +1360,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_ld16rim(uint8_t opcode) {
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_ld16rm(uint8_t opcode) {  //LD r16,(**), LD (**), r16
     uint16_t address = memory->readWord(pc);
+    dbg_printf(" %04x", address);
     pc+=2;
     if(OPCODE == 0x22) {
         memory->writeWord(address, hl.pair);
