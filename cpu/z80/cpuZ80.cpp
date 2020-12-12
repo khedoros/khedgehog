@@ -210,9 +210,9 @@ const std::array<z80OpPtr, 256> cpuZ80::dd_op_table = {
   &cpuZ80::op_unimpl<0xdd14>, &cpuZ80::op_unimpl<0xdd15>, &cpuZ80::op_unimpl<0xdd16>, &cpuZ80::op_unimpl<0xdd17>,
   &cpuZ80::op_unimpl<0xdd18>, &cpuZ80::op_unimpl<0xdd19>, &cpuZ80::op_unimpl<0xdd1a>, &cpuZ80::op_unimpl<0xdd1b>,
   &cpuZ80::op_unimpl<0xdd1c>, &cpuZ80::op_unimpl<0xdd1d>, &cpuZ80::op_unimpl<0xdd1e>, &cpuZ80::op_unimpl<0xdd1f>,
-  &cpuZ80::op_unimpl<0xdd20>, &cpuZ80::op_unimpl<0xdd21>, &cpuZ80::op_unimpl<0xdd22>, &cpuZ80::op_unimpl<0xdd23>,
+  &cpuZ80::op_unimpl<0xdd20>, &cpuZ80::op_ld16<0xdd21>,   &cpuZ80::op_ld16rim<0xdd22>, &cpuZ80::op_unimpl<0xdd23>,
   &cpuZ80::op_unimpl<0xdd24>, &cpuZ80::op_unimpl<0xdd25>, &cpuZ80::op_unimpl<0xdd26>, &cpuZ80::op_unimpl<0xdd27>,
-  &cpuZ80::op_unimpl<0xdd28>, &cpuZ80::op_unimpl<0xdd29>, &cpuZ80::op_unimpl<0xdd2a>, &cpuZ80::op_unimpl<0xdd2b>,
+  &cpuZ80::op_unimpl<0xdd28>, &cpuZ80::op_unimpl<0xdd29>, &cpuZ80::op_ld16rim<0xdd2a>, &cpuZ80::op_unimpl<0xdd2b>,
   &cpuZ80::op_unimpl<0xdd2c>, &cpuZ80::op_unimpl<0xdd2d>, &cpuZ80::op_unimpl<0xdd2e>, &cpuZ80::op_unimpl<0xdd2f>,
   &cpuZ80::op_unimpl<0xdd30>, &cpuZ80::op_unimpl<0xdd31>, &cpuZ80::op_unimpl<0xdd32>, &cpuZ80::op_unimpl<0xdd33>,
   &cpuZ80::op_unimpl<0xdd34>, &cpuZ80::op_unimpl<0xdd35>, &cpuZ80::op_unimpl<0xdd36>, &cpuZ80::op_unimpl<0xdd37>,
@@ -311,9 +311,9 @@ const std::array<z80OpPtr, 256> cpuZ80::fd_op_table = {
   &cpuZ80::op_unimpl<0xfd14>, &cpuZ80::op_unimpl<0xfd15>, &cpuZ80::op_unimpl<0xfd16>, &cpuZ80::op_unimpl<0xfd17>,
   &cpuZ80::op_unimpl<0xfd18>, &cpuZ80::op_unimpl<0xfd19>, &cpuZ80::op_unimpl<0xfd1a>, &cpuZ80::op_unimpl<0xfd1b>,
   &cpuZ80::op_unimpl<0xfd1c>, &cpuZ80::op_unimpl<0xfd1d>, &cpuZ80::op_unimpl<0xfd1e>, &cpuZ80::op_unimpl<0xfd1f>,
-  &cpuZ80::op_unimpl<0xfd20>, &cpuZ80::op_unimpl<0xfd21>, &cpuZ80::op_unimpl<0xfd22>, &cpuZ80::op_unimpl<0xfd23>,
+  &cpuZ80::op_unimpl<0xfd20>, &cpuZ80::op_ld16<0xfd21>,   &cpuZ80::op_ld16rim<0xfd22>, &cpuZ80::op_unimpl<0xfd23>,
   &cpuZ80::op_unimpl<0xfd24>, &cpuZ80::op_unimpl<0xfd25>, &cpuZ80::op_unimpl<0xfd26>, &cpuZ80::op_unimpl<0xfd27>,
-  &cpuZ80::op_unimpl<0xfd28>, &cpuZ80::op_unimpl<0xfd29>, &cpuZ80::op_unimpl<0xfd2a>, &cpuZ80::op_unimpl<0xfd2b>,
+  &cpuZ80::op_unimpl<0xfd28>, &cpuZ80::op_unimpl<0xfd29>, &cpuZ80::op_ld16rim<0xfd2a>, &cpuZ80::op_unimpl<0xfd2b>,
   &cpuZ80::op_unimpl<0xfd2c>, &cpuZ80::op_unimpl<0xfd2d>, &cpuZ80::op_unimpl<0xfd2e>, &cpuZ80::op_unimpl<0xfd2f>,
   &cpuZ80::op_unimpl<0xfd30>, &cpuZ80::op_unimpl<0xfd31>, &cpuZ80::op_unimpl<0xfd32>, &cpuZ80::op_unimpl<0xfd33>,
   &cpuZ80::op_unimpl<0xfd34>, &cpuZ80::op_unimpl<0xfd35>, &cpuZ80::op_unimpl<0xfd36>, &cpuZ80::op_unimpl<0xfd37>,
@@ -1343,13 +1343,20 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_jr(uint8_t opcode) { //DJNZ and v
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_ld16rim(uint8_t opcode) {
-    uint16_t * const regset[] = {&(bc.pair), &(de.pair), &(hl.pair), &sp};
+    uint16_t * const regset[] = {&(bc.pair), &(de.pair), &(hl.pair), &sp, &(ix.pair), &(iy.pair)};
     uint16_t val = memory->readWord(pc);
     pc+=2;
     dbg_printf(" %04x", val);
     uint8_t index = ((OPCODE>>4) & 0x03);
     uint8_t operation = ((OPCODE>>3) & 0x01);
-    if(operation) {
+
+    if(OPCODE & 0xff00 == 0xDD00) { //dd22+dd2a
+        index = 4;
+    }
+    else if(OPCODE & 0xff00 == 0xFD00) { //fd22+fd2a
+        index = 5;
+    }
+    if(!operation) {
         memory->writeWord(val, *regset[index]);
     }
     else {
@@ -1458,6 +1465,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_ld16(uint8_t opcode) {
     uint16_t immediate = memory->readWord(pc);
     dbg_printf(" %04x", immediate);
     pc+=2;
+    uint64_t cycles = 10;
     switch(OPCODE) {
     case 0x01: //LD BC, nn 4,3,3
             bc.pair = immediate;
@@ -1471,8 +1479,17 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_ld16(uint8_t opcode) {
     case 0x31: //LD SP, nn 4,3,3
             sp = immediate;
             break;
+    case 0xdd21:
+            ix.pair = immediate;
+            cycles = 14;
+            break;
+    case 0xfd21:
+            iy.pair = immediate;
+            cycles = 14;
+            break;
     }
-    return 10;
+
+    return cycles;
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_nop(uint8_t opcode) { // NOP 4

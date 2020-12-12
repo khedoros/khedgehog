@@ -75,7 +75,7 @@ void dbg_con::write_data(uint8_t val) {
             top_row%=25;
         }
     }
-    else if(val == 13) {
+    else if(val == 10) {
         //line-feed; cursor to beginning of line, row moves down.
         col = 0;
         row++;
@@ -85,7 +85,7 @@ void dbg_con::write_data(uint8_t val) {
             row = 0;
         }
     }
-    else if( val == 10) {
+    else if( val == 13) {
         //carriage return; cursor to beginning of line
         col = 0;
     }
