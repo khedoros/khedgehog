@@ -1350,10 +1350,10 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_ld16rim(uint8_t opcode) {
     uint8_t index = ((OPCODE>>4) & 0x03);
     uint8_t operation = ((OPCODE>>3) & 0x01);
 
-    if(OPCODE & 0xff00 == 0xDD00) { //dd22+dd2a
+    if((OPCODE & 0xff00) == 0xDD00) { //dd22+dd2a
         index = 4;
     }
-    else if(OPCODE & 0xff00 == 0xFD00) { //fd22+fd2a
+    else if((OPCODE & 0xff00) == 0xFD00) { //fd22+fd2a
         index = 5;
     }
     if(!operation) {
