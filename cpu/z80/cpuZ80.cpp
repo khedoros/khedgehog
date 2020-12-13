@@ -210,9 +210,9 @@ const std::array<z80OpPtr, 256> cpuZ80::dd_op_table = {
   &cpuZ80::op_unimpl<0xdd14>, &cpuZ80::op_unimpl<0xdd15>, &cpuZ80::op_unimpl<0xdd16>, &cpuZ80::op_unimpl<0xdd17>,
   &cpuZ80::op_unimpl<0xdd18>, &cpuZ80::op_unimpl<0xdd19>, &cpuZ80::op_unimpl<0xdd1a>, &cpuZ80::op_unimpl<0xdd1b>,
   &cpuZ80::op_unimpl<0xdd1c>, &cpuZ80::op_unimpl<0xdd1d>, &cpuZ80::op_unimpl<0xdd1e>, &cpuZ80::op_unimpl<0xdd1f>,
-  &cpuZ80::op_unimpl<0xdd20>, &cpuZ80::op_ld16<0xdd21>,   &cpuZ80::op_ld16rim<0xdd22>, &cpuZ80::op_unimpl<0xdd23>,
+  &cpuZ80::op_unimpl<0xdd20>, &cpuZ80::op_ld16<0xdd21>,   &cpuZ80::op_ld16rim<0xdd22>, &cpuZ80::op_incr16<0xdd23>,
   &cpuZ80::op_unimpl<0xdd24>, &cpuZ80::op_unimpl<0xdd25>, &cpuZ80::op_ld8idxri<0xdd26>, &cpuZ80::op_unimpl<0xdd27>,
-  &cpuZ80::op_unimpl<0xdd28>, &cpuZ80::op_unimpl<0xdd29>, &cpuZ80::op_ld16rim<0xdd2a>, &cpuZ80::op_unimpl<0xdd2b>,
+  &cpuZ80::op_unimpl<0xdd28>, &cpuZ80::op_unimpl<0xdd29>, &cpuZ80::op_ld16rim<0xdd2a>, &cpuZ80::op_decr16<0xdd2b>,
   &cpuZ80::op_unimpl<0xdd2c>, &cpuZ80::op_unimpl<0xdd2d>, &cpuZ80::op_ld8idxri<0xdd2e>, &cpuZ80::op_unimpl<0xdd2f>,
   &cpuZ80::op_unimpl<0xdd30>, &cpuZ80::op_unimpl<0xdd31>, &cpuZ80::op_unimpl<0xdd32>, &cpuZ80::op_unimpl<0xdd33>,
   &cpuZ80::op_unimpl<0xdd34>, &cpuZ80::op_unimpl<0xdd35>, &cpuZ80::op_ld8mioff<0xdd36>, &cpuZ80::op_unimpl<0xdd37>,
@@ -311,9 +311,9 @@ const std::array<z80OpPtr, 256> cpuZ80::fd_op_table = {
   &cpuZ80::op_unimpl<0xfd14>, &cpuZ80::op_unimpl<0xfd15>, &cpuZ80::op_unimpl<0xfd16>, &cpuZ80::op_unimpl<0xfd17>,
   &cpuZ80::op_unimpl<0xfd18>, &cpuZ80::op_unimpl<0xfd19>, &cpuZ80::op_unimpl<0xfd1a>, &cpuZ80::op_unimpl<0xfd1b>,
   &cpuZ80::op_unimpl<0xfd1c>, &cpuZ80::op_unimpl<0xfd1d>, &cpuZ80::op_unimpl<0xfd1e>, &cpuZ80::op_unimpl<0xfd1f>,
-  &cpuZ80::op_unimpl<0xfd20>, &cpuZ80::op_ld16<0xfd21>,   &cpuZ80::op_ld16rim<0xfd22>, &cpuZ80::op_unimpl<0xfd23>,
+  &cpuZ80::op_unimpl<0xfd20>, &cpuZ80::op_ld16<0xfd21>,   &cpuZ80::op_ld16rim<0xfd22>, &cpuZ80::op_incr16<0xfd23>,
   &cpuZ80::op_unimpl<0xfd24>, &cpuZ80::op_unimpl<0xfd25>, &cpuZ80::op_ld8idxri<0xfd26>, &cpuZ80::op_unimpl<0xfd27>,
-  &cpuZ80::op_unimpl<0xfd28>, &cpuZ80::op_unimpl<0xfd29>, &cpuZ80::op_ld16rim<0xfd2a>, &cpuZ80::op_unimpl<0xfd2b>,
+  &cpuZ80::op_unimpl<0xfd28>, &cpuZ80::op_unimpl<0xfd29>, &cpuZ80::op_ld16rim<0xfd2a>, &cpuZ80::op_decr16<0xfd2b>,
   &cpuZ80::op_unimpl<0xfd2c>, &cpuZ80::op_unimpl<0xfd2d>, &cpuZ80::op_ld8idxri<0xfd2e>, &cpuZ80::op_unimpl<0xfd2f>,
   &cpuZ80::op_unimpl<0xfd30>, &cpuZ80::op_unimpl<0xfd31>, &cpuZ80::op_unimpl<0xfd32>, &cpuZ80::op_unimpl<0xfd33>,
   &cpuZ80::op_unimpl<0xfd34>, &cpuZ80::op_unimpl<0xfd35>, &cpuZ80::op_ld8mioff<0xfd36>, &cpuZ80::op_unimpl<0xfd37>,
@@ -829,19 +829,20 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_call_cc(uint8_t opcode) { // CALL
 template <uint32_t OPCODE> uint64_t cpuZ80::op_cbrot(uint8_t opcode) { // CB00 -> CB3F, DDCB00->DDCB3F, FDCB00->FDCB3F
     constexpr uint8_t op = ((OPCODE>>3) & 0x7);
     constexpr uint8_t reg = (OPCODE & 0x07);
+    const int8_t offset = int8_t(opcode);
     uint8_t c = carry();
     uint64_t cycles = 8;
     if(reg == 0x06) {
-        if((OPCODE & 0xFF0000) == 0) { //CB group
+        if((OPCODE & 0xFFFF00) == 0xCB00) { //CB group
             dummy8 = memory->readByte(hl.pair);
             cycles = 15;
         }
-        else if((OPCODE & 0xDDCB00) == 0xDDCB00) {
-            dummy8 = memory->readByte(ix.pair + opcode);
+        else if((OPCODE & 0xFFFF00) == 0xDDCB00) {
+            dummy8 = memory->readByte(ix.pair + offset);
             cycles = 23;
         }
-        else if((OPCODE & 0xFDCB00) == 0xFDCB00) {
-            dummy8 = memory->readByte(iy.pair + opcode);
+        else if((OPCODE & 0xFFFF00) == 0xFDCB00) {
+            dummy8 = memory->readByte(iy.pair + offset);
             cycles = 23;
         }
     }
@@ -899,14 +900,14 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_cbrot(uint8_t opcode) { // CB00 -
         break;
     }
     if(reg == 0x06) {
-        if((OPCODE & 0xFF0000) == 0) { //CB group
+        if((OPCODE & 0xFFFF00) == 0xCB00) { //CB group
             memory->writeByte(hl.pair, dummy8);
         }
-        else if((OPCODE & 0xDDCB00) == 0xDDCB00) {
-            memory->writeByte(ix.pair + opcode, dummy8);
+        else if((OPCODE & 0xFFFF00) == 0xDDCB00) {
+            memory->writeByte(ix.pair + offset, dummy8);
         }
-        else if((OPCODE & 0xFDCB00) == 0xFDCB00) {
-            memory->writeByte(iy.pair + opcode, dummy8);
+        else if((OPCODE & 0xFFFF00) == 0xFDCB00) {
+            memory->writeByte(iy.pair + offset, dummy8);
         }
     }
 
@@ -925,20 +926,21 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_cbrot(uint8_t opcode) { // CB00 -
 template <uint32_t OPCODE> uint64_t cpuZ80::op_cbbit(uint8_t opcode) { // CB40 -> CB7F, DDCB40->DDCB7F, FDCB40->FDCB7F
     constexpr uint8_t bit = (1<<((OPCODE>>3) & 0x7));
     constexpr uint8_t reg = (OPCODE & 0x07);
+    const int8_t offset = int8_t(opcode);
     uint64_t cycles = 8;
     uint8_t* const regset[] = {&(bc.hi), &(bc.low), &(de.hi), &(de.low),
                                &(hl.hi), &(hl.low),  &dummy8, &(af.hi)};
     if(reg == 0x06) {
-        if((OPCODE & 0xFF0000) == 0) { //CB group
+        if((OPCODE & 0xFFFF00) == 0xCB00) { //CB group
             dummy8 = memory->readByte(hl.pair);
             cycles = 12;
         }
-        else if((OPCODE & 0xDDCB00) == 0xDDCB00) {
-            dummy8 = memory->readByte(ix.pair + opcode);
+        else if((OPCODE & 0xFFFF00) == 0xDDCB00) {
+            dummy8 = memory->readByte(ix.pair + offset);
             cycles = 20;
         }
-        else if((OPCODE & 0xFDCB00) == 0xFDCB00) {
-            dummy8 = memory->readByte(iy.pair + opcode);
+        else if((OPCODE & 0xFFFF00) == 0xFDCB00) {
+            dummy8 = memory->readByte(iy.pair + offset);
             cycles = 20;
         }
     }
@@ -953,21 +955,22 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_cbbit(uint8_t opcode) { // CB40 -
 template <uint32_t OPCODE> uint64_t cpuZ80::op_cbres(uint8_t opcode) { // CB80 -> CBBF, DDCB80->DDCBBF, FDCB80->FDCBBF
     constexpr uint8_t bit = (1<<((OPCODE>>3) & 0x7));
     constexpr uint8_t reg = (OPCODE & 0x07);
+    int8_t offset = int8_t(opcode);
     uint64_t cycles = 8;
     uint8_t* const regset[] = {&(bc.hi), &(bc.low), &(de.hi), &(de.low),
                                &(hl.hi), &(hl.low),  &dummy8, &(af.hi)};
 
     if(reg == 0x06) {
-        if((OPCODE & 0xFF0000) == 0) { //CB group
+        if((OPCODE & 0xFFFF00) == 0xCB00) { //CB group
             dummy8 = memory->readByte(hl.pair);
             cycles = 15;
         }
-        else if((OPCODE & 0xDDCB00) == 0xDDCB00) {
-            dummy8 = memory->readByte(ix.pair + opcode);
+        else if((OPCODE & 0xFFFF00) == 0xDDCB00) {
+            dummy8 = memory->readByte(ix.pair + offset);
             cycles = 23;
         }
-        else if((OPCODE & 0xFDCB00) == 0xFDCB00) {
-            dummy8 = memory->readByte(iy.pair + opcode);
+        else if((OPCODE & 0xFFFF00) == 0xFDCB00) {
+            dummy8 = memory->readByte(iy.pair + offset);
             cycles = 23;
         }
     }
@@ -975,14 +978,14 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_cbres(uint8_t opcode) { // CB80 -
     *regset[reg] &= (~bit);
 
     if(reg == 0x06) {
-        if((OPCODE & 0xFF0000) == 0) { //CB group
+        if((OPCODE & 0xFFFF00) == 0xCB00) { //CB group
             memory->writeByte(hl.pair, dummy8);
         }
-        else if((OPCODE & 0xDDCB00) == 0xDDCB00) {
-            memory->writeByte(ix.pair + opcode, dummy8);
+        else if((OPCODE & 0xFFFF00) == 0xDDCB00) {
+            memory->writeByte(ix.pair + offset, dummy8);
         }
-        else if((OPCODE & 0xFDCB00) == 0xFDCB00) {
-            memory->writeByte(iy.pair + opcode, dummy8);
+        else if((OPCODE & 0xFFFF00) == 0xFDCB00) {
+            memory->writeByte(iy.pair + offset, dummy8);
         }
     }
     return cycles;
@@ -991,20 +994,21 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_cbres(uint8_t opcode) { // CB80 -
 template <uint32_t OPCODE> uint64_t cpuZ80::op_cbset(uint8_t opcode) { // CBC0 -> CBFF, DDCBC0->DDCBFF, FDCC40->FDCBFF
     constexpr uint8_t bit = (1<<((OPCODE>>3) & 0x7));
     constexpr uint8_t reg = (OPCODE & 0x07);
+    const int8_t offset = int8_t(opcode);
     uint64_t cycles = 8;
     uint8_t* const regset[] = {&(bc.hi), &(bc.low), &(de.hi), &(de.low),
                                &(hl.hi), &(hl.low),  &dummy8, &(af.hi)};
     if(reg == 0x06) {
-        if((OPCODE & 0xFF0000) == 0) { //CB group
+        if((OPCODE & 0xFFFF00) == 0xCB00) { //CB group
             dummy8 = memory->readByte(hl.pair);
             cycles = 15;
         }
-        else if((OPCODE & 0xDDCB00) == 0xDDCB00) {
-            dummy8 = memory->readByte(ix.pair + opcode);
+        else if((OPCODE & 0xFFFF00) == 0xDDCB00) {
+            dummy8 = memory->readByte(ix.pair + offset);
             cycles = 23;
         }
-        else if((OPCODE & 0xFDCB00) == 0xFDCB00) {
-            dummy8 = memory->readByte(iy.pair + opcode);
+        else if((OPCODE & 0xFFFF00) == 0xFDCB00) {
+            dummy8 = memory->readByte(iy.pair + offset);
             cycles = 23;
         }
     }
@@ -1012,14 +1016,14 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_cbset(uint8_t opcode) { // CBC0 -
     *regset[reg] |= bit;
 
     if(reg == 0x06) {
-        if((OPCODE & 0xFF0000) == 0) { //CB group
+        if((OPCODE & 0xFFFF00) == 0xCB00) { //CB group
             memory->writeByte(hl.pair, dummy8);
         }
-        else if((OPCODE & 0xDDCB00) == 0xDDCB00) {
-            memory->writeByte(ix.pair + opcode, dummy8);
+        else if((OPCODE & 0xFFFF00) == 0xDDCB00) {
+            memory->writeByte(ix.pair + offset, dummy8);
         }
-        else if((OPCODE & 0xFDCB00) == 0xFDCB00) {
-            memory->writeByte(iy.pair + opcode, dummy8);
+        else if((OPCODE & 0xFFFF00) == 0xFDCB00) {
+            memory->writeByte(iy.pair + offset, dummy8);
         }
     }
     return cycles;
@@ -1092,9 +1096,19 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_daa(uint8_t opcode) { // DAA 4
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_decr16(uint8_t opcode) {
-    uint16_t* const regset[] = {&(bc.pair), &(de.pair), &(hl.pair), &(sp)};
-    (*regset[OPCODE>>4])--;
-    return 6;
+    uint16_t* const regset[] = {&(bc.pair), &(de.pair), &(hl.pair), &(sp), &(ix.pair), &(iy.pair)};
+    uint32_t index = OPCODE>>4;
+    uint64_t cycles = 6;
+    if(OPCODE == 0xdd2b) {
+        index = 4;
+        cycles = 10;
+    }
+    else if(OPCODE == 0xfd2b) {
+        index = 5;
+        cycles = 10;
+    }
+    (*regset[index])--;
+    return cycles;
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_decr8(uint8_t opcode) {
@@ -1106,11 +1120,13 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_decr8(uint8_t opcode) {
         dummy8 = memory->readByte(hl.pair);
         cycles = 11;
     }
+
     (*regset[index])--;
-    if(*regset[index] >= 128) { set(SIGN_FLAG); } else { clear(SIGN_FLAG); }
+
+    if(*regset[index] >= 0x80) { set(SIGN_FLAG); } else { clear(SIGN_FLAG); }
     if(*regset[index] == 0)   { set(ZERO_FLAG); } else { clear(ZERO_FLAG); }
-    if(*regset[index] == 15)  { set(HALF_CARRY_FLAG);} else { clear(HALF_CARRY_FLAG); }
-    if(*regset[index] == 255 || *regset[index] == 127) { set(OVERFLOW_FLAG); } else { clear(OVERFLOW_FLAG); }
+    if(((*regset[index]) & 0x0f) == 0x0f)  { set(HALF_CARRY_FLAG);} else { clear(HALF_CARRY_FLAG); }
+    if(*regset[index] == 0x7f) { set(OVERFLOW_FLAG); } else { clear(OVERFLOW_FLAG); }
     set(SUB_FLAG);
     if(index == 6) {
         memory->writeByte(hl.pair, dummy8);
@@ -1242,9 +1258,19 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_in(uint8_t opcode) { // OUTI 16 O
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_incr16(uint8_t opcode) {
-    uint16_t* const regset[] = {&(bc.pair), &(de.pair), &(hl.pair), &(sp)};
-    (*regset[OPCODE>>4])++;
-    return 6;
+    uint16_t* const regset[] = {&(bc.pair), &(de.pair), &(hl.pair), &(sp), &(ix.pair), &(iy.pair)};
+    uint32_t index = OPCODE>>4;
+    uint64_t cycles = 6;
+    if(OPCODE == 0xdd23) {
+        index = 4;
+        cycles = 10;
+    }
+    else if(OPCODE == 0xfd23) {
+        index = 5;
+        cycles = 10;
+    }
+    (*regset[index])++;
+    return cycles;
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_incr8(uint8_t opcode) {
@@ -1257,10 +1283,11 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_incr8(uint8_t opcode) {
         cycles = 11;
     }
     (*regset[index])++;
+
     if(*regset[index] >= 128) { set(SIGN_FLAG); } else { clear(SIGN_FLAG); }
     if(*regset[index] == 0)   { set(ZERO_FLAG); } else { clear(ZERO_FLAG); }
-    if(*regset[index] == 16)  { set(HALF_CARRY_FLAG);} else { clear(HALF_CARRY_FLAG); }
-    if(*regset[index] == 0 || *regset[index] == 128) { set(OVERFLOW_FLAG); } else { clear(OVERFLOW_FLAG); }
+    if(((*regset[index]) & 0x0f) == 0x00)  { set(HALF_CARRY_FLAG);} else { clear(HALF_CARRY_FLAG); }
+    if(*regset[index] == 0x80) { set(OVERFLOW_FLAG); } else { clear(OVERFLOW_FLAG); }
     clear(SUB_FLAG);
     if(index == 6) {
         memory->writeByte(hl.pair, dummy8);
