@@ -7,6 +7,7 @@
 #include "../../debug_console.h"
 
 memmapZ80Console::memmapZ80Console(std::shared_ptr<config> cfg, std::shared_ptr<vdpMS> v, std::shared_ptr<apuMS> a) : map_ctrl(0), map_slot0(0), map_slot1(1), map_slot2(2), vdp(v), apu(a) {
+    ram.fill(0);
     std::ifstream romfile(cfg->getRomPath().c_str());
     if(!romfile.is_open()) {
         std::cerr<<"Couldn't open ROM at path \""<<cfg->getRomPath()<<"\"\n";
