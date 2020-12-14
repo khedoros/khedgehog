@@ -87,6 +87,7 @@ private:
     template <uint32_t OPCODE> uint64_t op_cbset(uint8_t);
     template <uint32_t OPCODE> uint64_t op_ccf(uint8_t);
     template <uint32_t OPCODE> uint64_t op_cpl(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_cp(uint8_t);
     template <uint32_t OPCODE> uint64_t op_daa(uint8_t);
     template <uint32_t OPCODE> uint64_t op_decr16(uint8_t);
     template <uint32_t OPCODE> uint64_t op_decr8(uint8_t);

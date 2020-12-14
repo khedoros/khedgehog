@@ -211,9 +211,9 @@ const std::array<z80OpPtr, 256> cpuZ80::dd_op_table = {
   &cpuZ80::op_unimpl<0xdd18>, &cpuZ80::op_unimpl<0xdd19>, &cpuZ80::op_unimpl<0xdd1a>, &cpuZ80::op_unimpl<0xdd1b>,
   &cpuZ80::op_unimpl<0xdd1c>, &cpuZ80::op_unimpl<0xdd1d>, &cpuZ80::op_unimpl<0xdd1e>, &cpuZ80::op_unimpl<0xdd1f>,
   &cpuZ80::op_unimpl<0xdd20>, &cpuZ80::op_ld16<0xdd21>,   &cpuZ80::op_ld16rim<0xdd22>, &cpuZ80::op_incr16<0xdd23>,
-  &cpuZ80::op_unimpl<0xdd24>, &cpuZ80::op_unimpl<0xdd25>, &cpuZ80::op_ld8idxri<0xdd26>, &cpuZ80::op_unimpl<0xdd27>,
+  &cpuZ80::op_incr8<0xdd24>, &cpuZ80::op_decr8<0xdd25>, &cpuZ80::op_ld8idxri<0xdd26>, &cpuZ80::op_unimpl<0xdd27>,
   &cpuZ80::op_unimpl<0xdd28>, &cpuZ80::op_unimpl<0xdd29>, &cpuZ80::op_ld16rim<0xdd2a>, &cpuZ80::op_decr16<0xdd2b>,
-  &cpuZ80::op_unimpl<0xdd2c>, &cpuZ80::op_unimpl<0xdd2d>, &cpuZ80::op_ld8idxri<0xdd2e>, &cpuZ80::op_unimpl<0xdd2f>,
+  &cpuZ80::op_incr8<0xdd2c>, &cpuZ80::op_decr8<0xdd2d>, &cpuZ80::op_ld8idxri<0xdd2e>, &cpuZ80::op_unimpl<0xdd2f>,
   &cpuZ80::op_unimpl<0xdd30>, &cpuZ80::op_unimpl<0xdd31>, &cpuZ80::op_unimpl<0xdd32>, &cpuZ80::op_unimpl<0xdd33>,
   &cpuZ80::op_unimpl<0xdd34>, &cpuZ80::op_unimpl<0xdd35>, &cpuZ80::op_ld8mioff<0xdd36>, &cpuZ80::op_unimpl<0xdd37>,
   &cpuZ80::op_unimpl<0xdd38>, &cpuZ80::op_unimpl<0xdd39>, &cpuZ80::op_unimpl<0xdd3a>, &cpuZ80::op_unimpl<0xdd3b>,
@@ -293,13 +293,13 @@ const std::array<z80OpPtr, 256> cpuZ80::ed_op_table = {
   &cpuZ80::op_unimpl<0xed94>, &cpuZ80::op_unimpl<0xed95>, &cpuZ80::op_unimpl<0xed96>, &cpuZ80::op_unimpl<0xed97>,
   &cpuZ80::op_unimpl<0xed98>, &cpuZ80::op_unimpl<0xed99>, &cpuZ80::op_unimpl<0xed9a>, &cpuZ80::op_unimpl<0xed9b>,
   &cpuZ80::op_unimpl<0xed9c>, &cpuZ80::op_unimpl<0xed9d>, &cpuZ80::op_unimpl<0xed9e>, &cpuZ80::op_unimpl<0xed9f>,
-  &cpuZ80::op_ld8mm<0xeda0>,  &cpuZ80::op_unimpl<0xeda1>, &cpuZ80::op_in<0xeda2>,     &cpuZ80::op_out<0xeda3>,
+  &cpuZ80::op_ld8mm<0xeda0>,  &cpuZ80::op_cp<0xeda1>,     &cpuZ80::op_in<0xeda2>,     &cpuZ80::op_out<0xeda3>,
   &cpuZ80::op_unimpl<0xeda4>, &cpuZ80::op_unimpl<0xeda5>, &cpuZ80::op_unimpl<0xeda6>, &cpuZ80::op_unimpl<0xeda7>,
-  &cpuZ80::op_ld8mm<0xeda8>,  &cpuZ80::op_unimpl<0xeda9>, &cpuZ80::op_in<0xedaa>,     &cpuZ80::op_out<0xedab>,
+  &cpuZ80::op_ld8mm<0xeda8>,  &cpuZ80::op_cp<0xeda9>,     &cpuZ80::op_in<0xedaa>,     &cpuZ80::op_out<0xedab>,
   &cpuZ80::op_unimpl<0xedac>, &cpuZ80::op_unimpl<0xedad>, &cpuZ80::op_unimpl<0xedae>, &cpuZ80::op_unimpl<0xedaf>,
-  &cpuZ80::op_ld8mm<0xedb0>,  &cpuZ80::op_unimpl<0xedb1>, &cpuZ80::op_in<0xedb2>,     &cpuZ80::op_out<0xedb3>,
+  &cpuZ80::op_ld8mm<0xedb0>,  &cpuZ80::op_cp<0xedb1>,     &cpuZ80::op_in<0xedb2>,     &cpuZ80::op_out<0xedb3>,
   &cpuZ80::op_unimpl<0xedb4>, &cpuZ80::op_unimpl<0xedb5>, &cpuZ80::op_unimpl<0xedb6>, &cpuZ80::op_unimpl<0xedb7>,
-  &cpuZ80::op_ld8mm<0xedb8>,  &cpuZ80::op_unimpl<0xedb9>, &cpuZ80::op_in<0xedba>,     &cpuZ80::op_out<0xedbb>
+  &cpuZ80::op_ld8mm<0xedb8>,  &cpuZ80::op_cp<0xedb9>,     &cpuZ80::op_in<0xedba>,     &cpuZ80::op_out<0xedbb>
 };
 
 const std::array<z80OpPtr, 256> cpuZ80::fd_op_table = {
@@ -312,9 +312,9 @@ const std::array<z80OpPtr, 256> cpuZ80::fd_op_table = {
   &cpuZ80::op_unimpl<0xfd18>, &cpuZ80::op_unimpl<0xfd19>, &cpuZ80::op_unimpl<0xfd1a>, &cpuZ80::op_unimpl<0xfd1b>,
   &cpuZ80::op_unimpl<0xfd1c>, &cpuZ80::op_unimpl<0xfd1d>, &cpuZ80::op_unimpl<0xfd1e>, &cpuZ80::op_unimpl<0xfd1f>,
   &cpuZ80::op_unimpl<0xfd20>, &cpuZ80::op_ld16<0xfd21>,   &cpuZ80::op_ld16rim<0xfd22>, &cpuZ80::op_incr16<0xfd23>,
-  &cpuZ80::op_unimpl<0xfd24>, &cpuZ80::op_unimpl<0xfd25>, &cpuZ80::op_ld8idxri<0xfd26>, &cpuZ80::op_unimpl<0xfd27>,
+  &cpuZ80::op_incr8<0xfd24>, &cpuZ80::op_decr8<0xfd25>, &cpuZ80::op_ld8idxri<0xfd26>, &cpuZ80::op_unimpl<0xfd27>,
   &cpuZ80::op_unimpl<0xfd28>, &cpuZ80::op_unimpl<0xfd29>, &cpuZ80::op_ld16rim<0xfd2a>, &cpuZ80::op_decr16<0xfd2b>,
-  &cpuZ80::op_unimpl<0xfd2c>, &cpuZ80::op_unimpl<0xfd2d>, &cpuZ80::op_ld8idxri<0xfd2e>, &cpuZ80::op_unimpl<0xfd2f>,
+  &cpuZ80::op_incr8<0xfd2c>, &cpuZ80::op_decr8<0xfd2d>, &cpuZ80::op_ld8idxri<0xfd2e>, &cpuZ80::op_unimpl<0xfd2f>,
   &cpuZ80::op_unimpl<0xfd30>, &cpuZ80::op_unimpl<0xfd31>, &cpuZ80::op_unimpl<0xfd32>, &cpuZ80::op_unimpl<0xfd33>,
   &cpuZ80::op_unimpl<0xfd34>, &cpuZ80::op_unimpl<0xfd35>, &cpuZ80::op_ld8mioff<0xfd36>, &cpuZ80::op_unimpl<0xfd37>,
   &cpuZ80::op_unimpl<0xfd38>, &cpuZ80::op_unimpl<0xfd39>, &cpuZ80::op_unimpl<0xfd3a>, &cpuZ80::op_unimpl<0xfd3b>,
@@ -944,8 +944,14 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_cbbit(uint8_t opcode) { // CB40 -
             cycles = 20;
         }
     }
-    if(*regset[reg] & bit) clear(ZERO_FLAG);
-    else set(ZERO_FLAG);
+
+    uint8_t val = ((*regset[reg]) & bit);
+
+    if(val & 0x80) set(SIGN_FLAG);
+    else clear(SIGN_FLAG);
+
+    if(val) clear(ZERO_FLAG|PARITY_FLAG);
+    else set(ZERO_FLAG|PARITY_FLAG);
     clear(SUB_FLAG);
     set(HALF_CARRY_FLAG);
 
@@ -1042,6 +1048,39 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_cpl(uint8_t opcode) { // CPL 4
     return 4;
 }
 
+template <uint32_t OPCODE> uint64_t cpuZ80::op_cp(uint8_t) { // CPI CPD CPIR CPDR 16, 21 if repeated
+    uint8_t val = memory->readByte(hl.pair);
+    bool incr = (OPCODE == 0xeda1 || OPCODE == 0xedb1);
+    bool repeat = (OPCODE == 0xedb1 || OPCODE == 0xedb9);
+    uint64_t cycles = 16;
+
+    set(SUB_FLAG);
+
+    if((af.hi & 0x0f) < (val & 0x0f)) set(HALF_CARRY_FLAG);
+    else clear(HALF_CARRY_FLAG);
+
+    if(af.hi == val) set(ZERO_FLAG);
+    else clear(ZERO_FLAG);
+
+    if((af.hi - val) >= 128) set(SIGN_FLAG);
+    else clear(SIGN_FLAG);
+
+    if(incr) hl.pair++;
+    else     hl.pair--;
+
+    bc.pair--;
+
+    if(bc.pair != 0) set(PARITY_FLAG);
+    else clear(PARITY_FLAG);
+
+    if(repeat && bc.pair && !zero()) {
+            cycles += 5;
+            pc -= 2;
+    }
+
+    return cycles;
+}
+
 template <uint32_t OPCODE> uint64_t cpuZ80::op_daa(uint8_t opcode) { // DAA 4
    int t = 0;
 
@@ -1113,9 +1152,18 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_decr16(uint8_t opcode) {
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_decr8(uint8_t opcode) {
     uint8_t* const regset[] = {&(bc.hi), &(bc.low), &(de.hi), &(de.low),
-                               &(hl.hi), &(hl.low),  &dummy8, &(af.hi)};
-    constexpr uint8_t index = (OPCODE>>3);
+                               &(hl.hi), &(hl.low),  &dummy8, &(af.hi),
+                               &(ix.hi), &(ix.low), &(iy.hi), &(iy.low)};
+    uint8_t index = (OPCODE>>3) & 0x07;
     uint64_t cycles = 4;
+    if((OPCODE & 0xFF00) == 0xDD00) {
+        index += 4;
+        cycles = 10;
+    }
+    if((OPCODE & 0xFF00) == 0xFD00) {
+        index += 6;
+        cycles = 10;
+    }
     if(index == 6) {
         dummy8 = memory->readByte(hl.pair);
         cycles = 11;
@@ -1275,13 +1323,24 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_incr16(uint8_t opcode) {
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_incr8(uint8_t opcode) {
     uint8_t* const regset[] = {&(bc.hi), &(bc.low), &(de.hi), &(de.low),
-                               &(hl.hi), &(hl.low),  &dummy8, &(af.hi)};
-    constexpr uint8_t index = (OPCODE>>3);
+                               &(hl.hi), &(hl.low),  &dummy8, &(af.hi),
+                               &(ix.hi), &(ix.low), &(iy.hi), &(iy.low)};
+    uint8_t index = (OPCODE>>3) & 0x07;
     uint64_t cycles = 4;
+
+    if((OPCODE & 0xFF00) == 0xDD00) {
+        index += 4;
+        cycles = 10;
+    }
+    if((OPCODE & 0xFF00) == 0xFD00) {
+        index += 6;
+        cycles = 10;
+    }
     if(index == 6) {
         dummy8 = memory->readByte(hl.pair);
         cycles = 11;
     }
+
     (*regset[index])++;
 
     if(*regset[index] >= 128) { set(SIGN_FLAG); } else { clear(SIGN_FLAG); }
@@ -1289,6 +1348,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_incr8(uint8_t opcode) {
     if(((*regset[index]) & 0x0f) == 0x00)  { set(HALF_CARRY_FLAG);} else { clear(HALF_CARRY_FLAG); }
     if(*regset[index] == 0x80) { set(OVERFLOW_FLAG); } else { clear(OVERFLOW_FLAG); }
     clear(SUB_FLAG);
+
     if(index == 6) {
         memory->writeByte(hl.pair, dummy8);
     }

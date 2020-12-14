@@ -80,10 +80,12 @@ void dbg_con::write_data(uint8_t val) {
         col = 0;
         row++;
         if(row == 25) {
+            row = 0;
             top_row++;
             top_row %= 25;
-            row = 0;
         }
+        buffer[row].fill(std::make_pair(' ', attr));
+
     }
     else if( val == 13) {
         //carriage return; cursor to beginning of line
@@ -100,8 +102,8 @@ void dbg_con::render() {
     std::cout<<"\\\n";
     for(int r = 0; r < 25; r++) {
         std::cout<<"|";
+        int cur_row = (r + top_row) % 25;
         for(int c = 0; c < 80; c++) {
-            int cur_row = (r + top_row) % 25;
             //std::cout<<bg_col[buffer[cur_row][c].second>>4];
             //std::cout<<(fg_col[buffer[cur_row][c].second & 0x0f])
             std::cout<<buffer[cur_row][c].first;
