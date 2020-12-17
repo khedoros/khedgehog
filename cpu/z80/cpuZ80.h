@@ -111,6 +111,8 @@ private:
     template <uint32_t OPCODE> uint64_t op_ld8ri(uint8_t);
     template <uint32_t OPCODE> uint64_t op_ld8rm(uint8_t);
     template <uint32_t OPCODE> uint64_t op_ld8rr(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_ld8rrix(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_ld8rriy(uint8_t);
     template <uint32_t OPCODE> uint64_t op_nop(uint8_t);
     template <uint32_t OPCODE> uint64_t op_out(uint8_t);
     template <uint32_t OPCODE> uint64_t op_pop(uint8_t);
