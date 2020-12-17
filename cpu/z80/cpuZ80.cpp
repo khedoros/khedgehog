@@ -215,7 +215,7 @@ const std::array<z80OpPtr, 256> cpuZ80::dd_op_table = {
   &cpuZ80::op_unimpl<0xdd28>, &cpuZ80::op_unimpl<0xdd29>, &cpuZ80::op_ld16rim<0xdd2a>, &cpuZ80::op_decr16<0xdd2b>,
   &cpuZ80::op_incr8<0xdd2c>, &cpuZ80::op_decr8<0xdd2d>, &cpuZ80::op_ld8idxri<0xdd2e>, &cpuZ80::op_unimpl<0xdd2f>,
   &cpuZ80::op_unimpl<0xdd30>, &cpuZ80::op_unimpl<0xdd31>, &cpuZ80::op_unimpl<0xdd32>, &cpuZ80::op_unimpl<0xdd33>,
-  &cpuZ80::op_wtf<0xdd34>, &cpuZ80::op_wtf<0xdd35>, &cpuZ80::op_ld8mioff<0xdd36>, &cpuZ80::op_unimpl<0xdd37>,
+  &cpuZ80::op_incr8<0xdd34>, &cpuZ80::op_decr8<0xdd35>, &cpuZ80::op_ld8mioff<0xdd36>, &cpuZ80::op_unimpl<0xdd37>,
   &cpuZ80::op_unimpl<0xdd38>, &cpuZ80::op_unimpl<0xdd39>, &cpuZ80::op_unimpl<0xdd3a>, &cpuZ80::op_unimpl<0xdd3b>,
   &cpuZ80::op_unimpl<0xdd3c>, &cpuZ80::op_unimpl<0xdd3d>, &cpuZ80::op_unimpl<0xdd3e>, &cpuZ80::op_unimpl<0xdd3f>,
   &cpuZ80::op_unimpl<0xdd40>, &cpuZ80::op_unimpl<0xdd41>, &cpuZ80::op_unimpl<0xdd42>, &cpuZ80::op_unimpl<0xdd43>,
@@ -316,7 +316,7 @@ const std::array<z80OpPtr, 256> cpuZ80::fd_op_table = {
   &cpuZ80::op_unimpl<0xfd28>, &cpuZ80::op_unimpl<0xfd29>, &cpuZ80::op_ld16rim<0xfd2a>, &cpuZ80::op_decr16<0xfd2b>,
   &cpuZ80::op_incr8<0xfd2c>, &cpuZ80::op_decr8<0xfd2d>, &cpuZ80::op_ld8idxri<0xfd2e>, &cpuZ80::op_unimpl<0xfd2f>,
   &cpuZ80::op_unimpl<0xfd30>, &cpuZ80::op_unimpl<0xfd31>, &cpuZ80::op_unimpl<0xfd32>, &cpuZ80::op_unimpl<0xfd33>,
-  &cpuZ80::op_wtf<0xfd34>, &cpuZ80::op_wtf<0xfd35>, &cpuZ80::op_ld8mioff<0xfd36>, &cpuZ80::op_unimpl<0xfd37>,
+  &cpuZ80::op_incr8<0xfd34>, &cpuZ80::op_decr8<0xfd35>, &cpuZ80::op_ld8mioff<0xfd36>, &cpuZ80::op_unimpl<0xfd37>,
   &cpuZ80::op_unimpl<0xfd38>, &cpuZ80::op_unimpl<0xfd39>, &cpuZ80::op_unimpl<0xfd3a>, &cpuZ80::op_unimpl<0xfd3b>,
   &cpuZ80::op_unimpl<0xfd3c>, &cpuZ80::op_unimpl<0xfd3d>, &cpuZ80::op_unimpl<0xfd3e>, &cpuZ80::op_unimpl<0xfd3f>,
   &cpuZ80::op_unimpl<0xfd40>, &cpuZ80::op_unimpl<0xfd41>, &cpuZ80::op_unimpl<0xfd42>, &cpuZ80::op_unimpl<0xfd43>,
@@ -1167,11 +1167,11 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_decr8(uint8_t opcode) {
     uint8_t index = (OPCODE>>3) & 0x07;
     int8_t offset = 0;
     uint64_t cycles = 4;
-    if((OPCODE & 0xFF00) == 0xDD00) {
+    if((OPCODE & 0xFF00) == 0xDD00 && index != 6) {
         index += 4;
         cycles = 10;
     }
-    if((OPCODE & 0xFF00) == 0xFD00) {
+    if((OPCODE & 0xFF00) == 0xFD00 && index != 6) {
         index += 6;
         cycles = 10;
     }
@@ -1404,10 +1404,10 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_incr8(uint8_t opcode) {
             memory->writeByte(hl.pair, dummy8);
             break;
         case 0xdd00:
-            //memory->writeByte(ix.pair, dummy8);
+            memory->writeByte(ix.pair+offset, dummy8);
             break;
         case 0xfd00:
-            //memory->writeByte(iy.pair, dummy8);
+            memory->writeByte(iy.pair+offset, dummy8);
             break;
         }
 
@@ -1859,6 +1859,6 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_sbc16(uint8_t opcode) { // SBC HL
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_wtf(uint8_t arg) {
-    std::printf("WTF opcode: %08x, arg: %02x", OPCODE, arg);
+    std::printf("WTF opcode: %08x, arg: %02x, next: %02x(PC %04x) next+1: %02x", OPCODE, arg, memory->readByte(pc), pc, memory->readByte(pc+1));
     return 4;
 }
