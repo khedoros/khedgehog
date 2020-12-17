@@ -113,12 +113,14 @@ private:
     template <uint32_t OPCODE> uint64_t op_ld8rr(uint8_t);
     template <uint32_t OPCODE> uint64_t op_ld8rrix(uint8_t);
     template <uint32_t OPCODE> uint64_t op_ld8rriy(uint8_t);
+	template <uint32_t OPCODE> uint64_t op_neg(uint8_t);
     template <uint32_t OPCODE> uint64_t op_nop(uint8_t);
     template <uint32_t OPCODE> uint64_t op_out(uint8_t);
     template <uint32_t OPCODE> uint64_t op_pop(uint8_t);
     template <uint32_t OPCODE> uint64_t op_push(uint8_t);
     template <uint32_t OPCODE> uint64_t op_ret(uint8_t);
     template <uint32_t OPCODE> uint64_t op_rot_a(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_rxd(uint8_t);
     template <uint32_t OPCODE> uint64_t op_scf(uint8_t);
 	template <uint32_t OPCODE> uint64_t op_sbc16(uint8_t);
 	template <uint32_t OPCODE> uint64_t op_wtf(uint8_t);
