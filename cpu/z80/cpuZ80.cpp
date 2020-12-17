@@ -1823,6 +1823,10 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_rot_a(uint8_t opcode) { // RLCA, 
         af.hi |= (c << 7);
         break;
     }
+
+    clear(HALF_CARRY_FLAG);
+    clear(SUB_FLAG);
+
     return 4;
 }
 
