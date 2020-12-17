@@ -119,6 +119,7 @@ private:
     template <uint32_t OPCODE> uint64_t op_rot_a(uint8_t);
     template <uint32_t OPCODE> uint64_t op_scf(uint8_t);
 	template <uint32_t OPCODE> uint64_t op_sbc16(uint8_t);
+	template <uint32_t OPCODE> uint64_t op_wtf(uint8_t);
 
     uint64_t decode(uint8_t opcode);
     void push(uint16_t);
