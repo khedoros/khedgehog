@@ -642,27 +642,23 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_unimpl(uint8_t opcode) {
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_adc16(uint8_t opcode) { // ADC HL, ss 4
     uint16_t* const regset[] {&(bc.pair), &(de.pair), &(hl.pair), &(sp)};
-
 	int reg = ((OPCODE>>4) & 0x3);
+	int32_t temp = hl.pair + *regset[reg] + carry();
 
-	uint32_t temp = hl.pair;
-
-	temp += *regset[reg];
-	if(carry()) temp++;
 	clear(SUB_FLAG);
 
 	if(temp > 0xffff) set(CARRY_FLAG);
 	else              clear(CARRY_FLAG);
 
-    if((*regset[reg] & 0xfff) + carry() > (hl.pair & 0xfff)) set(HALF_CARRY_FLAG);
+    if((*regset[reg]) ^ hl.pair ^ (temp & 0xffff)) set(HALF_CARRY_FLAG);
 	else clear(HALF_CARRY_FLAG);
 
-    if(addition_overflows(int16_t(hl.pair), int16_t(*regset[reg] + carry())) || addition_underflows(int16_t(hl.pair), int16_t(*regset[reg] + carry()))) set(OVERFLOW_FLAG);
+    if(temp > 32767 || temp < 32768) set(OVERFLOW_FLAG);
     else clear(OVERFLOW_FLAG);
 
         // TODO: Fix flags
 
-    hl.pair = temp;
+    hl.pair = temp & 0xffff;
 
 	return 4;
 }
@@ -1094,16 +1090,17 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_cp(uint8_t) { // CPI CPD CPIR CPD
     bool incr = (OPCODE == 0xeda1 || OPCODE == 0xedb1);
     bool repeat = (OPCODE == 0xedb1 || OPCODE == 0xedb9);
     uint64_t cycles = 16;
+    uint8_t result = af.hi - val;
 
     set(SUB_FLAG);
 
-    if((af.hi & 0x0f) < (val & 0x0f)) set(HALF_CARRY_FLAG);
+    if((af.hi ^ val ^ result) & 0x10) set(HALF_CARRY_FLAG);
     else clear(HALF_CARRY_FLAG);
 
-    if(af.hi == val) set(ZERO_FLAG);
+    if(!result) set(ZERO_FLAG);
     else clear(ZERO_FLAG);
 
-    if((af.hi - val) >= 128) set(SIGN_FLAG);
+    if(result >= 128) set(SIGN_FLAG);
     else clear(SIGN_FLAG);
 
     if(incr) hl.pair++;
@@ -1971,25 +1968,18 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_scf(uint8_t opcode) { // SCF 4
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_sbc16(uint8_t opcode) { // SBC HL, ss 4
     uint16_t* const regset[] {&(bc.pair), &(de.pair), &(hl.pair), &(sp)};
-
 	int reg = ((OPCODE>>4) & 0x3);
+	int32_t temp = hl.pair - (*regset[reg]) - carry();
 
-	uint16_t temp = hl.pair;
-
-	temp -= *regset[reg];
-	if(carry()) temp--;
 	set(SUB_FLAG);
-
 	if(temp > hl.pair) set(CARRY_FLAG);
 	else               clear(CARRY_FLAG);
 
-    if((*regset[reg] & 0xfff) + carry() > (hl.pair & 0xfff)) set(HALF_CARRY_FLAG);
+    if(((*regset[reg]) ^ (hl.pair) ^ (temp & 0xffff)) & 0x1000) set(HALF_CARRY_FLAG);
 	else clear(HALF_CARRY_FLAG);
 
-    if(subtraction_overflows(int16_t(hl.pair), int16_t(*regset[reg] - carry())) || subtraction_underflows(int16_t(hl.pair), int16_t(*regset[reg] - carry()))) set(OVERFLOW_FLAG);
+    if(temp < -32768 || temp > 32767) set(OVERFLOW_FLAG);
     else clear(OVERFLOW_FLAG);
-
-        // TODO: Fix flags
 
     hl.pair = temp;
 
