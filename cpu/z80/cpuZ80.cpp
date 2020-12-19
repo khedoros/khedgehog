@@ -20,7 +20,7 @@ uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
         cycles_remaining -= inst_cycles;
         total_cycles+=inst_cycles;
     }
-    //std::printf("total_cycles: %lu\n", total_cycles);
+    // std::printf("total_cycles: %lu\n", total_cycles);
 
     return cycles_to_run - cycles_remaining;
 }
@@ -272,19 +272,19 @@ const std::array<z80OpPtr, 256> cpuZ80::dd_op_table = {
 const std::array<z80OpPtr, 256> cpuZ80::ed_op_table = {
   &cpuZ80::op_in<0xed40>,     &cpuZ80::op_out<0xed41>,    &cpuZ80::op_sbc16<0xed42>,  &cpuZ80::op_ld16rim<0xed43>,
   &cpuZ80::op_neg<0xed44>,    &cpuZ80::op_unimpl<0xed45>, &cpuZ80::op_im<0xed46>,     &cpuZ80::op_unimpl<0xed47>,
-  &cpuZ80::op_in<0xed48>,     &cpuZ80::op_out<0xed49>,    &cpuZ80::op_unimpl<0xed4a>, &cpuZ80::op_ld16rim<0xed4b>,
+  &cpuZ80::op_in<0xed48>,     &cpuZ80::op_out<0xed49>,    &cpuZ80::op_adc16<0xed4a>,  &cpuZ80::op_ld16rim<0xed4b>,
   &cpuZ80::op_unimpl<0xed4c>, &cpuZ80::op_unimpl<0xed4d>, &cpuZ80::op_unimpl<0xed4e>, &cpuZ80::op_unimpl<0xed4f>,
   &cpuZ80::op_in<0xed50>,     &cpuZ80::op_out<0xed51>,    &cpuZ80::op_sbc16<0xed52>,  &cpuZ80::op_ld16rim<0xed53>,
   &cpuZ80::op_unimpl<0xed54>, &cpuZ80::op_unimpl<0xed55>, &cpuZ80::op_im<0xed56>,     &cpuZ80::op_unimpl<0xed57>,
-  &cpuZ80::op_in<0xed58>,     &cpuZ80::op_out<0xed59>,    &cpuZ80::op_unimpl<0xed5a>, &cpuZ80::op_ld16rim<0xed5b>,
+  &cpuZ80::op_in<0xed58>,     &cpuZ80::op_out<0xed59>,    &cpuZ80::op_adc16<0xed5a>,  &cpuZ80::op_ld16rim<0xed5b>,
   &cpuZ80::op_unimpl<0xed5c>, &cpuZ80::op_unimpl<0xed5d>, &cpuZ80::op_im<0xed5e>,     &cpuZ80::op_unimpl<0xed5f>,
   &cpuZ80::op_in<0xed60>,     &cpuZ80::op_out<0xed61>,    &cpuZ80::op_sbc16<0xed62>,  &cpuZ80::op_ld16rim<0xed63>,
   &cpuZ80::op_unimpl<0xed64>, &cpuZ80::op_unimpl<0xed65>, &cpuZ80::op_im<0xed66>,     &cpuZ80::op_rxd<0xed67>,
-  &cpuZ80::op_in<0xed68>,     &cpuZ80::op_out<0xed69>,    &cpuZ80::op_unimpl<0xed6a>, &cpuZ80::op_ld16rim<0xed6b>,
+  &cpuZ80::op_in<0xed68>,     &cpuZ80::op_out<0xed69>,    &cpuZ80::op_adc16<0xed6a>,  &cpuZ80::op_ld16rim<0xed6b>,
   &cpuZ80::op_unimpl<0xed6c>, &cpuZ80::op_unimpl<0xed6d>, &cpuZ80::op_unimpl<0xed6e>, &cpuZ80::op_rxd<0xed6f>,
   &cpuZ80::op_in<0xed70>,     &cpuZ80::op_out<0xed71>,    &cpuZ80::op_sbc16<0xed72>,  &cpuZ80::op_ld16rim<0xed73>,
   &cpuZ80::op_unimpl<0xed74>, &cpuZ80::op_unimpl<0xed75>, &cpuZ80::op_im<0xed76>,     &cpuZ80::op_unimpl<0xed77>,
-  &cpuZ80::op_in<0xed78>,     &cpuZ80::op_out<0xed79>,    &cpuZ80::op_unimpl<0xed7a>, &cpuZ80::op_ld16rim<0xed7b>,
+  &cpuZ80::op_in<0xed78>,     &cpuZ80::op_out<0xed79>,    &cpuZ80::op_adc16<0xed7a>,  &cpuZ80::op_ld16rim<0xed7b>,
   &cpuZ80::op_unimpl<0xed7c>, &cpuZ80::op_unimpl<0xed7d>, &cpuZ80::op_im<0xed7e>,     &cpuZ80::op_unimpl<0xed7f>,
   &cpuZ80::op_unimpl<0xed80>, &cpuZ80::op_unimpl<0xed81>, &cpuZ80::op_unimpl<0xed82>, &cpuZ80::op_unimpl<0xed83>,
   &cpuZ80::op_unimpl<0xed84>, &cpuZ80::op_unimpl<0xed85>, &cpuZ80::op_unimpl<0xed86>, &cpuZ80::op_unimpl<0xed87>,
@@ -638,6 +638,33 @@ bool cpuZ80::condition(int condition_number) {
 template <uint32_t OPCODE> uint64_t cpuZ80::op_unimpl(uint8_t opcode) {
     std::cout<<"\nOpcode "<<std::hex<<OPCODE<<" not implemented.\n";
     return -1;
+}
+
+template <uint32_t OPCODE> uint64_t cpuZ80::op_adc16(uint8_t opcode) { // ADC HL, ss 4
+    uint16_t* const regset[] {&(bc.pair), &(de.pair), &(hl.pair), &(sp)};
+
+	int reg = ((OPCODE>>4) & 0x3);
+
+	uint32_t temp = hl.pair;
+
+	temp += *regset[reg];
+	if(carry()) temp++;
+	clear(SUB_FLAG);
+
+	if(temp > 0xffff) set(CARRY_FLAG);
+	else              clear(CARRY_FLAG);
+
+    if((*regset[reg] & 0xfff) + carry() > (hl.pair & 0xfff)) set(HALF_CARRY_FLAG);
+	else clear(HALF_CARRY_FLAG);
+
+    if(addition_overflows(int16_t(hl.pair), int16_t(*regset[reg] + carry())) || addition_underflows(int16_t(hl.pair), int16_t(*regset[reg] + carry()))) set(OVERFLOW_FLAG);
+    else clear(OVERFLOW_FLAG);
+
+        // TODO: Fix flags
+
+    hl.pair = temp;
+
+	return 4;
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_add16(uint8_t opcode) { // 16-bit r-r adds 11
@@ -1548,7 +1575,9 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_ld8mm(uint8_t opcode) {  //LDI 16
     uint8_t val = memory->readByte(hl.pair);
     memory->writeByte(de.pair, val);
     uint64_t cycles = 16;
-    if(OPCODE == 0xEDA0 || OPCODE == 0xEDB0) {
+    bool incr = (OPCODE == 0xEDA0 || OPCODE == 0xEDB0);
+    bool rep = (OPCODE == 0xEDB0 || OPCODE == 0xEDB8);
+    if(incr) {
         hl.pair++;
         de.pair++;
     }
@@ -1558,7 +1587,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_ld8mm(uint8_t opcode) {  //LDI 16
     }
     bc.pair--;
 
-    if(bc.pair && (OPCODE == 0xEDB0 || OPCODE == 0xEDB8)) {
+    if(bc.pair && rep) {
         pc -= 2; // repeat the instruction
         cycles = 21;
     }
