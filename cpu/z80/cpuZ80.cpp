@@ -604,7 +604,7 @@ bool cpuZ80::subtraction_underflows(T a, T b) {
 }
 
 void cpuZ80::print_registers() {
-    dbg_printf("\t\tA: %02x BC: %04x DE: %04x HL: %04x SP: %04x status: %c%c0%c0%c%c%c", af.hi, bc.pair, de.pair, hl.pair, sp,
+    dbg_printf("\t\tA: %02x BC: %04x DE: %04x HL: %04x IX: %04x IY: %04x SP: %04x status: %c%c0%c0%c%c%c", af.hi, bc.pair, de.pair, hl.pair, ix.pair, iy.pair, sp,
      sign()?'S':'s',
      zero()?'Z':'z',
      hc()?'H':'h',
@@ -668,12 +668,12 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_add16(uint8_t opcode) { // 16-bit
 	uint16_t* dest = &(hl.pair);
     uint8_t reg = ((OPCODE>>4) & 0x03);
 	uint64_t cycles = 11;
-	if(OPCODE & 0xff00 == 0xdd00) {
+	if((OPCODE & 0xff00) == 0xdd00) {
 		dest = &(ix.pair);
 		cycles = 15;
 		if(reg == 2) reg = 4;
 	}
-	else if(OPCODE & 0xff00 == 0xfd00) {
+	else if((OPCODE & 0xff00) == 0xfd00) {
 		dest = &(iy.pair);
 		cycles = 15;
 		if(reg == 2) reg = 5;
@@ -686,6 +686,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_add16(uint8_t opcode) { // 16-bit
     if(temp > 0xffff) set(CARRY_FLAG);
     else clear(CARRY_FLAG);
     *dest = (temp & 0xffff);
+
     return cycles;
 }
 
