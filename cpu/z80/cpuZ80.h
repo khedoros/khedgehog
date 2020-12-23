@@ -5,6 +5,7 @@
 #include<memory>
 #include<array>
 #include<cstdint>
+#include<fstream>
 
 #define CALL_MEMBER_FN(object,ptrToMember)  ((object)->*(ptrToMember))
 
@@ -152,4 +153,5 @@ public:
     void reset();
     void nmi();
     void interrupt(uint8_t vector);
+    uint64_t test_daa();
 };

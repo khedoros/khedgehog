@@ -5,6 +5,7 @@
 #include "../../util.h"
 
 uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
+
     cycles_remaining += cycles_to_run;
     while(cycles_remaining > 0) {
         const uint8_t opcode = memory->readByte(pc++);
@@ -51,6 +52,48 @@ cpuZ80::cpuZ80(std::shared_ptr<memmapZ80Console> memmap): memory(memmap), cycles
 #define sub() ((af.low & SUB_FLAG)>>(1))
 #define carry() ((af.low & CARRY_FLAG))
 
+uint64_t cpuZ80::test_daa() {
+    std::ifstream results("daaoutput.txt");
+    if(!results) { std::cerr<<"Couldn't open daaoutput.txt"<<std::endl;return 0;}
+    while(results) {
+        char reg;
+        int n_start, n_end, c_start, c_end, h_start, h_end, a_start, a_end;
+        bool c_m = false, h_m = false, n_m = false, a_m = false;
+        results>>std::hex;
+        //N 0 C 0 H 0 00 N 0 C 0 H 0 00
+        results>>reg>>n_start>>reg>>c_start>>reg>>h_start>>a_start>>reg>>n_end>>reg>>c_end>>reg>>h_end>>a_end;
+
+        std::cout<<"Test case "<<n_start<<" "<<c_start<<" "<<h_start<<" "<<a_start<<": ";
+
+        af.hi = a_start;
+        if(n_start) set(SUB_FLAG);
+        else clear(SUB_FLAG);
+        if(c_start) set(CARRY_FLAG);
+        else clear(CARRY_FLAG);
+        if(h_start) set(HALF_CARRY_FLAG);
+        else clear(HALF_CARRY_FLAG);
+
+        op_daa<0>(0);
+
+        if((carry()) != c_end) c_m = true;
+        if((hc())    != h_end) h_m = true;
+        if((sub())   != n_end) n_m = true;
+        if((af.hi)   != a_end) a_m = true;
+
+        if(c_m || h_m || n_m || a_m) {
+            std::cout<<std::hex<<"Mismatch for a: "<<uint32_t(a_start)<<
+            " expected: "<<n_end<<" "<<c_end<<" "<<h_end<<" "<<a_end<<
+            " got: "<<sub()<<" "<<carry()<<" "<<hc()<<" "<<int(af.hi)<<"\n";
+        }
+        else {
+            std::cout<<std::hex<<"Result matched for a: "<<uint32_t(a_start)<<std::endl;
+        }
+    }
+    results.close();
+    return 0;
+}
+
+
 void cpuZ80::reset() { // Jump to 0
 
 }
@@ -64,8 +107,8 @@ void cpuZ80::interrupt(uint8_t vector) { // Maskable interrupts, no vector provi
 }
 
 cpuZ80::int_type_t cpuZ80::check_interrupts() {
-	// TODO: implement real interrupt checking
-	return int_type_t::irq_int;
+    // TODO: implement real interrupt checking
+    return int_type_t::irq_int;
 }
 
 const std::array<z80OpPtr, 256> cpuZ80::op_table = {
@@ -615,7 +658,7 @@ void cpuZ80::print_registers() {
 }
 
 bool cpuZ80::condition(int condition_number) {
-    switch(condition_number) {
+    switch(condition_number & 0x7) {
     case 0: // Non-Zero (NZ)
         return !zero();
     case 1: // Zero (Z)
@@ -633,7 +676,7 @@ bool cpuZ80::condition(int condition_number) {
     case 7: // Sign Negative (M)
         return sign();
     }
-    throw std::string("This condition can't/shouldn't be reached.");
+    //throw std::string("This condition can't/shouldn't be reached.");
 }
 template <uint32_t OPCODE> uint64_t cpuZ80::op_unimpl(uint8_t opcode) {
     std::cout<<"\nOpcode "<<std::hex<<OPCODE<<" not implemented.\n";
@@ -642,42 +685,42 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_unimpl(uint8_t opcode) {
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_adc16(uint8_t opcode) { // ADC HL, ss 4
     uint16_t* const regset[] {&(bc.pair), &(de.pair), &(hl.pair), &(sp)};
-	int reg = ((OPCODE>>4) & 0x3);
-	int32_t temp = hl.pair + *regset[reg] + carry();
+    int reg = ((OPCODE>>4) & 0x3);
+    int32_t temp = hl.pair + *regset[reg] + carry();
 
-	clear(SUB_FLAG);
+    clear(SUB_FLAG);
 
-	if(temp > 0xffff) set(CARRY_FLAG);
-	else              clear(CARRY_FLAG);
+    if(uint16_t(temp) > 0xffff) set(CARRY_FLAG);
+    else              clear(CARRY_FLAG);
 
     if((*regset[reg]) ^ hl.pair ^ (temp & 0xffff)) set(HALF_CARRY_FLAG);
-	else clear(HALF_CARRY_FLAG);
+    else clear(HALF_CARRY_FLAG);
 
-    if(temp > 32767 || temp < 32768) set(OVERFLOW_FLAG);
+    if(temp > 32767 || temp < -32768) set(OVERFLOW_FLAG);
     else clear(OVERFLOW_FLAG);
 
-        // TODO: Fix flags
+    // TODO: Fix flags
 
     hl.pair = temp & 0xffff;
 
-	return 4;
+    return 4;
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_add16(uint8_t opcode) { // 16-bit r-r adds 11
     uint16_t* const regset[] = {&(bc.pair), &(de.pair), &(hl.pair), &(sp), &(ix.pair), &(iy.pair)};
-	uint16_t* dest = &(hl.pair);
+    uint16_t* dest = &(hl.pair);
     uint8_t reg = ((OPCODE>>4) & 0x03);
-	uint64_t cycles = 11;
-	if((OPCODE & 0xff00) == 0xdd00) {
-		dest = &(ix.pair);
-		cycles = 15;
-		if(reg == 2) reg = 4;
-	}
-	else if((OPCODE & 0xff00) == 0xfd00) {
-		dest = &(iy.pair);
-		cycles = 15;
-		if(reg == 2) reg = 5;
-	}
+    uint64_t cycles = 11;
+    if((OPCODE & 0xff00) == 0xdd00) {
+        dest = &(ix.pair);
+        cycles = 15;
+        if(reg == 2) reg = 4;
+    }
+    else if((OPCODE & 0xff00) == 0xfd00) {
+        dest = &(iy.pair);
+        cycles = 15;
+        if(reg == 2) reg = 5;
+    }
 
     clear(SUB_FLAG);
     if(((*dest) & 0xfff) + ((*regset[reg]) & 0xfff) >= 4096) set(HALF_CARRY_FLAG);
@@ -857,10 +900,10 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_call_cc(uint8_t opcode) { // CALL
         push(pc+2);
         pc = address;
     }
-	else {
-		pc+=2;
-	}
-	dbg_printf(" %04x", address);
+    else {
+        pc+=2;
+    }
+    dbg_printf(" %04x", address);
     return cycles;
 }
 
@@ -1074,8 +1117,15 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_cbset(uint8_t opcode) { // CBC0 -
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_ccf(uint8_t opcode) { // CCF 4
-    if(carry()) clear(CARRY_FLAG);
-    else set(CARRY_FLAG);
+    if(carry()) {
+        clear(CARRY_FLAG);
+        set(HALF_CARRY_FLAG);
+    }
+    else {
+        set(CARRY_FLAG);
+        clear(HALF_CARRY_FLAG);
+    }
+    clear(SUB_FLAG);
     return 4;
 }
 
@@ -1143,15 +1193,22 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_daa(uint8_t opcode) { // DAA 4
    }
 
    // builds final H flag
+   /*
    if (sub() && !hc()) {
       clear(HALF_CARRY_FLAG);
    }
-   else if (sub() && hc()) {
-      if(((af.hi & 0x0F)) < 6) set(HALF_CARRY_FLAG);
-      else clear(HALF_CARRY_FLAG);
-   }
+   else if (sub() && hc() && ((af.hi & 0x0F)) < 6) set(HALF_CARRY_FLAG);
+    else if ((af.hi & 0x0f) >= 0x0a) set(HALF_CARRY_FLAG);
+   else clear(HALF_CARRY_FLAG);
+*/
+   // builds final H flag
+   if (sub() && !hc()) clear(HALF_CARRY_FLAG);
    else {
-        if(hc()) {
+       if (sub() && hc()) {
+            if((af.hi & 0x0f) < 6) set(HALF_CARRY_FLAG);
+            else clear(HALF_CARRY_FLAG);
+        }
+       else {
             if((af.hi & 0x0F) >= 0x0A) set(HALF_CARRY_FLAG);
             else clear(HALF_CARRY_FLAG);
         }
@@ -1297,16 +1354,16 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_exx(uint8_t opcode) { // EXX 4
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_halt(uint8_t opcode) {
-	if(check_interrupts() == int_type_t::no_int) {
-		pc--;
-		dbg_printf("halted\n");
-	}
-	if(OPCODE > 0x76) {
+    if(check_interrupts() == int_type_t::no_int) {
+        pc--;
+        dbg_printf("halted\n");
+    }
+    if(OPCODE > 0x76) {
         return 8;
-	}
-	else {
+    }
+    else {
         return 4;
-	}
+    }
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_im(uint8_t opcode) { // IM0 IM1 IM2 8
@@ -1777,26 +1834,26 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_ld16(uint8_t opcode) {
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_neg(uint8_t opcode) { // NEG 8
 
-	if(af.hi == 0x80) set(OVERFLOW_FLAG);
-	else clear(OVERFLOW_FLAG);
+    if(af.hi == 0x80) set(OVERFLOW_FLAG);
+    else clear(OVERFLOW_FLAG);
 
-	if(af.hi) set(CARRY_FLAG);
-	else clear(CARRY_FLAG);
+    if(af.hi) set(CARRY_FLAG);
+    else clear(CARRY_FLAG);
 
-	af.hi *= -1;
+    af.hi *= -1;
 
-	if(af.hi >= 0x80) set(SIGN_FLAG);
-	else clear(SIGN_FLAG);
+    if(af.hi >= 0x80) set(SIGN_FLAG);
+    else clear(SIGN_FLAG);
 
-	if(!af.hi) set(ZERO_FLAG);
-	else clear(ZERO_FLAG);
+    if(!af.hi) set(ZERO_FLAG);
+    else clear(ZERO_FLAG);
 
-	if(af.hi & 0x0f) set(HALF_CARRY_FLAG);
-	else clear(HALF_CARRY_FLAG);
+    if(af.hi & 0x0f) set(HALF_CARRY_FLAG);
+    else clear(HALF_CARRY_FLAG);
 
-	set(SUB_FLAG);
+    set(SUB_FLAG);
 
-	return 8;
+    return 8;
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_nop(uint8_t opcode) { // NOP 4
@@ -1930,61 +1987,63 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_rot_a(uint8_t opcode) { // RLCA, 
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_rxd(uint8_t opcode) { // RLD, RRD 18
-	uint8_t val = memory->readByte(hl.pair);
-	uint8_t low_a = (af.hi & 0x0f);
-	uint8_t high_a = (af.hi & 0xf0);
-	uint8_t low_hl = (val & 0x0f);
-	uint8_t high_hl = (val>>4);
-	if(OPCODE == 0xed67) { //RRD
-		af.hi = high_a | low_hl;
-		val = (low_a<<4) | high_hl;
-	}
-	else if(OPCODE == 0xed6f) { // RLD
-		af.hi = high_a | high_hl;
-		val = (low_hl<<4) | low_a;
-	}
+    uint8_t val = memory->readByte(hl.pair);
+    uint8_t low_a = (af.hi & 0x0f);
+    uint8_t high_a = (af.hi & 0xf0);
+    uint8_t low_hl = (val & 0x0f);
+    uint8_t high_hl = (val>>4);
+    if(OPCODE == 0xed67) { //RRD
+        af.hi = high_a | low_hl;
+        val = (low_a<<4) | high_hl;
+    }
+    else if(OPCODE == 0xed6f) { // RLD
+        af.hi = high_a | high_hl;
+        val = (low_hl<<4) | low_a;
+    }
 
-	if(af.hi >= 0x80) set(SIGN_FLAG);
-	else clear(SIGN_FLAG);
+    if(af.hi >= 0x80) set(SIGN_FLAG);
+    else clear(SIGN_FLAG);
 
-	if(af.hi == 0) set(ZERO_FLAG);
-	else clear(ZERO_FLAG);
+    if(af.hi == 0) set(ZERO_FLAG);
+    else clear(ZERO_FLAG);
 
-	clear(HALF_CARRY_FLAG);
+    clear(HALF_CARRY_FLAG);
 
     if(parity[af.hi]) set(PARITY_FLAG);
     else clear(PARITY_FLAG);
 
-	clear(SUB_FLAG);
+    clear(SUB_FLAG);
 
-	memory->writeByte(hl.pair, val);
+    memory->writeByte(hl.pair, val);
 
-	return 18;
+    return 18;
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_scf(uint8_t opcode) { // SCF 4
     set(CARRY_FLAG);
+    clear(HALF_CARRY_FLAG);
+    clear(SUB_FLAG);
     return 4;
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_sbc16(uint8_t opcode) { // SBC HL, ss 4
     uint16_t* const regset[] {&(bc.pair), &(de.pair), &(hl.pair), &(sp)};
-	int reg = ((OPCODE>>4) & 0x3);
-	int32_t temp = hl.pair - (*regset[reg]) - carry();
+    int reg = ((OPCODE>>4) & 0x3);
+    int32_t temp = hl.pair - (*regset[reg]) - carry();
 
-	set(SUB_FLAG);
-	if(temp > hl.pair) set(CARRY_FLAG);
-	else               clear(CARRY_FLAG);
+    set(SUB_FLAG);
+    if(temp < 0) set(CARRY_FLAG);
+    else         clear(CARRY_FLAG);
 
     if(((*regset[reg]) ^ (hl.pair) ^ (temp & 0xffff)) & 0x1000) set(HALF_CARRY_FLAG);
-	else clear(HALF_CARRY_FLAG);
+    else clear(HALF_CARRY_FLAG);
 
     if(temp < -32768 || temp > 32767) set(OVERFLOW_FLAG);
     else clear(OVERFLOW_FLAG);
 
     hl.pair = temp;
 
-	return 4;
+    return 4;
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_wtf(uint8_t arg) {
