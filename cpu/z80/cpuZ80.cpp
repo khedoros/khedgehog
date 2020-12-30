@@ -10,7 +10,7 @@ uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
         const uint8_t opcode = memory->readByte(pc++);
         dbg_printf("%04X: %02x", pc-1, opcode);
         const uint64_t inst_cycles = CALL_MEMBER_FN(this, op_table[opcode])(opcode);
-        print_registers();
+        //print_registers();
         dbg_printf("\n");
 
         if(inst_cycles == uint64_t(-1)) {
@@ -604,7 +604,7 @@ bool cpuZ80::subtraction_underflows(T a, T b) {
 }
 
 void cpuZ80::print_registers() {
-    dbg_printf("\t\tA: %02x BC: %04x DE: %04x HL: %04x IX: %04x IY: %04x SP: %04x status: %c%c0%c0%c%c%c", af.hi, bc.pair, de.pair, hl.pair, ix.pair, iy.pair, sp,
+    std::printf("\t\tA: %02x BC: %04x DE: %04x HL: %04x IX: %04x IY: %04x SP: %04x status: %c%c0%c0%c%c%c", af.hi, bc.pair, de.pair, hl.pair, ix.pair, iy.pair, sp,
      sign()?'S':'s',
      zero()?'Z':'z',
      hc()?'H':'h',
@@ -650,7 +650,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_adc16(uint8_t opcode) { // ADC HL
 	if(temp > 0xffff) set(CARRY_FLAG);
 	else              clear(CARRY_FLAG);
 
-    if((*regset[reg]) ^ hl.pair ^ (temp & 0xffff)) set(HALF_CARRY_FLAG);
+    if(((*regset[reg]) & 0xfff) + hl.pair + carry() >= 0x1000) set(HALF_CARRY_FLAG);
 	else clear(HALF_CARRY_FLAG);
 
     if(temp > 32767 || temp < 32768) set(OVERFLOW_FLAG);
@@ -694,6 +694,8 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
     uint8_t* const regset[] = {&(bc.hi), &(bc.low), &(de.hi), &(de.low),
                                &(hl.hi), &(hl.low),  &dummy8, &(af.hi)};
     constexpr uint8_t operation = ((OPCODE>>3) & 0x07);
+    std::string const names[] = {"add", "adc", "sub", "sbc", "and", "xor", "or", "cp"};
+    std::string const reg_names[] = {"b", "c", "d", "e", "h", "l", "(hl)/immed", "a"};
     constexpr uint8_t reg = (OPCODE & 0x07);
     uint64_t cycles = 4;
     if(OPCODE < 0xc0 && reg == 6) { // ops [89ab][6e]
@@ -705,6 +707,11 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
         pc++;
         cycles = 7;
     }
+
+    if(pc >= 0xc000 && pc < 0xc430) {
+        std::printf("%04X: OP: %02x: a(%02x) %s %s(%02x) ", pc-1, OPCODE, *regset[7], names[operation].c_str(), reg_names[reg].c_str(), *regset[reg]);
+    }
+
     uint16_t temp_a = af.hi;
     switch(operation) {
     case 0x00: // add
@@ -718,14 +725,13 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
         if(addition_overflows(af.hi, *regset[reg]) || addition_underflows(af.hi, *regset[reg])) set(OVERFLOW_FLAG);
         else clear(OVERFLOW_FLAG);
 
-        if((af.hi & 0xf) + (*regset[reg] & 0xf) >= 0x10) set(HALF_CARRY_FLAG);
+        if((af.hi ^ (*regset[reg]) ^ temp_a) & 0x10) set(HALF_CARRY_FLAG);
         else clear(HALF_CARRY_FLAG);
 
         af.hi = (temp_a & 0xff);
         break;
     case 0x01: // adc
-        temp_a += *regset[reg];
-        if(carry()) temp_a++;
+        temp_a += *regset[reg] + carry();
 
         clear(SUB_FLAG);
 
@@ -735,7 +741,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
         if(addition_overflows(af.hi, *regset[reg] + carry()) || addition_underflows(af.hi, *regset[reg] + carry())) set(OVERFLOW_FLAG);
         else clear(OVERFLOW_FLAG);
 
-        if((af.hi & 0xf) + (*regset[reg] & 0xf) >= 0x10) set(HALF_CARRY_FLAG);
+        if((af.hi ^ (*regset[reg]) ^ temp_a) & 0x10) set(HALF_CARRY_FLAG);
         else clear(HALF_CARRY_FLAG);
 
         af.hi = (temp_a & 0xff);
@@ -758,14 +764,14 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
         af.hi = temp_a;
         break;
     case 0x03: // sbc
-        temp_a -= *regset[reg];
-        if(carry()) temp_a--;
+        temp_a -= ((*regset[reg]) + carry());
         set(SUB_FLAG);
 
         if(temp_a > af.hi) set(CARRY_FLAG);
         else               clear(CARRY_FLAG);
 
-        if((*regset[reg] & 0xf) + carry() > (af.hi & 0xf)) set(HALF_CARRY_FLAG);
+        if((*regset[reg] + carry()) ^ af.hi ^ temp_a) set(HALF_CARRY_FLAG);
+        else clear(HALF_CARRY_FLAG);
 
         if(subtraction_overflows(int8_t(af.hi), int8_t(*regset[reg] - carry())) || subtraction_underflows(int8_t(af.hi), int8_t(*regset[reg] - carry()))) set(OVERFLOW_FLAG);
         else clear(OVERFLOW_FLAG);
@@ -811,13 +817,12 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
         if(subtraction_overflows(int8_t(af.hi), int8_t(*regset[reg] - carry())) || subtraction_underflows(int8_t(af.hi), int8_t(*regset[reg] - carry()))) set(OVERFLOW_FLAG);
         else clear(OVERFLOW_FLAG);
 
-        if(!temp_a) set(ZERO_FLAG);
-        else clear(ZERO_FLAG);
+        temp_a &= 0xffff;
 
         if((temp_a & 0x80) > 0) set(SIGN_FLAG);
-        else clear(SIGN_FLAG);
-
-        // TODO: Fix flags
+        else                   clear(SIGN_FLAG);
+        if(!temp_a) set(ZERO_FLAG);
+        else       clear(ZERO_FLAG);
 
         break;
     }
@@ -827,6 +832,11 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
         else                   clear(SIGN_FLAG);
         if(!af.hi) set(ZERO_FLAG);
         else       clear(ZERO_FLAG);
+    }
+
+    if(pc>=0xc000 && pc < 0xc430) {
+        print_registers();
+        printf("\n");
     }
 
     return cycles;
