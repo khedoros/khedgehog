@@ -677,6 +677,7 @@ bool cpuZ80::condition(int condition_number) {
         return sign();
     }
     //throw std::string("This condition can't/shouldn't be reached.");
+    return false;
 }
 template <uint32_t OPCODE> uint64_t cpuZ80::op_unimpl(uint8_t opcode) {
     std::cout<<"\nOpcode "<<std::hex<<OPCODE<<" not implemented.\n";

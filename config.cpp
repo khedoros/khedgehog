@@ -40,6 +40,10 @@ systemRegion config::getSystemRegion() {
     return region;
 }
 
+uiBackend config::getUiBackend() {
+    return backend;
+}
+
 std::string& config::getRomPath() {
     return romPath;
 }

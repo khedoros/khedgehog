@@ -19,11 +19,18 @@ enum systemRegion {
     invalidRegion
 };
 
+enum uiBackend {
+    sdl,
+    sfml,
+    qt
+};
+
 class config {
 public:
     config(int argc, char **argv, char *config_file = nullptr);
     systemType getSystemType();
     systemRegion getSystemRegion();
+    uiBackend getUiBackend();
     std::string& getRomPath();
     size_t getHeaderOffset();
 private:
@@ -32,6 +39,7 @@ private:
     systemRegion detectRomRegion();
     systemType type = systemType::uncheckedSystem;
     systemRegion region = systemRegion::uncheckedRegion;
+    uiBackend backend = uiBackend::sdl;
     std::string romPath = "dummy.bin";
     const std::string genesisName = "SEGA GENESIS    ";
     const std::string megadriveName = "SEGA MEGA DRIVE ";

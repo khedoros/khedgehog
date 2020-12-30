@@ -29,10 +29,10 @@ std::shared_ptr<emulator> emulator::getEmulator(std::shared_ptr<config> cfg) {
 
 genesisEmulator::genesisEmulator(std::shared_ptr<config> config) {
     cfg = config;
+    io = std::make_shared<ioMgr>(cfg);
     cpu_map = std::make_shared<memmapM68k>(config);
     cpu_dev = std::make_shared<cpuM68k>(cpu_map);
     apu_dev = std::make_shared<apuGenesis>();
-    io = std::make_shared<ioMgr>();
     vdp_dev = std::make_shared<vdpGenesis>();
 }
 
@@ -64,12 +64,13 @@ int emulator::run() {
 
 int genesisEmulator::run() {
     std::cout<<"Hi, I'm the Genesis emulator!"<<std::endl;
-    return emulator::run();
+    emulator::run();
+    return 0;
 }
 
 smsEmulator::smsEmulator(std::shared_ptr<config> config) {
     cfg = config;
-    io = std::make_shared<ioMgr>();
+    io = std::make_shared<ioMgr>(cfg);
     apu_dev = std::make_shared<apuMS>();
     vdp_dev = std::make_shared<vdpMS>();
     cpu_map = std::make_shared<memmapZ80Console>(config, vdp_dev, apu_dev);
@@ -79,7 +80,7 @@ smsEmulator::smsEmulator(std::shared_ptr<config> config) {
 int smsEmulator::run() {
     std::cout<<"Hi, I'm the Master System emulator!"<<std::endl;
     emulator::run();
-    return -1;
+    return 0;
 }
 
 noEmulator::noEmulator(std::shared_ptr<config> cfg) {
@@ -88,5 +89,5 @@ noEmulator::noEmulator(std::shared_ptr<config> cfg) {
 
 int noEmulator::run() {
     std::cout<<"ROM type wasn't recognized. Exiting."<<std::endl;
-    return 0;
+    return 1;
 }
