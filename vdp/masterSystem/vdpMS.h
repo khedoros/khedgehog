@@ -11,6 +11,10 @@ public:
     void writeData(uint8_t val);
     uint8_t readData();
     uint8_t readStatus();
+    std::vector<std::vector<uint8_t>> getPartialRender() override; // Render a composited view of the current VDP memory state
+    std::vector<std::vector<uint8_t>> getSpritePartialRender() override; // Render the sprite layer(s) of the current VDP memory state
+    std::vector<std::vector<uint8_t>> getBgPartialRender() override; // Redner the background layer(s) of the current VDP memory state
+    uint64_t calc(uint64_t) override;
 
 private:
     std::array<uint8_t, 0x4000> vram;

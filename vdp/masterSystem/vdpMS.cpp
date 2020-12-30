@@ -5,6 +5,22 @@ vdpMS::vdpMS():addr_latch(false) {
 
 }
 
+std::vector<std::vector<uint8_t>> vdpMS::getPartialRender() {
+    return std::vector<std::vector<uint8_t>>(192, std::vector<uint8_t>(256*3, 0));
+}
+
+std::vector<std::vector<uint8_t>> vdpMS::getSpritePartialRender() {
+    return std::vector<std::vector<uint8_t>>(192, std::vector<uint8_t>(256*3, 0));
+}
+
+std::vector<std::vector<uint8_t>> vdpMS::getBgPartialRender() {
+    return std::vector<std::vector<uint8_t>>(192, std::vector<uint8_t>(256*3, 0));
+}
+
+uint64_t vdpMS::calc(uint64_t) {
+    return 0;
+}
+
 void vdpMS::writeAddress(uint8_t val) {
     if(!addr_latch) {
         addr_latch = true;
