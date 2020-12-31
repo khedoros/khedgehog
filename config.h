@@ -1,6 +1,7 @@
 #pragma once
 #include<string>
 #include<array>
+#include<tuple>
 #include "emulator.h"
 
 enum systemType {
@@ -24,6 +25,8 @@ public:
     config(int argc, char **argv, char *config_file = nullptr);
     systemType getSystemType();
     systemRegion getSystemRegion();
+    std::pair<int,int> getResolution();
+    std::pair<int,int> getResolution(systemType,systemRegion);
     std::string& getRomPath();
     size_t getHeaderOffset();
 private:
@@ -32,6 +35,7 @@ private:
     systemRegion detectRomRegion();
     systemType type = systemType::uncheckedSystem;
     systemRegion region = systemRegion::uncheckedRegion;
+    std::pair<int,int> resolution;
     std::string romPath = "dummy.bin";
     const std::string genesisName = "SEGA GENESIS    ";
     const std::string megadriveName = "SEGA MEGA DRIVE ";

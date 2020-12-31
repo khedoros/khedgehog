@@ -23,6 +23,7 @@ config::config(int argc, char **argv, char *config_file) {
 
     type = detectRomType();
     region = detectRomRegion();
+    resolution = getResolution(type,region);
     std::cout<<"Header found at: "<<headerOffset<<".\n";
 }
 
@@ -38,6 +39,25 @@ systemRegion config::getSystemRegion() {
         region = detectRomRegion();
     }
     return region;
+}
+
+std::pair<int,int> config::getResolution() {
+    return getResolution(type, region);
+}
+
+std::pair<int,int> config::getResolution(systemType t, systemRegion r) {
+    switch(t) {
+    case systemType::gameGear:
+        return std::make_pair(160, 144);
+    case systemType::sg_1000: case systemType::masterSystem:
+        return std::make_pair(256,192);
+    case systemType::genesis:
+        return std::make_pair(256,224);
+        // NTSC mode 5: 32x28 CELL image (256x224 pixels) or 40x28 (320x224 pixels)
+        // PAL mode 5 also has: 32x30 (256x240 pixels) or 40x30 (320x240 pixels)
+    default:
+        return std::make_pair(0,0);
+    }
 }
 
 std::string& config::getRomPath() {
