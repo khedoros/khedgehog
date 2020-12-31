@@ -16,3 +16,11 @@ uint64_t vdpGenesis::calc(uint64_t) {
     return 0;
 }
 
+void vdpGenesis::writeByte(uint8_t, uint8_t) {
+
+}
+
+uint8_t vdpGenesis::readByte(uint8_t) {
+    return 0;
+}
+

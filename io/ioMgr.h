@@ -15,7 +15,5 @@ public:
     ioEvent getEvent();
 
 private:
-    uiBackend backend;
     int xres, yres;
-
 };

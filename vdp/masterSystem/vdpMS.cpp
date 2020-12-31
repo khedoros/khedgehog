@@ -21,6 +21,19 @@ uint64_t vdpMS::calc(uint64_t) {
     return 0;
 }
 
+void vdpMS::writeByte(uint8_t port, uint8_t val) {
+    if(port == 0xbd || port == 0xbf) {
+        writeAddress(val);
+    }
+    else if(port == 0xbe) {
+        writeData(val);
+    }
+}
+
+uint8_t vdpMS::readByte(uint8_t port) {
+    return 0;
+}
+
 void vdpMS::writeAddress(uint8_t val) {
     if(!addr_latch) {
         addr_latch = true;

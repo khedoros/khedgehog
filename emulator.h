@@ -71,8 +71,8 @@ public:
     smsEmulator(std::shared_ptr<config> cfg);
     int run() override;
 private:
-    std::shared_ptr<vdpMS> vdp_dev;
-    std::shared_ptr<apuMS> apu_dev;
+    //std::shared_ptr<vdpMS> vdp_dev;
+    //std::shared_ptr<apuMS> apu_dev;
     std::shared_ptr<memmapZ80Console> cpu_map;
 };
 

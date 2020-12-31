@@ -6,7 +6,7 @@
 #include "../../util.h"
 #include "../../debug_console.h"
 
-memmapZ80Console::memmapZ80Console(std::shared_ptr<config> cfg, std::shared_ptr<vdpMS> v, std::shared_ptr<apuMS> a) : map_ctrl(0), map_slot0(0), map_slot1(1), map_slot2(2), vdp(v), apu(a) {
+memmapZ80Console::memmapZ80Console(std::shared_ptr<config> cfg, std::shared_ptr<vdp> v, std::shared_ptr<apu> a) : map_ctrl(0), map_slot0(0), map_slot1(1), map_slot2(2), vdp_dev(v), apu_dev(a) {
     ram.fill(0);
     std::ifstream romfile(cfg->getRomPath().c_str());
     if(!romfile.is_open()) {
@@ -73,11 +73,11 @@ void memmapZ80Console::writePortByte(uint8_t port, uint8_t val) {
         case 0x3f: dbg_printf(" (automatic nationalization)"); break;
         case 0x7e: case 0x7f: dbg_printf(" (PSG SN76489 output control)"); break;
         case 0xbd: case 0xbf:
-            vdp->writeAddress(val);
+            vdp_dev->writeByte(port, val);
             dbg_printf(" (VDP address/register)");
             break;
         case 0xbe:
-            vdp->writeData(val);
+            vdp_dev->writeByte(port, val);
             dbg_printf(" (VDP data)");
             break;
         case 0xde: case 0xdf: dbg_printf(" (unknown port)"); break;
