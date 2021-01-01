@@ -1,7 +1,7 @@
 #include "ioMgr.h"
 #include<tuple>
 
-ioMgr::ioMgr(std::shared_ptr<config> cfg) {
+ioMgr::ioMgr(std::shared_ptr<config> cfg): screen(nullptr), renderer(nullptr), buffer(nullptr), texture(nullptr), overlay(nullptr) {
     Uint32 sdl_init_flags = SDL_INIT_EVERYTHING|SDL_INIT_JOYSTICK|SDL_INIT_GAMECONTROLLER;
     //if(headless) sdl_init_flags &= (~SDL_INIT_VIDEO);
     //if(!audio)   sdl_init_flags &= (~SDL_INIT_AUDIO);
@@ -10,7 +10,11 @@ ioMgr::ioMgr(std::shared_ptr<config> cfg) {
     }
     auto res = cfg->getResolution();
 
-    reinitWindow(res.first, res.second);
+    if(reinitWindow(res.first, res.second)) {
+        SDL_SetRenderDrawColor(renderer, 255,255,255,255);
+        SDL_RenderFillRect(renderer, nullptr);
+        SDL_RenderPresent(renderer);
+    }
 }
 
 bool ioMgr::updateWindow(int startx, int starty, const std::vector<std::vector<uint8_t>>& image) { return false; }
