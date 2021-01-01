@@ -7,6 +7,7 @@
 #include "../../apu/genesis/memmapGenesisApu.h"
 #include "../../vdp/genesis/memmapGenesisVdp.h"
 #include "../../io/genesis/inputMapperGenesis.h"
+#include "../../io/ioEvent.h"
 
 class memmapM68k : public memmap {
 public:
@@ -17,6 +18,7 @@ public:
     void writeByte(uint32_t addr, uint8_t val) override;
     void writeWord(uint32_t addr, uint16_t val) override;
     void writeLong(uint32_t addr, uint32_t val) override;
+    void sendEvent(ioEvent e) override;
     uint32_t dummyVal = 0xdeadbeef;
 
 protected:

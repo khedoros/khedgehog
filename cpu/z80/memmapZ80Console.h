@@ -2,6 +2,7 @@
 
 #include "../../memmap.h"
 #include "../../config.h"
+#include "../../io/ioEvent.h"
 #include<memory>
 
 class vdpMS;
@@ -16,6 +17,7 @@ public:
     uint8_t& readByte(uint32_t addr) override;
     uint16_t& readWord(uint32_t addr) override;
     uint32_t& readLong(uint32_t addr) override;
+    void sendEvent(ioEvent e) override;
 
     uint8_t readPortByte(uint8_t port);
     void writePortByte(uint8_t port, uint8_t val);

@@ -90,6 +90,10 @@ void memmapZ80Console::writePortByte(uint8_t port, uint8_t val) {
     }
 }
 
+void memmapZ80Console::sendEvent(ioEvent e) {
+    // React to key events
+}
+
 uint8_t& memmapZ80Console::map(uint32_t addr) {
     if(addr < 0x0400) { // unpaged rom
         return rom[addr];

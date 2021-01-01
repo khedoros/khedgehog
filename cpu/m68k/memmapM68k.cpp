@@ -50,6 +50,10 @@ void memmapM68k::writeByte(uint32_t addr, uint8_t val) {}
 void memmapM68k::writeWord(uint32_t addr, uint16_t val) {}
 void memmapM68k::writeLong(uint32_t addr, uint32_t val) {}
 
+void memmapM68k::sendEvent(ioEvent e) {
+    // React to key events
+}
+
 uint8_t& memmapM68k::map(uint32_t addr) {
     if(addr < 0x400000) {
         return rom[addr];

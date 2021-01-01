@@ -14,7 +14,62 @@ ioMgr::ioMgr(std::shared_ptr<config> cfg) {
 }
 
 bool ioMgr::updateWindow(int startx, int starty, const std::vector<std::vector<uint8_t>>& image) { return false; }
-ioEvent ioMgr::getEvent() { return ioEvent{}; }
+
+ioEvent ioMgr::getEvent() {
+    SDL_Event event;
+    while(SDL_PollEvent(&event)) {
+        switch(event.type) {
+            case SDL_KEYDOWN:  /* Handle a KEYDOWN event */
+                if(event.key.keysym.scancode==SDL_SCANCODE_Q||
+                        (event.key.keysym.scancode==SDL_SCANCODE_C&&(event.key.keysym.mod==KMOD_RCTRL))||
+                        (event.key.keysym.scancode==SDL_SCANCODE_C&&(event.key.keysym.mod==KMOD_LCTRL))) {
+                    SDL_Quit();
+                    return ioEvent{ioEvent::eventType::window, ioEvent::windowEvent::exit};
+                }
+                break;
+            case SDL_KEYUP: /* Handle a KEYUP event*/
+                break;
+            case SDL_WINDOWEVENT:
+                switch(event.window.event) {
+                    case SDL_WINDOWEVENT_SHOWN:
+                        break;
+                    case SDL_WINDOWEVENT_HIDDEN:
+                        break;
+                    case SDL_WINDOWEVENT_SIZE_CHANGED:
+                        //newx=event.window.data1;
+                        //newy=event.window.data2;
+                        //bus->win_resize(newx, newy);
+                        break;
+                    case SDL_WINDOWEVENT_EXPOSED:
+                        break;
+                    case SDL_WINDOWEVENT_CLOSE:
+                        SDL_Quit();
+                        return ioEvent(ioEvent::eventType::window, ioEvent::windowEvent::exit);
+                    default:
+                        //printf("something else (%d)\n", event.window.event);
+                        break;
+                }
+                break;
+            case SDL_QUIT:
+                SDL_Quit();
+                return ioEvent(ioEvent::eventType::window, ioEvent::windowEvent::exit);
+                break;
+            case SDL_MOUSEMOTION: case SDL_MOUSEBUTTONDOWN: case SDL_MOUSEBUTTONUP: case SDL_MOUSEWHEEL:
+                break;
+            case SDL_TEXTINPUT:
+                break;
+            case SDL_KEYMAPCHANGED:
+                break;
+            case SDL_AUDIODEVICEADDED:
+                break;
+            default: /* Report an unhandled event */
+                //printf("util::I don't know what this event is (%d)! Flushing it.\n", event.type);
+                SDL_FlushEvent(event.type);
+                break;
+        }
+    }
+    return ioEvent(ioEvent::eventType::none);
+}
 
 bool ioMgr::reinitWindow(unsigned int xres, unsigned int yres) {
     if(screen) {

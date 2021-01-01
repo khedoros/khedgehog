@@ -4,6 +4,7 @@
 #include "emulator.h"
 #include "config.h"
 #include "io/ioMgr.h"
+#include "io/ioEvent.h"
 #include "memmap.h"
 #include "cpu/m68k/memmapM68k.h"
 #include "cpu/z80/memmapZ80Console.h"
@@ -13,6 +14,7 @@
 #include "apu/masterSystem/apuMS.h"
 #include "vdp/genesis/vdpGenesis.h"
 #include "vdp/masterSystem/vdpMS.h"
+
 
 std::shared_ptr<emulator> emulator::getEmulator(std::shared_ptr<config> cfg) {
     switch(cfg->getSystemType()) {
@@ -44,8 +46,22 @@ int emulator::run() {
 
     while(running) {
         //process events
+        ioEvent e = io->getEvent();
+        while(e.type != ioEvent::eventType::none) {
+            if(e.type == ioEvent::eventType::window && e.key.winEvent == ioEvent::windowEvent::exit) {
+                return 0;
+            }
+            e = io->getEvent();
+        }
         while(paused) {
             //process events
+            e = io->getEvent();
+            while(e.type != ioEvent::eventType::none) {
+                if(e.type == ioEvent::eventType::window && e.key.winEvent == ioEvent::windowEvent::exit) {
+                    return 0;
+                }
+                e = io->getEvent();
+            }
             //wait a frame
         }
         uint64_t cycle_chunk = cpu_dev->calc(1024);

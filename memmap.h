@@ -1,6 +1,7 @@
 #pragma once
 
 #include<cstdint>
+#include "io/ioEvent.h"
 
 class memmap {
 public:
@@ -10,6 +11,7 @@ public:
     virtual void writeByte(uint32_t addr, uint8_t val) = 0;
     virtual void writeWord(uint32_t addr, uint16_t val) = 0;
     virtual void writeLong(uint32_t addr, uint32_t val) = 0;
+    virtual void sendEvent(ioEvent e) = 0;
 protected:
     virtual uint8_t& map(uint32_t addr) = 0;
 };
