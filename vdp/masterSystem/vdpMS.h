@@ -59,6 +59,31 @@ private:
         unsigned unused:4;
     } nt_base;
 
+    // Each tile in the background table is stored as 2 bytes, in a 32x28x2 = 1792-byte table.
+    struct tile_info_t {
+        union {
+            struct {
+                unsigned tile_num:9;
+                unsigned hflip:1;
+                unsigned vflip:1;
+                unsigned palnum:1;
+                unsigned priority:1;
+                unsigned unused:3;
+            };
+            struct {
+                uint8_t byte1;
+                uint8_t byte2;
+            };
+            uint16_t tile;
+        };
+    };
+
+    // Tile format:
+    //   first byte has bit 0's of first row.
+    //   second byte has bit 1's of first row.
+    //   fifth byte has bit 0's of second row, etc
+    //   So each 8x8 tile is 32 bytes, up to 448 tiles defined, in most cases
+
     uint8_t color_base; //Register #3: Color table base address
 
     uint8_t bg_pattern_base; //Register #4: bg tiles base address
