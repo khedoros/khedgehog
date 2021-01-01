@@ -43,8 +43,8 @@ private:
     } mode_1;
 
     struct mode_2_t { //Register #1: Mode Control #2
-        unsigned doubled_sprites:1; //stretched
-        unsigned large_sprites:1; //tiled
+        unsigned doubled_sprites:1; //stretched (1 tile doubled to 16x16?)
+        unsigned large_sprites:1; //tiled (16x16, made of 4 tiles?)
         unsigned unused:1;
         unsigned mode_3:1;
         unsigned mode_1:1;
@@ -65,5 +65,23 @@ private:
 
     uint8_t sprite_table_base; // Register #5: Sprite metadata table base address
 
+    static constexpr std::array<uint8_t, 16 * 3> tms_palette { // The set TMS9918 palette
+        0x00, 0x00, 0x00,   0x00, 0x00, 0x00,   0x21, 0xc8, 0x42,   0x5e, 0xdc, 0x78,
+        0x54, 0x55, 0xed,   0x7d, 0x76, 0xfc,   0xd4, 0x52, 0x4d,   0x42, 0xeb, 0xf5,
+        0xfc, 0x55, 0x54,   0xff, 0x79, 0x78,   0xd4, 0xc1, 0x54,   0xe6, 0xce, 0x80,
+        0x21, 0xb0, 0x3b,   0xc9, 0x5b, 0xba,   0xcc, 0xcc, 0xcc,   0xff, 0xff, 0xff
+    };
 
+    static constexpr std::array<uint8_t, 4> sms_pal_component { 0x00, 0x55, 0xaa, 0xff }; // 2-bit SMS RGB color components
+    static constexpr std::array<uint8_t, 3> sms_pal_mask { 0x30, 0x0c, 0x03 }; // masks for the color components
+    static constexpr std::array<uint8_t, 3> sms_pal_shift { 0x04, 0x02, 0x00 }; // bit shifts for the color components
+    static constexpr std::array<uint8_t, 16> sms_tms_pal_index {               // SMS equivs to TMS9918 pal entries
+        0x00, 0x00, 0x08, 0x0c, 0x10, 0x30, 0x01, 0x3c, 0x02, 0x03, 0x05, 0x0f, 0x04, 0x33, 0x15, 0x3f
+    };
+
+    static constexpr std::array<uint8_t, 15> gg_pal_component {
+        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff
+    };
+    static constexpr std::array<uint8_t, 3> gg_pal_mask { 0x0f, 0xf0, 0x0f };
+    static constexpr std::array<uint8_t, 3> gg_pal_shift { 0, 4, 0 };
 };
