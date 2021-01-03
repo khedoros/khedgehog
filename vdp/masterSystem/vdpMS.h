@@ -144,16 +144,53 @@ private:
                 unsigned palnum:1;
                 unsigned priority:1;
                 unsigned unused:3;
-            };
+            } fields;
             struct {
                 uint8_t byte1;
                 uint8_t byte2;
-            };
-            uint16_t tile;
+            } bytes;
+            uint16_t val;
         };
     };
 
-    // Tile format:
+    struct sprite_info_t {
+        union {
+            struct {
+                uint8_t x;
+                uint8_t y;
+                uint8_t tile;
+                unsigned color:4;
+                unsigned unused:3;
+                unsigned left_shift:1; //by 32 pixels
+            } fields;
+            uint8_t val[4];
+        };
+    } sprite_info;
+
+
+    // Mode Graphics I: M1=0, M2=0, M3=0
+    // 32x24 background of 256 8x8 tiles, 1-bit of color defined in color table. High-order bits form the right of the tile.
+    // Colors: 32 entries, bg_fg_col_t format, where each byte defines the colors for 8 consecutive tile numbers.
+    //
+    // Mode Graphics II: M1=0, M2=0, M3=1
+    // 32x24 background divided into 32x8 strips, each of which have 256 8x8 tiles (768 tiles total).
+    // Colors: 6144 entries, one for each byte of the tiles.
+    //
+    // Mode Multicolor: M1=0, M2=1, M3=0                                                                                                                        AB
+    // 64x48 grid of pixels, 768 name entries (i.e. 32x24 tilemap).                                                                                             CD
+    // Colors: 1 byte defines 2 macropixels next to each other. The next 7 bytes define the 7 pairs underneath them, so an 8-byte block defines a tall column.  EF
+    // Colors are addressed in these 8-byte blocks, like the table to the right.                                                                                GH
+    //                                                                                                                                                          IJ
+    // Mode Text: M1=1, M2=0, M3=0                                                                                                                              KL
+    // 40x24 text positions, 6x8 characters. 256 patterns available. Sprites are disabled. Least-significant 2 bits of the 8-byte tile are ignored.             MN
+    // Colors: defined in register 7.                                                                                                                           OP
+    //
+    // Sprite table:
+    // 128 bytes, with 4-byte structs matching sprite_info_t
+    // 0xD0 in vertical position field means end of table      AC
+    // 2x2 sprites use the quadrant definition to the right:   BD
+
+    // Tile format for SMS:
     //   first byte has bit 0's of first row.
     //   second byte has bit 1's of first row.
     //   fifth byte has bit 0's of second row, etc
