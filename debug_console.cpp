@@ -23,6 +23,7 @@ void dbg_con::write_control(uint8_t val) {
     }
     else if(mode == 41) {
         row = val;
+        top_row = 0;
         mode = 42;
     }
     else if(mode == 42) {
@@ -42,6 +43,8 @@ void dbg_con::write_control(uint8_t val) {
                     }
                 }
                 top_row = 0;
+                row = 0;
+                col = 0;
                 render();
                 break;
             case 3: //set attribute byte (read a new byte)
@@ -69,8 +72,8 @@ void dbg_con::write_data(uint8_t val) {
         else {
             col++;
         }
-        if(row == 25) {
-            row = 0;
+        if(row % 25 == top_row) {
+            row %= 25;
             top_row++;
             top_row%=25;
         }
@@ -79,8 +82,8 @@ void dbg_con::write_data(uint8_t val) {
         //line-feed; cursor to beginning of line, row moves down.
         col = 0;
         row++;
-        if(row == 25) {
-            row = 0;
+        if(row % 25 == top_row) {
+            row %= 25;
             top_row++;
             top_row %= 25;
         }

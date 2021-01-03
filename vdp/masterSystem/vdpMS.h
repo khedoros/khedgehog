@@ -32,32 +32,107 @@ private:
     // Reference: https://www.smspower.org/Development/VDPRegisters
     // Control Registers
     struct mode_1_t { //Register #0: Mode Control #1
-        unsigned sync_enable:1;
-        unsigned mode_2:1;
-        unsigned mode_4:1;
-        unsigned shift_sprites:1;
-        unsigned line_interrupts:1;
-        unsigned hide_left:1;
-        unsigned h_scroll_lock:1;
-        unsigned v_scroll_lock:1;
+        union {
+            struct {
+                unsigned sync_enable:1; //enable/disable external VDP input, for overlay. Not used.
+                unsigned mode_2:1; // M3 (mode bit 3) called M2 in Coleco docs
+                unsigned mode_4:1; // not in TMS9928a, guess it's for SMS VDP?
+                unsigned shift_sprites:1; // ditto for the remaining items
+                unsigned line_interrupts:1;
+                unsigned hide_left:1;
+                unsigned h_scroll_lock:1;
+                unsigned v_scroll_lock:1;
+            } fields;
+            uint8_t val;
+        };
     } mode_1;
 
     struct mode_2_t { //Register #1: Mode Control #2
-        unsigned doubled_sprites:1; //stretched (1 tile doubled to 16x16?)
-        unsigned large_sprites:1; //tiled (16x16, made of 4 tiles?)
-        unsigned unused:1;
-        unsigned mode_3:1;
-        unsigned mode_1:1;
-        unsigned frame_interrupts:1;
-        unsigned enable_display:1;
-        unsigned unused_2:1;
+        union {
+            struct {
+                unsigned doubled_sprites:1; //stretched (1 tile doubled to 16x16?)             Mode table M1 M2 M3
+                unsigned large_sprites:1; //tiled (16x16, made of 4 tiles?)                                0  0  0   Graphics I mode
+                unsigned unused:1; // reserved                                                             0  1  0   Graphics II mode
+                unsigned mode_3:1; //                                                                      0  0  1   Multicolor mode
+                unsigned mode_1:1; //                                                                      1  0  0   Text mode
+                unsigned frame_interrupts:1; // Enable/Disable NMI interrupts at end of active raster
+                unsigned enable_display:1; // Blanking (==0) shows the border color
+                unsigned unused_2:1; // Selects amount of RAM apparently. I'd guess it's either 1 or ignored in Sega hardware.
+            } fields;
+            uint8_t val;
+        };
     } mode_2;
 
-    struct nt_base_t { //Register #2: Name table base address
-        unsigned mask_bit:1;
-        unsigned base:3;
-        unsigned unused:4;
+    struct nt_base_t { //Register #2: Name table base address, used as top 3 (SMS) to 4 (SG-1000) bits of the name table base
+        union {
+            struct {
+                unsigned mask_bit:1;
+                unsigned base:3;
+                unsigned unused:4;
+            } fields;
+            uint8_t val;
+        };
     } nt_base;
+
+    uint8_t color_t_base; // Register #3: Color table base address, used as top 8 bits of the color table base
+    
+    struct pt_base_t { // Register #4: Pattern generator table start address, used as top 3 bits of pattern (bg tile) table
+        union {
+            struct {
+                unsigned base:3;
+                unsigned unused:5;
+            } fields;
+            uint8_t val;
+        };
+    } pt_base;
+
+    struct spr_attr_base_t { // Register #5: Sprite attribute table base, top 7 bits of sprite attribute table
+        union {
+            struct {
+                unsigned base:7;
+                unsigned unused:1;
+            } fields;
+            uint8_t val;
+        };
+    } spr_attr_base;
+
+    struct spr_tile_base_t { // Register #6: Sprite generator table start address, used as top 3 bits of sprite tile table
+        union {
+            struct {
+                unsigned base:3;
+                unsigned unused:5;
+            } fields;
+            uint8_t val;
+        };
+    } spr_tile_base;
+
+    struct bg_fg_col_t { // Register #7: Foreground and background colors, high nibble has foreground, low nibble has background.
+        union {
+            struct {
+                unsigned background:4; // background in all modes, color 0 in text mode
+                unsigned foreground:4; // color 1 in text mode
+            } fields;
+            uint8_t val;
+        };
+    } bg_fg_col;
+
+    uint8_t bg_x_scroll; // Register #8: 8-bit Horizontal scroll value
+    uint8_t bg_y_scroll; // Register #9: 8-bit Vertical scroll value
+    uint8_t line_interrupt; // Register #A: 8-bit indicator of line to produce interrupt on
+
+    // Registers #B-#F exist, but have no effect in the SG-1000 or SMS, apparently.
+
+    struct status_t { // Status register
+        union {
+            struct {
+                unsigned sprite_num: 5; // Number of the 5th sprite on a line
+                unsigned collision_flag:1; // Flag indicating collision of 2 sprites
+                unsigned overflow_flag:1; // Flag indicating 5+ sprites on a line
+                unsigned vblank_flag:1; //Flag set at end of raster/start of vblank
+            } fields;
+            uint8_t val;
+        };
+    } status;
 
     // Each tile in the background table is stored as 2 bytes, in a 32x28x2 = 1792-byte table.
     struct tile_info_t {
@@ -104,7 +179,7 @@ private:
         0x00, 0x00, 0x08, 0x0c, 0x10, 0x30, 0x01, 0x3c, 0x02, 0x03, 0x05, 0x0f, 0x04, 0x33, 0x15, 0x3f
     };
 
-    static constexpr std::array<uint8_t, 15> gg_pal_component {
+    static constexpr std::array<uint8_t, 16> gg_pal_component {
         0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff
     };
     static constexpr std::array<uint8_t, 3> gg_pal_mask { 0x0f, 0xf0, 0x0f };

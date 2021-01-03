@@ -80,6 +80,8 @@
 		<Unit filename="io/genesis/inputMapperGenesis.h" />
 		<Unit filename="io/inputMapper.cpp" />
 		<Unit filename="io/inputMapper.h" />
+		<Unit filename="io/ioEvent.cpp" />
+		<Unit filename="io/ioEvent.h" />
 		<Unit filename="io/ioMgr.cpp" />
 		<Unit filename="io/ioMgr.h" />
 		<Unit filename="io/masterSystem/inputMapperMS.cpp" />
