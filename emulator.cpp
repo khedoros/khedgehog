@@ -35,7 +35,7 @@ genesisEmulator::genesisEmulator(std::shared_ptr<config> config) {
     cpu_map = std::make_shared<memmapM68k>(config);
     cpu_dev = std::make_shared<cpuM68k>(cpu_map);
     apu_dev = std::make_shared<apuGenesis>();
-    vdp_dev = std::make_shared<vdpGenesis>();
+    vdp_dev = std::make_shared<vdpGenesis>(cfg->getSystemType(), cfg->getSystemRegion());
 }
 
 int emulator::run() {
@@ -89,7 +89,7 @@ smsEmulator::smsEmulator(std::shared_ptr<config> config) {
     cfg = config;
     io = std::make_shared<ioMgr>(cfg);
     apu_dev = std::make_shared<apuMS>();
-    vdp_dev = std::make_shared<vdpMS>();
+    vdp_dev = std::make_shared<vdpMS>(cfg->getSystemType(), cfg->getSystemRegion());
     cpu_map = std::make_shared<memmapZ80Console>(config, vdp_dev, apu_dev);
     cpu_dev = std::make_shared<cpuZ80>(cpu_map);
 }

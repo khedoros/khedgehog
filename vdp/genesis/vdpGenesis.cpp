@@ -1,5 +1,9 @@
 #include "vdpGenesis.h"
 
+vdpGenesis::vdpGenesis(systemType t = systemType::genesis, systemRegion r = systemRegion::ntsc) {
+
+}
+
 std::vector<std::vector<uint8_t>> vdpGenesis::getPartialRender() {
     return std::vector<std::vector<uint8_t>>(224, std::vector<uint8_t>(256*3, 0));
 }

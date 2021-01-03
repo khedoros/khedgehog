@@ -1,12 +1,13 @@
 #pragma once
 
 #include "../vdp.h"
+#include "../../config.h"
 #include<cstdint>
 #include<array>
 
 class vdpMS: public vdp {
 public:
-    vdpMS();
+    vdpMS(systemType t, systemRegion r);
     void writeByte(uint8_t address, uint8_t val) override;
     uint8_t readByte(uint8_t address) override;
     std::vector<std::vector<uint8_t>> getPartialRender() override; // Render a composited view of the current VDP memory state
@@ -22,6 +23,9 @@ private:
     std::array<uint8_t, 0x4000> vram;
     std::array<uint8_t, 0x20> pal_ram;
 
+    systemType vdpMode;
+    systemRegion vdpRegion;
+
     bool addr_latch;
     uint8_t addr_buffer;
     uint8_t data_buffer;
@@ -31,7 +35,7 @@ private:
 
     // Reference: https://www.smspower.org/Development/VDPRegisters
     // Control Registers
-    struct mode_1_t { //Register #0: Mode Control #1
+    struct ctrl_1_t { //Register #0: Mode Control #1
         union {
             struct {
                 unsigned sync_enable:1; //enable/disable external VDP input, for overlay. Not used.
@@ -45,9 +49,9 @@ private:
             } fields;
             uint8_t val;
         };
-    } mode_1;
+    } ctrl_1;
 
-    struct mode_2_t { //Register #1: Mode Control #2
+    struct ctrl_2_t { //Register #1: Mode Control #2
         union {
             struct {
                 unsigned doubled_sprites:1; //stretched (1 tile doubled to 16x16?)             Mode table M1 M2 M3
@@ -61,7 +65,7 @@ private:
             } fields;
             uint8_t val;
         };
-    } mode_2;
+    } ctrl_2;
 
     struct nt_base_t { //Register #2: Name table base address, used as top 3 (SMS) to 4 (SG-1000) bits of the name table base
         union {

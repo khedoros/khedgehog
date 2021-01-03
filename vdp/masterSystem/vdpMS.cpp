@@ -1,11 +1,30 @@
 #include "vdpMS.h"
 #include "../../util.h"
 
-vdpMS::vdpMS():addr_latch(false) {
+vdpMS::vdpMS(systemType t, systemRegion r):addr_latch(false), vdpMode(t), vdpRegion(r) {
 
 }
 
 std::vector<std::vector<uint8_t>> vdpMS::getPartialRender() {
+    int mode = 8 * ctrl_1.mode_4 + 4 * ctrl_2.mode_3 + 2 * ctrl_1.mode_2 + ctrl_2.mode_1;
+    // SG-1000 modes:
+    // 0: Graphic I
+    // 1: Text I
+    // 2: Graphic II
+    // 3: Mode 1+2
+    // 4: Multicolor
+    // 5: Mode 1+3
+    // 6: Mode 2+3
+    // 7: Mode 1+2+3
+    // Only applicable to SMS:
+    // 8: Mode 4 (SMS mode)
+    // 9: Invalid text mode
+    // A: Mode 4
+    // B: Invalid Text Mode (VDP1) / Mode 4 (224-line display in VDP2)
+    // C: Mode 4
+    // D: Invalid text mode
+    // E: Mode 4 (VDP1) / Mode 4 (240-line display in VDP2)
+    // F: Invalid Text Mode (VDP1) / Mode 4 (VDP2)
     return std::vector<std::vector<uint8_t>>(192, std::vector<uint8_t>(256*3, 0));
 }
 
