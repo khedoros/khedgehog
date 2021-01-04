@@ -21,22 +21,22 @@ private:
     void writeData(uint8_t val);
     uint8_t readData();
     uint8_t readStatus();
+    uint8_t readVCounter();
+    uint8_t readHCounter();
     void renderGraphic1(std::vector<std::vector<uint8_t>>&);
     void renderGraphic2(std::vector<std::vector<uint8_t>>&);
     void renderText(std::vector<std::vector<uint8_t>>&);
     void renderMulticolor(std::vector<std::vector<uint8_t>>&);
     void renderMode4(std::vector<std::vector<uint8_t>>&);
     std::array<uint8_t, 0x4000> vram;
-    std::array<uint8_t, 0x20> pal_ram;
+    std::vector<uint8_t> pal_ram;
 
     systemType vdpMode;
     systemRegion vdpRegion;
 
     bool addr_latch;
-    uint8_t addr_buffer;
     uint8_t data_buffer;
     unsigned int address:14;
-    unsigned int pal_address:5;
     enum class addr_mode_t {vram_read, vram_write, reg_write, cram_write} addr_mode;
 
     // Reference: https://www.smspower.org/Development/VDPRegisters

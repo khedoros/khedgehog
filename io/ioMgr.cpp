@@ -23,9 +23,9 @@ bool ioMgr::updateWindow(int startx, int starty, const std::vector<std::vector<u
     std::vector<uint8_t> out_buf(yres * xres * 4, 0xff);
     for(int line = 0; line < yres; line++) {
         for(int pixel = 0; pixel < xres; pixel++) {
-            out_buf[line * xres + pixel * 4 + 0] = image[line][pixel * 3];
-            out_buf[line * xres + pixel * 4 + 1] = image[line][pixel * 3 + 1];
-            out_buf[line * xres + pixel * 4 + 2] = image[line][pixel * 3 + 2];
+            out_buf[4 * (line * xres + pixel) + 0] = image[line][pixel * 3];
+            out_buf[4 * (line * xres + pixel) + 1] = image[line][pixel * 3 + 1];
+            out_buf[4 * (line * xres + pixel) + 2] = image[line][pixel * 3 + 2];
         }
     }
     if(texture) {

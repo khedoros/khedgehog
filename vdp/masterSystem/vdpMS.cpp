@@ -5,7 +5,8 @@
 #include "../../util.h"
 
 vdpMS::vdpMS(systemType t, systemRegion r):addr_latch(false), vdpMode(t), vdpRegion(r) {
-
+    if(vdpMode == systemType::gameGear) pal_ram.resize(0x40, 0);
+    else                                pal_ram.resize(0x20, 0);
 }
 
 std::vector<std::vector<uint8_t>> vdpMS::getPartialRender() {
@@ -89,9 +90,9 @@ void vdpMS::renderGraphic2(std::vector<std::vector<uint8_t>>& buffer) {
                     if(tile_data & mask) color_index = colors.fields.foreground;
                     else color_index = colors.fields.background;
 
-                    buffer[y_tile * 8 + y][x_tile * 8 + x * 3 + 0] = tms_palette[color_index * 3 + 0];
-                    buffer[y_tile * 8 + y][x_tile * 8 + x * 3 + 1] = tms_palette[color_index * 3 + 1];
-                    buffer[y_tile * 8 + y][x_tile * 8 + x * 3 + 2] = tms_palette[color_index * 3 + 2];
+                    buffer[y_tile * 8 + y][3 * (x_tile * 8 + x) + 0] = tms_palette[color_index * 3 + 0];
+                    buffer[y_tile * 8 + y][3 * (x_tile * 8 + x) + 1] = tms_palette[color_index * 3 + 1];
+                    buffer[y_tile * 8 + y][3 * (x_tile * 8 + x) + 2] = tms_palette[color_index * 3 + 2];
                 }
             }
 
@@ -123,81 +124,82 @@ uint64_t vdpMS::calc(uint64_t) {
 }
 
 void vdpMS::writeByte(uint8_t port, uint8_t val) {
-    if(port == 0xbd || port == 0xbf) {
-        writeAddress(val);
-    }
-    else if(port == 0xbe) {
+    if(port % 2 == 1) writeAddress(val);
+    else {
+        addr_latch = false;
         writeData(val);
     }
 }
 
 uint8_t vdpMS::readByte(uint8_t port) {
-    if(port == 0xbd || port == 0xbf) {
-        return readStatus();
+    switch(port & 0b11000001) {
+        case 0x40: return readVCounter();
+        case 0x41: return readHCounter();
+        case 0x80: addr_latch = false; return readData();
+        case 0x81: addr_latch = false; return readStatus();
+        default: std::cerr<<"Shouldn't have reached the VDP\n";
     }
     return 0;
 }
 
+
 void vdpMS::writeAddress(uint8_t val) {
     if(!addr_latch) {
         addr_latch = true;
-        addr_buffer = val;
+        address &= 0xff00;
+        address |= val;
     }
     else {
         addr_latch = false;
+        address &= 0xff;
+        address |= (0x100 * val);
+
         switch(val & 0b11000000) {
         case 0x00: // VRAM read mode
             addr_mode = addr_mode_t::vram_read;
-            address = val;
-            address <<= 8;
-            address += addr_buffer;
             data_buffer = vram[address++];
             dbg_printf(" set read address to %04x", address);
             break;
         case 0x40: // VRAM write mode
             addr_mode = addr_mode_t::vram_write;
-            address = val;
-            address <<= 8;
-            address += addr_buffer;
             dbg_printf(" set write address to %04x", address);
             break;
         case 0x80: // VDP register write mode
-            // TODO: Implement register writes
             addr_mode = addr_mode_t::reg_write;
-			dbg_printf(" set register %01x to %02x", (val & 0x0f), addr_buffer);
-            std::cout<<" set register "<<int(val & 0x0f)<<" to "<<std::hex<<int(addr_buffer)<<"\n";
+            dbg_printf(" set register %01x to %02x", (val & 0x0f), (address & 0x00ff));
+            std::cout<<" set register "<<int(val & 0x0f)<<" to "<<std::hex<<int(address & 0x00ff)<<"\n";
             switch(val & 0x0f) {
                 case 0x00:
-                    ctrl_1.val = addr_buffer;
+                    ctrl_1.val = (address & 0x00ff);
                 case 0x01:
-                    ctrl_2.val = addr_buffer;
+                    ctrl_2.val = (address & 0x00ff);
                     break;
                 case 0x02:
-                    nt_base.val = addr_buffer;
+                    nt_base.val = (address & 0x00ff);
                     break;
                 case 0x03:
-                    color_t_base = addr_buffer;
+                    color_t_base = (address & 0x00ff);
                     break;
                 case 0x04:
-                    pt_base.val = addr_buffer;
+                    pt_base.val = (address & 0x00ff);
                     break;
                 case 0x05:
-                    spr_attr_base.val = addr_buffer;
+                    spr_attr_base.val = (address & 0x00ff);
                     break;
                 case 0x06:
-                    spr_tile_base.val = addr_buffer;
+                    spr_tile_base.val = (address & 0x00ff);
                     break;
                 case 0x07:
-                    bg_fg_col.val = addr_buffer;
+                    bg_fg_col.val = (address & 0x00ff);
                     break;
                 case 0x08:
-                    bg_x_scroll = addr_buffer;
+                    bg_x_scroll = (address & 0x00ff);
                     break;
                 case 0x09:
-                    bg_y_scroll = addr_buffer;
+                    bg_y_scroll = (address & 0x00ff);
                     break;
                 case 0x0a:
-                    line_interrupt = addr_buffer;
+                    line_interrupt = (address & 0x00ff);
                     break;
                 default:
                     // no effect in SMS or SG-1000 for reg's B-F
@@ -206,24 +208,39 @@ void vdpMS::writeAddress(uint8_t val) {
             break;
         case 0xc0: // CRAM write mode
             addr_mode = addr_mode_t::cram_write;
-            pal_address = addr_buffer;
-			dbg_printf(" set cram write to address %02x", addr_buffer);
+            dbg_printf(" set cram write to address %02x", (address & 0x00ff));
             break;
         }
     }
 }
 
 void vdpMS::writeData(uint8_t val) {
-	if(addr_mode == addr_mode_t::vram_write || addr_mode == addr_mode_t::vram_read) {
-		dbg_printf(" wrote %02x to address %04x", val, address);
-		address++;
-	}
+    if(addr_mode == addr_mode_t::vram_write || addr_mode == addr_mode_t::vram_read || addr_mode == addr_mode_t::reg_write) {
+        dbg_printf(" wrote %02x to address %04x", val, address);
+                   vram[address++] = val;
+                   data_buffer = val;
+    }
+    else if(addr_mode == addr_mode_t::cram_write) {
+        pal_ram[address % pal_ram.size()] = val;
+        data_buffer = val;
+        address++;
+    }
 }
 
 uint8_t vdpMS::readData() {
-    return 0;
+    uint8_t retval = data_buffer;
+    data_buffer = vram[address++];
+    return retval;
 }
 
 uint8_t vdpMS::readStatus() {
     return 0x80;
+}
+
+uint8_t vdpMS::readVCounter() {
+    return 0;
+}
+
+uint8_t vdpMS::readHCounter() {
+    return 0;
 }
