@@ -17,7 +17,24 @@ ioMgr::ioMgr(std::shared_ptr<config> cfg): screen(nullptr), renderer(nullptr), b
     }
 }
 
-bool ioMgr::updateWindow(int startx, int starty, const std::vector<std::vector<uint8_t>>& image) { return false; }
+bool ioMgr::updateWindow(int startx, int starty, const std::vector<std::vector<uint8_t>>& image) {
+    int xres = image[0].size() / 3;
+    int yres = image.size();
+    std::vector<uint8_t> out_buf(yres * xres * 4, 0xff);
+    for(int line = 0; line < yres; line++) {
+        for(int pixel = 0; pixel < xres; pixel++) {
+            out_buf[line * xres + pixel * 4 + 0] = image[line][pixel * 3];
+            out_buf[line * xres + pixel * 4 + 1] = image[line][pixel * 3 + 1];
+            out_buf[line * xres + pixel * 4 + 2] = image[line][pixel * 3 + 2];
+        }
+    }
+    if(texture) {
+            SDL_UpdateTexture(texture, NULL, out_buf.data(), 256 * 4);
+            SDL_RenderCopy(renderer, texture, NULL, NULL);
+    }
+
+    return false;
+}
 
 ioEvent ioMgr::getEvent() {
     SDL_Event event;

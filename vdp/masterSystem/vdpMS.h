@@ -4,6 +4,7 @@
 #include "../../config.h"
 #include<cstdint>
 #include<array>
+#include<vector>
 
 class vdpMS: public vdp {
 public:
@@ -20,6 +21,11 @@ private:
     void writeData(uint8_t val);
     uint8_t readData();
     uint8_t readStatus();
+    void renderGraphic1(std::vector<std::vector<uint8_t>>&);
+    void renderGraphic2(std::vector<std::vector<uint8_t>>&);
+    void renderText(std::vector<std::vector<uint8_t>>&);
+    void renderMulticolor(std::vector<std::vector<uint8_t>>&);
+    void renderMode4(std::vector<std::vector<uint8_t>>&);
     std::array<uint8_t, 0x4000> vram;
     std::array<uint8_t, 0x20> pal_ram;
 
@@ -199,12 +205,6 @@ private:
     //   second byte has bit 1's of first row.
     //   fifth byte has bit 0's of second row, etc
     //   So each 8x8 tile is 32 bytes, up to 448 tiles defined, in most cases
-
-    uint8_t color_base; //Register #3: Color table base address
-
-    uint8_t bg_pattern_base; //Register #4: bg tiles base address
-
-    uint8_t sprite_table_base; // Register #5: Sprite metadata table base address
 
     static constexpr std::array<uint8_t, 16 * 3> tms_palette { // The set TMS9918 palette
         0x00, 0x00, 0x00,   0x00, 0x00, 0x00,   0x21, 0xc8, 0x42,   0x5e, 0xdc, 0x78,
