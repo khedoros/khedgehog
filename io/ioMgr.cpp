@@ -31,6 +31,7 @@ bool ioMgr::updateWindow(int startx, int starty, const std::vector<std::vector<u
     if(texture) {
             SDL_UpdateTexture(texture, NULL, out_buf.data(), 256 * 4);
             SDL_RenderCopy(renderer, texture, NULL, NULL);
+            SDL_RenderPresent(renderer);
     }
 
     return false;
