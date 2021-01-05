@@ -709,7 +709,13 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
     }
 
     if(pc >= 0xc000 && pc < 0xc430) {
-        std::printf("%04X: OP: %02x: a(%02x) %s %s(%02x) ", pc-1, OPCODE, *regset[7], names[operation].c_str(), reg_names[reg].c_str(), *regset[reg]);
+        std::printf("%04X: OP: %02x: a(%02x) %s %s(%02x)", pc-1, OPCODE, *regset[7], names[operation].c_str(), reg_names[reg].c_str(), *regset[reg]);
+        if(operation == 0x01 || operation == 0x03) {
+            std::printf("+%d ", carry());
+        }
+        else {
+            std::printf(" ");
+        }
     }
 
     uint16_t temp_a = af.hi;
