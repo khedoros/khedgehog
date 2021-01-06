@@ -604,7 +604,7 @@ bool cpuZ80::subtraction_underflows(T a, T b) {
 }
 
 void cpuZ80::print_registers() {
-    std::printf("\t\tA: %02x BC: %04x DE: %04x HL: %04x IX: %04x IY: %04x SP: %04x status: %c%c0%c0%c%c%c", af.hi, bc.pair, de.pair, hl.pair, ix.pair, iy.pair, sp,
+    std::printf(" A: %02x status: %c%c0%c0%c%c%c    ", af.hi,
      sign()?'S':'s',
      zero()?'Z':'z',
      hc()?'H':'h',
@@ -691,6 +691,11 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_add16(uint8_t opcode) { // 16-bit
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mostly r-r add, adc, sub, sbc, and, xor, or, cp
+    if(pc >= 0xc000 && pc < 0xc430) {
+        printf("pre:");
+        print_registers();
+    }
+
     uint8_t* const regset[] = {&(bc.hi), &(bc.low), &(de.hi), &(de.low),
                                &(hl.hi), &(hl.low),  &dummy8, &(af.hi)};
     constexpr uint8_t operation = ((OPCODE>>3) & 0x07);
@@ -709,7 +714,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
     }
 
     if(pc >= 0xc000 && pc < 0xc430) {
-        std::printf("%04X: OP: %02x: a(%02x) %s %s(%02x)", pc-1, OPCODE, *regset[7], names[operation].c_str(), reg_names[reg].c_str(), *regset[reg]);
+        std::printf("  a(%02x) %s %s(%02x)", *regset[7], names[operation].c_str(), reg_names[reg].c_str(), *regset[reg]);
         if(operation == 0x01 || operation == 0x03) {
             std::printf("+%d ", carry());
         }
@@ -841,6 +846,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
     }
 
     if(pc>=0xc000 && pc < 0xc430) {
+        printf("\tpost:");
         print_registers();
         printf("\n");
     }
