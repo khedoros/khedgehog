@@ -85,7 +85,7 @@ void vdpMS::renderGraphic2(std::vector<std::vector<uint8_t>>& buffer) {
             for(int y = 0; y < 8; y++) {
                 bg_fg_col_t colors{.val = vram.at(color_addr + y)};
                 uint8_t tile_data = vram.at(tile_addr + y);
-                uint8_t mask = 1;
+                uint8_t mask = 128;
                 for(int x = 0; x < 8; x++) {
                     uint8_t color_index = 0;
                     if(!(tile_data & mask)) color_index = colors.fields.foreground;
@@ -95,7 +95,7 @@ void vdpMS::renderGraphic2(std::vector<std::vector<uint8_t>>& buffer) {
                     buffer[y_tile * 8 + y][3 * (x_tile * 8 + x) + 1] = tms_palette[color_index * 3 + 1];
                     buffer[y_tile * 8 + y][3 * (x_tile * 8 + x) + 2] = tms_palette[color_index * 3 + 2];
 
-                    mask<<=1;
+                    mask>>=1;
                 }
             }
 
@@ -122,26 +122,26 @@ void vdpMS::renderMode4(std::vector<std::vector<uint8_t>>& buffer) {
     }
 }
 
-uint16_t vdpMS::name_tab_base() {
+uint16_t vdpMS::name_tab_base() { // Register 2, starting address for Name Table sub-block (background layout)
     if(vdpMode == systemType::sg_1000) {
-        return 0x400 * (nt_base.fields.base * 2 + nt_base.fields.mask_bit);
+        return 0x400 * (nt_base.val & 0x0f);
     }
     return 0x800 * nt_base.fields.base;
 }
 
-uint16_t vdpMS::col_tab_base() {
+uint16_t vdpMS::col_tab_base() { // Register 3, starting address for the Color Table
     return 0x40 * color_t_base;
 }
 
-uint16_t vdpMS::bg_tile_base() {
+uint16_t vdpMS::bg_tile_base() { // Register 4, starting address for the Pattern Generator Sub-block (background tiles)
     return 0x800 * pt_base.fields.base;
 }
 
-uint16_t vdpMS::sprite_attr_tab_base() {
+uint16_t vdpMS::sprite_attr_tab_base() { // Register 5, starting address for the sprite attribute table (sprite locations, colors, etc)
     return 0x80 * spr_attr_base.fields.base;
 }
 
-uint16_t vdpMS::sprite_tile_base() {
+uint16_t vdpMS::sprite_tile_base() { // Register 6, starting address for the Sprite Pattern Generate sub-block (sprite tiles)
     return 0x800 * spr_tile_base.fields.base;
 }
 
