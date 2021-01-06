@@ -14,6 +14,11 @@ public:
     std::vector<std::vector<uint8_t>> getPartialRender() override; // Render a composited view of the current VDP memory state
     std::vector<std::vector<uint8_t>> getSpritePartialRender() override; // Render the sprite layer(s) of the current VDP memory state
     std::vector<std::vector<uint8_t>> getBgPartialRender() override; // Redner the background layer(s) of the current VDP memory state
+    uint16_t name_tab_base();
+    uint16_t col_tab_base();
+    uint16_t bg_tile_base();
+    uint16_t sprite_attr_tab_base();
+    uint16_t sprite_tile_base();
     uint64_t calc(uint64_t) override;
 
 private:
@@ -28,6 +33,8 @@ private:
     void renderText(std::vector<std::vector<uint8_t>>&);
     void renderMulticolor(std::vector<std::vector<uint8_t>>&);
     void renderMode4(std::vector<std::vector<uint8_t>>&);
+
+
     std::array<uint8_t, 0x4000> vram;
     std::vector<uint8_t> pal_ram;
 

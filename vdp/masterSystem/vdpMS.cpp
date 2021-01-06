@@ -4,6 +4,7 @@
 #include "vdpMS.h"
 #include "../../util.h"
 
+  
 vdpMS::vdpMS(systemType t, systemRegion r):addr_latch(false), vdpMode(t), vdpRegion(r) {
     if(vdpMode == systemType::gameGear) pal_ram.resize(0x40, 0);
     else                                pal_ram.resize(0x20, 0);
@@ -74,11 +75,11 @@ void vdpMS::renderGraphic2(std::vector<std::vector<uint8_t>>& buffer) {
     for(int y_tile=0;y_tile<24;y_tile++) {
         int y_triad = y_tile / 8;
         for(int x_tile=0;x_tile<32;x_tile++) {
-            int tile_num_addr = nt_base.fields.base * 0x800 + y_tile * 32 + x_tile;
+            int tile_num_addr = name_tab_base() + y_tile * 32 + x_tile;
             int tile_num = vram.at(tile_num_addr) + 256 * y_triad;
-            int tile_addr = pt_base.fields.base * 0x800 + tile_num * 8;
+            int tile_addr = bg_tile_base() + tile_num * 8;
 
-            int color_addr = (color_t_base * 0x40 + tile_num * 8) & 0x3fff ;
+            int color_addr = (col_tab_base() + tile_num * 8) & 0x3fff ;
             //std::cout<<"Color base: "<<std::hex<<static_cast<unsigned int>(color_t_base)<<" x_tile: "<<x_tile<<" y_tile: "<<y_tile<<" tile number: "<<tile_num<<"\n";
 
             for(int y = 0; y < 8; y++) {
@@ -87,12 +88,14 @@ void vdpMS::renderGraphic2(std::vector<std::vector<uint8_t>>& buffer) {
                 uint8_t mask = 1;
                 for(int x = 0; x < 8; x++) {
                     uint8_t color_index = 0;
-                    if(tile_data & mask) color_index = colors.fields.foreground;
+                    if(!(tile_data & mask)) color_index = colors.fields.foreground;
                     else color_index = colors.fields.background;
 
                     buffer[y_tile * 8 + y][3 * (x_tile * 8 + x) + 0] = tms_palette[color_index * 3 + 0];
                     buffer[y_tile * 8 + y][3 * (x_tile * 8 + x) + 1] = tms_palette[color_index * 3 + 1];
                     buffer[y_tile * 8 + y][3 * (x_tile * 8 + x) + 2] = tms_palette[color_index * 3 + 2];
+
+                    mask<<=1;
                 }
             }
 
@@ -117,6 +120,29 @@ void vdpMS::renderMode4(std::vector<std::vector<uint8_t>>& buffer) {
 
         }
     }
+}
+
+uint16_t vdpMS::name_tab_base() {
+    if(vdpMode == systemType::sg_1000) {
+        return 0x400 * (nt_base.fields.base * 2 + nt_base.fields.mask_bit);
+    }
+    return 0x800 * nt_base.fields.base;
+}
+
+uint16_t vdpMS::col_tab_base() {
+    return 0x40 * color_t_base;
+}
+
+uint16_t vdpMS::bg_tile_base() {
+    return 0x800 * pt_base.fields.base;
+}
+
+uint16_t vdpMS::sprite_attr_tab_base() {
+    return 0x80 * spr_attr_base.fields.base;
+}
+
+uint16_t vdpMS::sprite_tile_base() {
+    return 0x800 * spr_tile_base.fields.base;
 }
 
 uint64_t vdpMS::calc(uint64_t) {

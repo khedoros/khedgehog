@@ -99,11 +99,25 @@ void cpuZ80::reset() { // Jump to 0
 }
 
 void cpuZ80::nmi() { // Pause button, jump to 66h
-
+    push(pc);
+    pc = 0x0066;
+    iff1 = false;
+    //TODO: interrupt timing
 }
 
 void cpuZ80::interrupt(uint8_t vector) { // Maskable interrupts, no vector provided on data bus, so it jumps to 38h
-
+    if(iff1) {
+        push(pc);
+        uint16_t temp_addr;
+        switch(int_mode) {
+        case mode0: decode(vector);
+        case mode1: pc = 0x0038; break;
+        case mode2:
+            temp_addr = int_vect * 256 + vector;
+            pc = memory->readWord(temp_addr);
+            break;
+        }
+    }
 }
 
 cpuZ80::int_type_t cpuZ80::check_interrupts() {
@@ -314,21 +328,21 @@ const std::array<z80OpPtr, 256> cpuZ80::dd_op_table = {
 
 const std::array<z80OpPtr, 256> cpuZ80::ed_op_table = {
   &cpuZ80::op_in<0xed40>,     &cpuZ80::op_out<0xed41>,    &cpuZ80::op_sbc16<0xed42>,  &cpuZ80::op_ld16rim<0xed43>,
-  &cpuZ80::op_neg<0xed44>,    &cpuZ80::op_unimpl<0xed45>, &cpuZ80::op_im<0xed46>,     &cpuZ80::op_unimpl<0xed47>,
+  &cpuZ80::op_neg<0xed44>,    &cpuZ80::op_retn<0xed45>,   &cpuZ80::op_im<0xed46>,     &cpuZ80::op_unimpl<0xed47>,
   &cpuZ80::op_in<0xed48>,     &cpuZ80::op_out<0xed49>,    &cpuZ80::op_adc16<0xed4a>,  &cpuZ80::op_ld16rim<0xed4b>,
-  &cpuZ80::op_unimpl<0xed4c>, &cpuZ80::op_unimpl<0xed4d>, &cpuZ80::op_unimpl<0xed4e>, &cpuZ80::op_unimpl<0xed4f>,
+  &cpuZ80::op_unimpl<0xed4c>, &cpuZ80::op_reti<0xed4d>,   &cpuZ80::op_unimpl<0xed4e>, &cpuZ80::op_unimpl<0xed4f>,
   &cpuZ80::op_in<0xed50>,     &cpuZ80::op_out<0xed51>,    &cpuZ80::op_sbc16<0xed52>,  &cpuZ80::op_ld16rim<0xed53>,
-  &cpuZ80::op_unimpl<0xed54>, &cpuZ80::op_unimpl<0xed55>, &cpuZ80::op_im<0xed56>,     &cpuZ80::op_unimpl<0xed57>,
+  &cpuZ80::op_unimpl<0xed54>, &cpuZ80::op_retn<0xed55>,   &cpuZ80::op_im<0xed56>,     &cpuZ80::op_unimpl<0xed57>,
   &cpuZ80::op_in<0xed58>,     &cpuZ80::op_out<0xed59>,    &cpuZ80::op_adc16<0xed5a>,  &cpuZ80::op_ld16rim<0xed5b>,
-  &cpuZ80::op_unimpl<0xed5c>, &cpuZ80::op_unimpl<0xed5d>, &cpuZ80::op_im<0xed5e>,     &cpuZ80::op_unimpl<0xed5f>,
+  &cpuZ80::op_unimpl<0xed5c>, &cpuZ80::op_retn<0xed5d>,   &cpuZ80::op_im<0xed5e>,     &cpuZ80::op_unimpl<0xed5f>,
   &cpuZ80::op_in<0xed60>,     &cpuZ80::op_out<0xed61>,    &cpuZ80::op_sbc16<0xed62>,  &cpuZ80::op_ld16rim<0xed63>,
-  &cpuZ80::op_unimpl<0xed64>, &cpuZ80::op_unimpl<0xed65>, &cpuZ80::op_im<0xed66>,     &cpuZ80::op_rxd<0xed67>,
+  &cpuZ80::op_unimpl<0xed64>, &cpuZ80::op_retn<0xed65>,   &cpuZ80::op_im<0xed66>,     &cpuZ80::op_rxd<0xed67>,
   &cpuZ80::op_in<0xed68>,     &cpuZ80::op_out<0xed69>,    &cpuZ80::op_adc16<0xed6a>,  &cpuZ80::op_ld16rim<0xed6b>,
-  &cpuZ80::op_unimpl<0xed6c>, &cpuZ80::op_unimpl<0xed6d>, &cpuZ80::op_unimpl<0xed6e>, &cpuZ80::op_rxd<0xed6f>,
+  &cpuZ80::op_unimpl<0xed6c>, &cpuZ80::op_retn<0xed6d>,   &cpuZ80::op_unimpl<0xed6e>, &cpuZ80::op_rxd<0xed6f>,
   &cpuZ80::op_in<0xed70>,     &cpuZ80::op_out<0xed71>,    &cpuZ80::op_sbc16<0xed72>,  &cpuZ80::op_ld16rim<0xed73>,
-  &cpuZ80::op_unimpl<0xed74>, &cpuZ80::op_unimpl<0xed75>, &cpuZ80::op_im<0xed76>,     &cpuZ80::op_unimpl<0xed77>,
+  &cpuZ80::op_unimpl<0xed74>, &cpuZ80::op_retn<0xed75>,   &cpuZ80::op_im<0xed76>,     &cpuZ80::op_unimpl<0xed77>,
   &cpuZ80::op_in<0xed78>,     &cpuZ80::op_out<0xed79>,    &cpuZ80::op_adc16<0xed7a>,  &cpuZ80::op_ld16rim<0xed7b>,
-  &cpuZ80::op_unimpl<0xed7c>, &cpuZ80::op_unimpl<0xed7d>, &cpuZ80::op_im<0xed7e>,     &cpuZ80::op_unimpl<0xed7f>,
+  &cpuZ80::op_unimpl<0xed7c>, &cpuZ80::op_retn<0xed7d>,   &cpuZ80::op_im<0xed7e>,     &cpuZ80::op_unimpl<0xed7f>,
   &cpuZ80::op_unimpl<0xed80>, &cpuZ80::op_unimpl<0xed81>, &cpuZ80::op_unimpl<0xed82>, &cpuZ80::op_unimpl<0xed83>,
   &cpuZ80::op_unimpl<0xed84>, &cpuZ80::op_unimpl<0xed85>, &cpuZ80::op_unimpl<0xed86>, &cpuZ80::op_unimpl<0xed87>,
   &cpuZ80::op_unimpl<0xed88>, &cpuZ80::op_unimpl<0xed89>, &cpuZ80::op_unimpl<0xed8a>, &cpuZ80::op_unimpl<0xed8b>,
@@ -1946,6 +1960,18 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_ret(uint8_t opcode) { // RET 10, 
         cycles = 5;
     }
     return cycles;
+}
+
+
+template <uint32_t OPCODE> uint64_t cpuZ80::op_reti(uint8_t opcode) { // RETI 14
+    if(iff1) pc = pop();
+    return 14;
+}
+
+template <uint32_t OPCODE> uint64_t cpuZ80::op_retn(uint8_t opcode) { // RETN 14
+    pc = pop();
+    iff1 = iff2;
+    return 14;
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_rot_a(uint8_t opcode) { // RLCA, RRCA, RLA, RRA 4
