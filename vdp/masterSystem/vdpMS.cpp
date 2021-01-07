@@ -171,7 +171,7 @@ uint64_t vdpMS::calc(uint64_t) {
 }
 
 void vdpMS::writeByte(uint8_t port, uint8_t val, uint64_t cycle) {
-    std::printf("Wrote val(%02x) to port(%02x)\n", val, port);
+    //std::printf("Wrote val(%02x) to port(%02x)\n", val, port);
     if(port % 2 == 1) writeAddress(val);
     else {
         addr_latch = false;
@@ -283,13 +283,16 @@ uint8_t vdpMS::readData() {
 }
 
 uint8_t vdpMS::readStatus(uint64_t cycle) {
+    std::printf("Read VDP Status\n");
     return 0x80;
 }
 
 uint8_t vdpMS::readVCounter(uint64_t cycle) {
-    return cycle % 262; 
+    std::printf("v: %ld\n", (cycle / 342) % 262);
+    return (cycle / 342) % 262; 
 }
 
 uint8_t vdpMS::readHCounter(uint64_t cycle) {
-    return cycle % 342;
+    std::printf("h: %ld\n", (cycle / 262) % 342);
+    return (cycle / 262) % 342;
 }
