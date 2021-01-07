@@ -64,6 +64,8 @@ uint64_t cpuM68k::calc(uint64_t cycle_max) {
     return cycles;
 }
 
+void cpuM68k::interrupt(uint8_t vector){}
+
 void cpuM68k::setCCRReg(ccrField f) {
     ccr |= f;
 }

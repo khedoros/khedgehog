@@ -32,15 +32,29 @@ uint8_t& memmapZ80Console::readByte(uint32_t addr) {
 uint8_t memmapZ80Console::readPortByte(uint8_t port) {
     // TODO: Implement :-D
     dbg_printf(" read port %02x >> [dummy]", port);
-    switch(port) {
-        case 0x7e: dbg_printf(" (V counter)"); break;
-        case 0x7f: dbg_printf(" (H counter)"); break;
-        case 0xbd: case 0xbf: dbg_printf(" (read VDP status bits)"); break;
-        case 0xbe: dbg_printf(" (read VDP data)"); break;
-        case 0xc0: case 0xdc: dbg_printf(" (joystick port 1)"); break;
-        case 0xc1: case 0xdd: dbg_printf(" (joystick port 2 + nationalization)"); break;
-        case 0xde: case 0xdf: dbg_printf(" (unknown port)"); break;
-        case 0xf2: dbg_printf(" (YM2413 control register)"); break;
+    switch(port & 0b11000001) {
+        case 0x00:
+            dbg_printf(" (memory control register)");
+            return 0xff;
+        case 0x01:
+            dbg_printf(" (i/o control register)");
+            return 0xff;
+        case 0x40:
+            dbg_printf(" (V counter)");
+            return vdp_dev->readByte(port);
+        case 0x41:
+            dbg_printf(" (H counter)");
+            return vdp_dev->readByte(port);
+        case 0x80: 
+            dbg_printf(" (read VDP data)");
+            return vdp_dev->readByte(port);
+        case 0x81:
+            dbg_printf(" (read VDP status bits)");
+            return vdp_dev->readByte(port);
+        // Note: Probably need to be implemented as an io controller device
+        case 0xc0: dbg_printf(" (joystick port 1)"); break;
+        case 0xc1: dbg_printf(" (joystick port 2 + nationalization)"); break;
+        //case 0xf2: dbg_printf(" (YM2413 status register)"); break;
         default: dbg_printf(" (no info on port)"); break;
     }
     return 0xff;

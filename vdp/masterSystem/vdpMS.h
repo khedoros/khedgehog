@@ -232,4 +232,28 @@ private:
     };
     static constexpr std::array<uint8_t, 3> gg_pal_mask { 0x0f, 0xf0, 0x0f };
     static constexpr std::array<uint8_t, 3> gg_pal_shift { 0, 4, 0 };
+
+    struct sms_color_t {
+        union {
+            struct {
+                unsigned red:2;
+                unsigned green:2;
+                unsigned blue:2;
+                unsigned unused:2;
+            } component;
+            uint8_t val;
+        };
+    };
+
+    struct gg_color_t {
+        union {
+            struct {
+                unsigned red:4;
+                unsigned green:4;
+                unsigned blue:4;
+                unsigned unused:4;
+            } component;
+            uint8_t val[2];
+        };
+    };
 };

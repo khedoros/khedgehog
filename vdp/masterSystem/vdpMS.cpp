@@ -112,12 +112,33 @@ void vdpMS::renderMulticolor(std::vector<std::vector<uint8_t>>& buffer) {
 }
 
 void vdpMS::renderMode4(std::vector<std::vector<uint8_t>>& buffer) {
-    std::cout<<"SMS (Mode 4) render\n";
-    for(int y=0;y<192;y++) {
-        int y_tile = y / 8;
-        for(int x=0;x<256;x++) {
-            int x_tile = x / 8;
-
+    std::cout<<"SMS (Mode 4) render: NT: "<<std::hex<<name_tab_base()<<" BG Tiles: "<<bg_tile_base()<<" Palette: ";
+    for(int i=0;i<32;i++) std::cout<<int(pal_ram.at(i))<<" ";
+    std::cout<<"\n";
+    for(int y_tile=0;y_tile<24;y_tile++) {
+        for(int x_tile=0;x_tile<32;x_tile++) {
+            tile_info_t tile_info;
+            uint16_t tile_info_addr = name_tab_base() + (y_tile * 64) + (x_tile * 2);
+            tile_info.bytes.byte1 = vram.at(tile_info_addr);
+            tile_info.bytes.byte2 = vram.at(tile_info_addr + 1);
+            uint16_t tile_addr = bg_tile_base() + 32 * tile_info.fields.tile_num;
+            for(int y = 0; y < 8; y++) {
+                uint8_t byte0 = vram.at(tile_addr + y*4);
+                uint8_t byte1 = vram.at(tile_addr + y*4);
+                uint8_t byte2 = vram.at(tile_addr + y*4);
+                uint8_t byte3 = vram.at(tile_addr + y*4);
+                uint8_t mask = 1;
+                //std::cout<<int(byte0)<<int(byte1)<<int(byte2)<<int(byte3)<<"\n";
+                for(int x = 0; x < 8; x++) {
+                    int color_index = (((mask & byte0) + 2*(mask & byte1) + 4*(mask & byte2) + 8*(mask&byte3)) >> (mask-1)) + 16 * tile_info.fields.palnum;
+                    mask<<=1;
+                    //std::cout<<"color_index: "<<color_index<<"\n";
+                    sms_color_t color{.val = pal_ram.at(color_index)};
+                    buffer[y_tile*8+y][3*(x_tile*8+x)] = sms_pal_component[color.component.blue];
+                    buffer[y_tile*8+y][3*(x_tile*8+x)+1] = sms_pal_component[color.component.green];
+                    buffer[y_tile*8+y][3*(x_tile*8+x)+2] = sms_pal_component[color.component.red];
+                }
+            }
         }
     }
 }
@@ -150,6 +171,7 @@ uint64_t vdpMS::calc(uint64_t) {
 }
 
 void vdpMS::writeByte(uint8_t port, uint8_t val) {
+    std::printf("Wrote val(%02x) to port(%02x)\n", val, port);
     if(port % 2 == 1) writeAddress(val);
     else {
         addr_latch = false;
@@ -243,11 +265,13 @@ void vdpMS::writeAddress(uint8_t val) {
 void vdpMS::writeData(uint8_t val) {
     if(addr_mode == addr_mode_t::vram_write || addr_mode == addr_mode_t::vram_read || addr_mode == addr_mode_t::reg_write) {
         dbg_printf(" wrote %02x to address %04x", val, address);
+        std::printf(" wrote %02x to address %04x\n", val, address);
                    vram[address++] = val;
                    data_buffer = val;
     }
     else if(addr_mode == addr_mode_t::cram_write) {
         pal_ram[address % pal_ram.size()] = val;
+        std::printf(" wrote %02x to palette address %04x\n", val, address);
         data_buffer = val;
         address++;
     }
@@ -264,7 +288,7 @@ uint8_t vdpMS::readStatus() {
 }
 
 uint8_t vdpMS::readVCounter() {
-    return 0;
+    return 0xc0;
 }
 
 uint8_t vdpMS::readHCounter() {

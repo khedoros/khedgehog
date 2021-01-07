@@ -50,11 +50,11 @@ private:
         mode2
     } int_mode;
 
-	enum int_type_t {
-		no_int,
-		irq_int,
-		nm_int
-	};
+    enum int_type_t {
+        no_int,
+        irq_int,
+        nm_int
+    };
 
     //NMI does call to 0066h
     //interrupt mode 0: interrupting device puts an instruction on data bus, CPU executes it
@@ -136,12 +136,12 @@ private:
     static std::array<bool, 256> parity;
     bool addition_overflows(int8_t a, int8_t b);
     bool addition_underflows(int8_t a, int8_t b);
-	template <typename T>
+    template <typename T>
     bool subtraction_overflows(T a, T b);
-	template <typename T>
+    template <typename T>
     bool subtraction_underflows(T a, T b);
     bool condition(int condition_number);
-	int_type_t check_interrupts();
+    int_type_t check_interrupts();
     void print_registers();
 
     template <uint32_t OPCODE> uint64_t op_unimpl(uint8_t);
