@@ -29,7 +29,7 @@ uint8_t& memmapZ80Console::readByte(uint32_t addr) {
     return map(addr);
 }
 
-uint8_t memmapZ80Console::readPortByte(uint8_t port) {
+uint8_t memmapZ80Console::readPortByte(uint8_t port, uint64_t cycle) {
     // TODO: Implement :-D
     dbg_printf(" read port %02x >> [dummy]", port);
     switch(port & 0b11000001) {
@@ -41,16 +41,16 @@ uint8_t memmapZ80Console::readPortByte(uint8_t port) {
             return 0xff;
         case 0x40:
             dbg_printf(" (V counter)");
-            return vdp_dev->readByte(port);
+            return vdp_dev->readByte(port, cycle);
         case 0x41:
             dbg_printf(" (H counter)");
-            return vdp_dev->readByte(port);
+            return vdp_dev->readByte(port, cycle);
         case 0x80: 
             dbg_printf(" (read VDP data)");
-            return vdp_dev->readByte(port);
+            return vdp_dev->readByte(port, cycle);
         case 0x81:
             dbg_printf(" (read VDP status bits)");
-            return vdp_dev->readByte(port);
+            return vdp_dev->readByte(port, cycle);
         // Note: Probably need to be implemented as an io controller device
         case 0xc0: dbg_printf(" (joystick port 1)"); break;
         case 0xc1: dbg_printf(" (joystick port 2 + nationalization)"); break;
@@ -81,17 +81,17 @@ void memmapZ80Console::writeWord(uint32_t addr, uint16_t val) {
 }
 void memmapZ80Console::writeLong(uint32_t addr, uint32_t val) {}
 
-void memmapZ80Console::writePortByte(uint8_t port, uint8_t val) {
+void memmapZ80Console::writePortByte(uint8_t port, uint8_t val, uint64_t cycle) {
     dbg_printf(" wrote %02x to port %02x", val, port);
     switch(port) {
         case 0x3f: dbg_printf(" (automatic nationalization)"); break;
         case 0x7e: case 0x7f: dbg_printf(" (PSG SN76489 output control)"); break;
         case 0xbd: case 0xbf:
-            vdp_dev->writeByte(port, val);
+            vdp_dev->writeByte(port, val, cycle);
             dbg_printf(" (VDP address/register)");
             break;
         case 0xbe:
-            vdp_dev->writeByte(port, val);
+            vdp_dev->writeByte(port, val, cycle);
             dbg_printf(" (VDP data)");
             break;
         case 0xde: case 0xdf: dbg_printf(" (unknown port)"); break;

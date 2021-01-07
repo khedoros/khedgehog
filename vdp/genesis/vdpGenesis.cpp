@@ -20,11 +20,11 @@ uint64_t vdpGenesis::calc(uint64_t) {
     return 0;
 }
 
-void vdpGenesis::writeByte(uint8_t, uint8_t) {
+void vdpGenesis::writeByte(uint8_t port, uint8_t val, uint64_t cycle) {
 
 }
 
-uint8_t vdpGenesis::readByte(uint8_t) {
+uint8_t vdpGenesis::readByte(uint8_t port, uint64_t cycle) {
     return 0;
 }
 

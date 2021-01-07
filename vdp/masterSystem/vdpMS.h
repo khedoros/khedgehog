@@ -9,8 +9,8 @@
 class vdpMS: public vdp {
 public:
     vdpMS(systemType t, systemRegion r);
-    void writeByte(uint8_t address, uint8_t val) override;
-    uint8_t readByte(uint8_t address) override;
+    void writeByte(uint8_t address, uint8_t val, uint64_t cycle) override;
+    uint8_t readByte(uint8_t address, uint64_t cycle) override;
     std::vector<std::vector<uint8_t>> getPartialRender() override; // Render a composited view of the current VDP memory state
     std::vector<std::vector<uint8_t>> getSpritePartialRender() override; // Render the sprite layer(s) of the current VDP memory state
     std::vector<std::vector<uint8_t>> getBgPartialRender() override; // Redner the background layer(s) of the current VDP memory state
@@ -25,9 +25,9 @@ private:
     void writeAddress(uint8_t val);
     void writeData(uint8_t val);
     uint8_t readData();
-    uint8_t readStatus();
-    uint8_t readVCounter();
-    uint8_t readHCounter();
+    uint8_t readStatus(uint64_t cycle);
+    uint8_t readVCounter(uint64_t cycle);
+    uint8_t readHCounter(uint64_t cycle);
     void renderGraphic1(std::vector<std::vector<uint8_t>>&);
     void renderGraphic2(std::vector<std::vector<uint8_t>>&);
     void renderText(std::vector<std::vector<uint8_t>>&);

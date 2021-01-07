@@ -71,7 +71,7 @@ void vdpMS::renderGraphic1(std::vector<std::vector<uint8_t>>& buffer) {
 }
 
 void vdpMS::renderGraphic2(std::vector<std::vector<uint8_t>>& buffer) {
-    std::cout<<"Graphic II (Mode 2) render\n";
+    //std::cout<<"Graphic II (Mode 2) render\n";
     for(int y_tile=0;y_tile<24;y_tile++) {
         int y_triad = y_tile / 8;
         for(int x_tile=0;x_tile<32;x_tile++) {
@@ -112,9 +112,9 @@ void vdpMS::renderMulticolor(std::vector<std::vector<uint8_t>>& buffer) {
 }
 
 void vdpMS::renderMode4(std::vector<std::vector<uint8_t>>& buffer) {
-    std::cout<<"SMS (Mode 4) render: NT: "<<std::hex<<name_tab_base()<<" BG Tiles: "<<bg_tile_base()<<" Palette: ";
-    for(int i=0;i<32;i++) std::cout<<int(pal_ram.at(i))<<" ";
-    std::cout<<"\n";
+    //std::cout<<"SMS (Mode 4) render: NT: "<<std::hex<<name_tab_base()<<" BG Tiles: "<<bg_tile_base()<<" Palette: ";
+    //for(int i=0;i<32;i++) std::cout<<int(pal_ram.at(i))<<" ";
+    //std::cout<<"\n";
     for(int y_tile=0;y_tile<24;y_tile++) {
         for(int x_tile=0;x_tile<32;x_tile++) {
             tile_info_t tile_info;
@@ -170,7 +170,7 @@ uint64_t vdpMS::calc(uint64_t) {
     return 0;
 }
 
-void vdpMS::writeByte(uint8_t port, uint8_t val) {
+void vdpMS::writeByte(uint8_t port, uint8_t val, uint64_t cycle) {
     std::printf("Wrote val(%02x) to port(%02x)\n", val, port);
     if(port % 2 == 1) writeAddress(val);
     else {
@@ -179,12 +179,12 @@ void vdpMS::writeByte(uint8_t port, uint8_t val) {
     }
 }
 
-uint8_t vdpMS::readByte(uint8_t port) {
+uint8_t vdpMS::readByte(uint8_t port, uint64_t cycle) {
     switch(port & 0b11000001) {
-        case 0x40: return readVCounter();
-        case 0x41: return readHCounter();
+        case 0x40: return readVCounter(cycle);
+        case 0x41: return readHCounter(cycle);
         case 0x80: addr_latch = false; return readData();
-        case 0x81: addr_latch = false; return readStatus();
+        case 0x81: addr_latch = false; return readStatus(cycle);
         default: std::cerr<<"Shouldn't have reached the VDP\n";
     }
     return 0;
@@ -264,14 +264,13 @@ void vdpMS::writeAddress(uint8_t val) {
 
 void vdpMS::writeData(uint8_t val) {
     if(addr_mode == addr_mode_t::vram_write || addr_mode == addr_mode_t::vram_read || addr_mode == addr_mode_t::reg_write) {
-        dbg_printf(" wrote %02x to address %04x", val, address);
-        std::printf(" wrote %02x to address %04x\n", val, address);
+        //dbg_printf(" wrote %02x to address %04x", val, address);
                    vram[address++] = val;
                    data_buffer = val;
     }
     else if(addr_mode == addr_mode_t::cram_write) {
         pal_ram[address % pal_ram.size()] = val;
-        std::printf(" wrote %02x to palette address %04x\n", val, address);
+        //std::printf(" wrote %02x to palette address %04x\n", val, address);
         data_buffer = val;
         address++;
     }
@@ -283,14 +282,14 @@ uint8_t vdpMS::readData() {
     return retval;
 }
 
-uint8_t vdpMS::readStatus() {
+uint8_t vdpMS::readStatus(uint64_t cycle) {
     return 0x80;
 }
 
-uint8_t vdpMS::readVCounter() {
-    return 0xc0;
+uint8_t vdpMS::readVCounter(uint64_t cycle) {
+    return cycle % 262; 
 }
 
-uint8_t vdpMS::readHCounter() {
-    return 0;
+uint8_t vdpMS::readHCounter(uint64_t cycle) {
+    return cycle % 342;
 }

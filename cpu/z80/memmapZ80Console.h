@@ -19,8 +19,8 @@ public:
     uint32_t& readLong(uint32_t addr) override;
     void sendEvent(ioEvent e) override;
 
-    uint8_t readPortByte(uint8_t port);
-    void writePortByte(uint8_t port, uint8_t val);
+    uint8_t readPortByte(uint8_t port, uint64_t cycle);
+    void writePortByte(uint8_t port, uint8_t val, uint64_t cycle);
 
 private:
     uint8_t& map(uint32_t addr) override;

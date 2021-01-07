@@ -1417,7 +1417,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_in(uint8_t opcode) { // OUTI 16 O
         dbg_printf(" %02x", port);
     }
 
-    val = memory->readPortByte(port);
+    val = memory->readPortByte(port, total_cycles);
 
     //dbg_printf(" read %02x from port %02x", val, port);
 
@@ -1901,7 +1901,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_out(uint8_t opcode) { // OUTI 16 
         val = *regset[src];
     }
 
-    memory->writePortByte(port, val);
+    memory->writePortByte(port, val, total_cycles);
 
     //dbg_printf(" wrote %02x to port %02x", val, port);
 
