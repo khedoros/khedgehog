@@ -12,8 +12,6 @@ public:
     void writeByte(uint8_t address, uint8_t val, uint64_t cycle) override;
     uint8_t readByte(uint8_t address, uint64_t cycle) override;
     std::vector<std::vector<uint8_t>> getPartialRender() override; // Render a composited view of the current VDP memory state
-    std::vector<std::vector<uint8_t>> getSpritePartialRender() override; // Render the sprite layer(s) of the current VDP memory state
-    std::vector<std::vector<uint8_t>> getBgPartialRender() override; // Redner the background layer(s) of the current VDP memory state
     uint16_t name_tab_base();
     uint16_t col_tab_base();
     uint16_t bg_tile_base();
@@ -80,48 +78,11 @@ private:
         };
     } ctrl_2;
 
-    struct nt_base_t { //Register #2: Name table base address, used as top 3 (SMS) to 4 (SG-1000) bits of the name table base
-        union {
-            struct {
-                unsigned mask_bit:1;
-                unsigned base:3;
-                unsigned unused:4;
-            } fields;
-            uint8_t val;
-        };
-    } nt_base;
-
-    uint8_t color_t_base; // Register #3: Color table base address, used as top 8 bits of the color table base
-    
-    struct pt_base_t { // Register #4: Pattern generator table start address, used as top 3 bits of pattern (bg tile) table
-        union {
-            struct {
-                unsigned base:3;
-                unsigned unused:5;
-            } fields;
-            uint8_t val;
-        };
-    } pt_base;
-
-    struct spr_attr_base_t { // Register #5: Sprite attribute table base, top 7 bits of sprite attribute table
-        union {
-            struct {
-                unsigned base:7;
-                unsigned unused:1;
-            } fields;
-            uint8_t val;
-        };
-    } spr_attr_base;
-
-    struct spr_tile_base_t { // Register #6: Sprite generator table start address, used as top 3 bits of sprite tile table
-        union {
-            struct {
-                unsigned base:3;
-                unsigned unused:5;
-            } fields;
-            uint8_t val;
-        };
-    } spr_tile_base;
+    uint8_t nt_base:4;       //Register #2: Name table base address, used as top 3 (SMS) to 4 (SG-1000) bits of the name table base
+    uint8_t color_t_base;    // Register #3: Color table base address, used as top 8 bits of the color table base
+	uint8_t pt_base:3;       // Register #4: Pattern generator table start address, used as top 3 bits of pattern (bg tile) table
+    uint8_t spr_attr_base:7; // Register #5: Sprite attribute table base, top 7 bits of sprite attribute table
+    uint8_t spr_tile_base:3; // Register #6: Sprite generator table start address, used as top 3 bits of sprite tile table
 
     struct bg_fg_col_t { // Register #7: Foreground and background colors, high nibble has foreground, low nibble has background.
         union {

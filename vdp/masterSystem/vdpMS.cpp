@@ -8,6 +8,7 @@
 vdpMS::vdpMS(systemType t, systemRegion r):addr_latch(false), vdpMode(t), vdpRegion(r) {
     if(vdpMode == systemType::gameGear) pal_ram.resize(0x40, 0);
     else                                pal_ram.resize(0x20, 0);
+
 }
 
 std::vector<std::vector<uint8_t>> vdpMS::getPartialRender() {
@@ -30,7 +31,7 @@ std::vector<std::vector<uint8_t>> vdpMS::getPartialRender() {
         case 4:
             renderMulticolor(buffer);
             break;
-        case 8:
+		case 8: case 10:
             renderMode4(buffer);
             break;
         default:
@@ -58,25 +59,47 @@ std::vector<std::vector<uint8_t>> vdpMS::getPartialRender() {
     return buffer;
 }
 
-std::vector<std::vector<uint8_t>> vdpMS::getSpritePartialRender() {
-    return std::vector<std::vector<uint8_t>>(192, std::vector<uint8_t>(256*3, 0));
-}
-
-std::vector<std::vector<uint8_t>> vdpMS::getBgPartialRender() {
-    return std::vector<std::vector<uint8_t>>(192, std::vector<uint8_t>(256*3, 0));
-}
-
 void vdpMS::renderGraphic1(std::vector<std::vector<uint8_t>>& buffer) {
     std::cout<<"Graphic I (Mode 0)  render\n";
+    for(int y_tile=0;y_tile<24;y_tile++) {
+        for(int x_tile=0;x_tile<32;x_tile++) {
+            int tile_num_addr = name_tab_base() + y_tile * 32 + x_tile;
+            int tile_num = vram.at(tile_num_addr);
+            int tile_addr = bg_tile_base() + tile_num * 8;
+
+            int color_addr = col_tab_base() + tile_num / 8;
+            bg_fg_col_t colors{.val = vram.at(color_addr)};
+            //std::cout<<"Color base: "<<std::hex<<static_cast<unsigned int>(color_t_base)<<" x_tile: "<<x_tile<<" y_tile: "<<y_tile<<" tile number: "<<tile_num<<"\n";
+
+            for(int y = 0; y < 8; y++) {
+                uint8_t tile_data = vram.at(tile_addr + y);
+                uint8_t mask = 128;
+                for(int x = 0; x < 8; x++) {
+                    uint8_t color_index = 0;
+                    if((tile_data & mask) == mask) color_index = colors.fields.foreground;
+                    else color_index = colors.fields.background;
+
+                    buffer[y_tile * 8 + y][3 * (x_tile * 8 + x) + 0] = tms_palette[color_index * 3 + 0];
+                    buffer[y_tile * 8 + y][3 * (x_tile * 8 + x) + 1] = tms_palette[color_index * 3 + 1];
+                    buffer[y_tile * 8 + y][3 * (x_tile * 8 + x) + 2] = tms_palette[color_index * 3 + 2];
+
+                    mask>>=1;
+                }
+            }
+        }
+    }
+
 }
 
 void vdpMS::renderGraphic2(std::vector<std::vector<uint8_t>>& buffer) {
-    //std::cout<<"Graphic II (Mode 2) render\n";
+    std::cout<<"Graphic II (Mode 2) render ntbase: "<<name_tab_base()<<" ttbase: "<<bg_tile_base()<<" ctbase: "<<col_tab_base()<<"\n";
     for(int y_tile=0;y_tile<24;y_tile++) {
         int y_triad = y_tile / 8;
         for(int x_tile=0;x_tile<32;x_tile++) {
             int tile_num_addr = name_tab_base() + y_tile * 32 + x_tile;
+			std::printf("%04x ", tile_num_addr);
             int tile_num = vram.at(tile_num_addr) + 256 * y_triad;
+			//std::printf("%03x ", tile_num);
             int tile_addr = bg_tile_base() + tile_num * 8;
 
             int color_addr = (col_tab_base() + tile_num * 8) & 0x3fff ;
@@ -88,7 +111,7 @@ void vdpMS::renderGraphic2(std::vector<std::vector<uint8_t>>& buffer) {
                 uint8_t mask = 128;
                 for(int x = 0; x < 8; x++) {
                     uint8_t color_index = 0;
-                    if(!(tile_data & mask)) color_index = colors.fields.foreground;
+                    if((tile_data & mask) == mask) color_index = colors.fields.foreground;
                     else color_index = colors.fields.background;
 
                     buffer[y_tile * 8 + y][3 * (x_tile * 8 + x) + 0] = tms_palette[color_index * 3 + 0];
@@ -98,8 +121,8 @@ void vdpMS::renderGraphic2(std::vector<std::vector<uint8_t>>& buffer) {
                     mask>>=1;
                 }
             }
-
         }
+		printf("\n");
     }
 }
 
@@ -124,15 +147,13 @@ void vdpMS::renderMode4(std::vector<std::vector<uint8_t>>& buffer) {
             uint16_t tile_addr = bg_tile_base() + 32 * tile_info.fields.tile_num;
             for(int y = 0; y < 8; y++) {
                 uint8_t byte0 = vram.at(tile_addr + y*4);
-                uint8_t byte1 = vram.at(tile_addr + y*4);
-                uint8_t byte2 = vram.at(tile_addr + y*4);
-                uint8_t byte3 = vram.at(tile_addr + y*4);
-                uint8_t mask = 1;
-                //std::cout<<int(byte0)<<int(byte1)<<int(byte2)<<int(byte3)<<"\n";
+                uint8_t byte1 = vram.at(tile_addr + y*4 + 1);
+                uint8_t byte2 = vram.at(tile_addr + y*4 + 2);
+                uint8_t byte3 = vram.at(tile_addr + y*4 + 3);
+                uint32_t mask = 0x80;
                 for(int x = 0; x < 8; x++) {
-                    int color_index = (((mask & byte0) + 2*(mask & byte1) + 4*(mask & byte2) + 8*(mask&byte3)) >> (mask-1)) + 16 * tile_info.fields.palnum;
-                    mask<<=1;
-                    //std::cout<<"color_index: "<<color_index<<"\n";
+                    int color_index = (((mask & byte0) + 2*(mask & byte1) + 4*(mask & byte2) + 8*(mask&byte3)) >> (7-x)) + 16 * tile_info.fields.palnum;
+                    mask>>=1;
                     sms_color_t color{.val = pal_ram.at(color_index)};
                     buffer[y_tile*8+y][3*(x_tile*8+x)] = sms_pal_component[color.component.blue];
                     buffer[y_tile*8+y][3*(x_tile*8+x)+1] = sms_pal_component[color.component.green];
@@ -145,9 +166,9 @@ void vdpMS::renderMode4(std::vector<std::vector<uint8_t>>& buffer) {
 
 uint16_t vdpMS::name_tab_base() { // Register 2, starting address for Name Table sub-block (background layout)
     if(vdpMode == systemType::sg_1000) {
-        return 0x400 * (nt_base.val & 0x0f);
+        return 0x400 * (nt_base & 0x0f);
     }
-    return 0x800 * nt_base.fields.base;
+    return 0x400 * (nt_base & 0x0e);
 }
 
 uint16_t vdpMS::col_tab_base() { // Register 3, starting address for the Color Table
@@ -155,15 +176,15 @@ uint16_t vdpMS::col_tab_base() { // Register 3, starting address for the Color T
 }
 
 uint16_t vdpMS::bg_tile_base() { // Register 4, starting address for the Pattern Generator Sub-block (background tiles)
-    return 0x800 * pt_base.fields.base;
+    return 0x800 * pt_base;
 }
 
 uint16_t vdpMS::sprite_attr_tab_base() { // Register 5, starting address for the sprite attribute table (sprite locations, colors, etc)
-    return 0x80 * spr_attr_base.fields.base;
+    return 0x80 * spr_attr_base;
 }
 
 uint16_t vdpMS::sprite_tile_base() { // Register 6, starting address for the Sprite Pattern Generate sub-block (sprite tiles)
-    return 0x800 * spr_tile_base.fields.base;
+    return 0x800 * spr_tile_base;
 }
 
 uint64_t vdpMS::calc(uint64_t) {
@@ -223,19 +244,19 @@ void vdpMS::writeAddress(uint8_t val) {
                     ctrl_2.val = (address & 0x00ff);
                     break;
                 case 0x02:
-                    nt_base.val = (address & 0x00ff);
+                    nt_base = (address & 0x00ff);
                     break;
                 case 0x03:
                     color_t_base = (address & 0x00ff);
                     break;
                 case 0x04:
-                    pt_base.val = (address & 0x00ff);
+                    pt_base = (address & 0x00ff);
                     break;
                 case 0x05:
-                    spr_attr_base.val = (address & 0x00ff);
+                    spr_attr_base = (address & 0x00ff);
                     break;
                 case 0x06:
-                    spr_tile_base.val = (address & 0x00ff);
+                    spr_tile_base = (address & 0x00ff);
                     break;
                 case 0x07:
                     bg_fg_col.val = (address & 0x00ff);
@@ -264,7 +285,8 @@ void vdpMS::writeAddress(uint8_t val) {
 
 void vdpMS::writeData(uint8_t val) {
     if(addr_mode == addr_mode_t::vram_write || addr_mode == addr_mode_t::vram_read || addr_mode == addr_mode_t::reg_write) {
-        //dbg_printf(" wrote %02x to address %04x", val, address);
+        //dbg_printf(" wrote %02x to address %04x\n", val, address);
+		std::printf(" wrote %02x to address %04x\n", val, address);
                    vram[address++] = val;
                    data_buffer = val;
     }
@@ -288,11 +310,11 @@ uint8_t vdpMS::readStatus(uint64_t cycle) {
 }
 
 uint8_t vdpMS::readVCounter(uint64_t cycle) {
-    std::printf("v: %ld\n", (cycle / 342) % 262);
+    //std::printf("v: %ld\n", (cycle / 342) % 262);
     return (cycle / 342) % 262; 
 }
 
 uint8_t vdpMS::readHCounter(uint64_t cycle) {
-    std::printf("h: %ld\n", (cycle / 262) % 342);
+    //std::printf("h: %ld\n", (cycle / 262) % 342);
     return (cycle / 262) % 342;
 }
