@@ -83,24 +83,39 @@ void memmapZ80Console::writeLong(uint32_t addr, uint32_t val) {}
 
 void memmapZ80Console::writePortByte(uint8_t port, uint8_t val, uint64_t cycle) {
     dbg_printf(" wrote %02x to port %02x", val, port);
-    switch(port) {
-        case 0x3f: dbg_printf(" (automatic nationalization)"); break;
-        case 0x7e: case 0x7f: dbg_printf(" (PSG SN76489 output control)"); break;
-        case 0xbd: case 0xbf:
-            vdp_dev->writeByte(port, val, cycle);
-            dbg_printf(" (VDP address/register)");
+    switch(port & 0b11000001) {
+        case 0x00:
+            dbg_printf(" (memory control)");
             break;
-        case 0xbe:
+        case 0x01: 
+            dbg_printf(" (I/O control + automatic nationalization)"); break;
+            break;
+        case 0x40: case 0x41:
+            dbg_printf(" (PSG SN76489 output control)"); break;
+            break;
+        case 0x80:
             vdp_dev->writeByte(port, val, cycle);
             dbg_printf(" (VDP data)");
             break;
-        case 0xde: case 0xdf: dbg_printf(" (unknown port)"); break;
+        case 0x81:
+            vdp_dev->writeByte(port, val, cycle);
+            dbg_printf(" (VDP address/register)");
+            break;
+        case 0xc0:
+            dbg_con::write_control(val); break;
+            break;
+        case 0xc1:
+            dbg_con::write_data(val); break;
+            break;
+    }
+    switch(port) {
+        case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06:
+            dbg_printf(" (Game Gear registers)");
+            break;
+        case 0xde: case 0xdf: dbg_printf(" (keyboard control)"); break;
         case 0xf0: dbg_printf(" (YM2413 address register)"); break;
         case 0xf1: dbg_printf(" (YM2413 data register)"); break;
         case 0xf2: dbg_printf(" (YM2413 control register)"); break;
-        case 0xfc: dbg_con::write_control(val); break;
-        case 0xfd: dbg_con::write_data(val); break;
-        default: dbg_printf(" (no info on port)"); break;
     }
 }
 
