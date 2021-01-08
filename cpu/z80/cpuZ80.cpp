@@ -1452,7 +1452,9 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_in(uint8_t opcode) { // OUTI 16 O
             cycles = 16;
         }
 
-        // TODO: Fix flags according to documentation
+        if(!bc.hi) set(ZERO_FLAG);
+        else       clear(ZERO_FLAG);
+        set(SUB_FLAG);
     }
 
     return cycles;
@@ -1887,8 +1889,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_out(uint8_t opcode) { // OUTI 16 
     dummy8 = 0;
 
     if(OPCODE == 0xd3) { // OUT a, (*)
-        port = memory->readByte(pc);
-        pc++;
+        port = memory->readByte(pc++);
         src = 7; // register 'a'
         cycles = 11;
         dbg_printf(" %02x", port);
@@ -1903,7 +1904,8 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_out(uint8_t opcode) { // OUTI 16 
 
     memory->writePortByte(port, val, total_cycles);
 
-    //dbg_printf(" wrote %02x to port %02x", val, port);
+    std::printf("%04x: %04x wrote %02x to port %02x", pc, OPCODE, val, port);
+    
 
     if(OPCODE > 0xed80) { // versions of the opcode that auto-inc/dec and repeat
         if(OPCODE == 0xeda3 || OPCODE == 0xedb3) { //increment opcodes
@@ -1921,6 +1923,9 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_out(uint8_t opcode) { // OUTI 16 
         else {
             cycles = 16;
         }
+        if(!bc.hi) set(ZERO_FLAG);
+        else       clear(ZERO_FLAG);
+        set(SUB_FLAG);
     }
 
     return cycles;
