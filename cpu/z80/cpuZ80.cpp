@@ -577,9 +577,14 @@ uint64_t cpuZ80::dd_op_prefix(uint8_t opcode) {
 
 template <uint32_t OPCODE>
 uint64_t cpuZ80::ed_op_prefix(uint8_t opcode) {
-    opcode = memory->readByte(pc++);
-    dbg_printf(" %x", opcode);
-    return CALL_MEMBER_FN(this, ed_op_table[opcode - 0x40])(opcode);
+    if(OPCODE >= 0xed40 && OPCODE <= 0xedbb ) {
+        opcode = memory->readByte(pc++);
+        dbg_printf(" %x", opcode);
+        return CALL_MEMBER_FN(this, ed_op_table[opcode - 0x40])(opcode);
+    }
+    else {
+        return 0;
+    }
 }
 
 template <uint32_t OPCODE>
@@ -705,7 +710,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_adc16(uint8_t opcode) { // ADC HL
 
     clear(SUB_FLAG);
 
-    if(uint16_t(temp) > 0xffff) set(CARRY_FLAG);
+    if(uint32_t(temp) > 0xffff) set(CARRY_FLAG);
     else              clear(CARRY_FLAG);
 
     if((hl.pair & 0xfff) + ((*regset[reg] + carry()) & 0xfff) >= 4096) set(HALF_CARRY_FLAG);
@@ -716,6 +721,9 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_adc16(uint8_t opcode) { // ADC HL
 
     if(!temp) set(ZERO_FLAG);
     else clear(ZERO_FLAG);
+
+    if(uint16_t(temp) > 32767) set(SIGN_FLAG);
+    else                     clear(SIGN_FLAG);
 
     // TODO: Fix flags
 
@@ -1905,7 +1913,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_out(uint8_t opcode) { // OUTI 16 
     memory->writePortByte(port, val, total_cycles);
 
     std::printf("%04x: %04x wrote %02x to port %02x", pc, OPCODE, val, port);
-    
+
 
     if(OPCODE > 0xed80) { // versions of the opcode that auto-inc/dec and repeat
         if(OPCODE == 0xeda3 || OPCODE == 0xedb3) { //increment opcodes
@@ -2081,10 +2089,13 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_sbc16(uint8_t opcode) { // SBC HL
 
     hl.pair = temp;
 
+    if(hl.pair > 32767) set(SIGN_FLAG);
+    else clear(SIGN_FLAG);
+
     return 4;
 }
 
-template <uint32_t OPCODE> uint64_t cpuZ80::op_wtf(uint8_t arg) {
-    std::printf("WTF opcode: %08x, arg: %02x, next: %02x(PC %04x) next+1: %02x", OPCODE, arg, memory->readByte(pc), pc, memory->readByte(pc+1));
+uint64_t cpuZ80::op_wtf(uint8_t opcode) {
+    std::printf("Undefined opcode: %08x, arg: %02x, next: %02x(PC %04x) next+1: %02x", opcode, memory->readByte(pc), pc, memory->readByte(pc+1));
     return 4;
 }

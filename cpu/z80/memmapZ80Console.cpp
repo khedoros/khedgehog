@@ -6,7 +6,7 @@
 #include "../../util.h"
 #include "../../debug_console.h"
 
-memmapZ80Console::memmapZ80Console(std::shared_ptr<config> cfg, std::shared_ptr<vdp> v, std::shared_ptr<apu> a) : map_ctrl(0), map_slot0(0), map_slot1(1), map_slot2(2), vdp_dev(v), apu_dev(a) {
+memmapZ80Console::memmapZ80Console(std::shared_ptr<config> cfg, std::shared_ptr<vdp> v, std::shared_ptr<apu> a) : map_ctrl(0), map_slot0_offset(0), map_slot1_offset(1 * 0x4000), map_slot2_offset(2 * 0x4000), vdp_dev(v), apu_dev(a) {
     ram.fill(0);
     std::ifstream romfile(cfg->getRomPath().c_str());
     if(!romfile.is_open()) {
@@ -14,14 +14,14 @@ memmapZ80Console::memmapZ80Console(std::shared_ptr<config> cfg, std::shared_ptr<
         return;
     }
     romfile.seekg(0,std::ios::end);
-    std::size_t filesize = romfile.tellg();
+    romsize = romfile.tellg();
     romfile.seekg(0,std::ios::beg);
-    if(filesize < rom.size()) {
-        romfile.read(reinterpret_cast<char *>(rom.data()), filesize);
+    if(romsize < rom.size()) {
+        romfile.read(reinterpret_cast<char *>(rom.data()), romsize);
         romfile.close();
     }
     valid = true;
-    std::cout<<"Opened ROM at path \""<<cfg->getRomPath()<<"\" with filesize "<<filesize<<" bytes.\n";
+    std::cout<<"Opened ROM at path \""<<cfg->getRomPath()<<"\" with filesize "<<romsize<<" bytes.\n";
     dbg_con::init();
 }
 
@@ -45,7 +45,7 @@ uint8_t memmapZ80Console::readPortByte(uint8_t port, uint64_t cycle) {
         case 0x41:
             dbg_printf(" (H counter)");
             return vdp_dev->readByte(port, cycle);
-        case 0x80: 
+        case 0x80:
             dbg_printf(" (read VDP data)");
             return vdp_dev->readByte(port, cycle);
         case 0x81:
@@ -72,6 +72,19 @@ void memmapZ80Console::writeByte(uint32_t addr, uint8_t val) {
     if(addr >= 0xC000) {
         ram[addr & 0x1fff] = val;
     }
+    switch(addr) {
+    case 0xfffc:
+        break;
+    case 0xfffd:
+        map_slot0_offset = (0x4000 * val) % romsize;
+        break;
+    case 0xfffe:
+        map_slot1_offset = (0x4000 * val) % romsize;
+        break;
+    case 0xffff:
+        map_slot2_offset = (0x4000 * val) % romsize;
+        break;
+    }
 }
 void memmapZ80Console::writeWord(uint32_t addr, uint16_t val) {
     if(addr >= 0xC000) {
@@ -82,24 +95,24 @@ void memmapZ80Console::writeWord(uint32_t addr, uint16_t val) {
 void memmapZ80Console::writeLong(uint32_t addr, uint32_t val) {}
 
 void memmapZ80Console::writePortByte(uint8_t port, uint8_t val, uint64_t cycle) {
-    dbg_printf(" wrote %02x to port %02x", val, port);
+//    dbg_printf(" wrote %02x to port %02x", val, port);
     switch(port & 0b11000001) {
         case 0x00:
-            dbg_printf(" (memory control)");
+//            dbg_printf(" (memory control)");
             break;
-        case 0x01: 
-            dbg_printf(" (I/O control + automatic nationalization)"); break;
+        case 0x01:
+//            dbg_printf(" (I/O control + automatic nationalization)"); break;
             break;
         case 0x40: case 0x41:
-            dbg_printf(" (PSG SN76489 output control)"); break;
+//            dbg_printf(" (PSG SN76489 output control)"); break;
             break;
         case 0x80:
             vdp_dev->writeByte(port, val, cycle);
-            dbg_printf(" (VDP data)");
+//            dbg_printf(" (VDP data)");
             break;
         case 0x81:
             vdp_dev->writeByte(port, val, cycle);
-            dbg_printf(" (VDP address/register)");
+//            dbg_printf(" (VDP address/register)");
             break;
         case 0xc0:
             dbg_con::write_control(val); break;
@@ -108,6 +121,7 @@ void memmapZ80Console::writePortByte(uint8_t port, uint8_t val, uint64_t cycle) 
             dbg_con::write_data(val); break;
             break;
     }
+    /*
     switch(port) {
         case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06:
             dbg_printf(" (Game Gear registers)");
@@ -117,6 +131,7 @@ void memmapZ80Console::writePortByte(uint8_t port, uint8_t val, uint64_t cycle) 
         case 0xf1: dbg_printf(" (YM2413 data register)"); break;
         case 0xf2: dbg_printf(" (YM2413 control register)"); break;
     }
+    */
 }
 
 void memmapZ80Console::sendEvent(ioEvent e) {
@@ -128,13 +143,13 @@ uint8_t& memmapZ80Console::map(uint32_t addr) {
         return rom[addr];
     }
     else if(addr < 0x4000) { // slot0 rom
-        return rom[(addr & 0x3fff) + map_slot0 * 0x4000];
+        return rom[(addr & 0x3fff) + map_slot0_offset];
     }
     else if(addr < 0x8000) { // slot1 rom
-        return rom[(addr & 0x3fff) + map_slot1 * 0x4000];
+        return rom[(addr & 0x3fff) + map_slot1_offset];
     }
     else if(addr < 0xC000) { // slot2 rom TODO: implement rom-ram swapout
-        return rom[(addr & 0x3fff) + map_slot2 * 0x4000];
+        return rom[(addr & 0x3fff) + map_slot2_offset];
     }
     else if(addr < 0x10000) { // system ram TODO: implement paging control
         return ram[addr & 0x1fff];

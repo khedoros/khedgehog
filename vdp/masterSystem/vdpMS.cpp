@@ -92,12 +92,12 @@ void vdpMS::renderGraphic1(std::vector<std::vector<uint8_t>>& buffer) {
 }
 
 void vdpMS::renderGraphic2(std::vector<std::vector<uint8_t>>& buffer) {
-    std::cout<<"Graphic II (Mode 2) render ntbase: "<<name_tab_base()<<" ttbase: "<<bg_tile_base()<<" ctbase: "<<col_tab_base()<<"\n";
+    //std::cout<<"Graphic II (Mode 2) render ntbase: "<<name_tab_base()<<" ttbase: "<<bg_tile_base()<<" ctbase: "<<col_tab_base()<<"\n";
     for(int y_tile=0;y_tile<24;y_tile++) {
         int y_triad = y_tile / 8;
         for(int x_tile=0;x_tile<32;x_tile++) {
             int tile_num_addr = name_tab_base() + y_tile * 32 + x_tile;
-			std::printf("%04x ", tile_num_addr);
+			//std::printf("%04x ", tile_num_addr);
             int tile_num = vram.at(tile_num_addr) + 256 * y_triad;
 			//std::printf("%03x ", tile_num);
             int tile_addr = bg_tile_base() + tile_num * 8;
@@ -122,7 +122,7 @@ void vdpMS::renderGraphic2(std::vector<std::vector<uint8_t>>& buffer) {
                 }
             }
         }
-		printf("\n");
+		//printf("\n");
     }
 }
 
@@ -192,7 +192,7 @@ uint64_t vdpMS::calc(uint64_t) {
 }
 
 void vdpMS::writeByte(uint8_t port, uint8_t val, uint64_t cycle) {
-    //std::printf("Wrote val(%02x) to port(%02x)\n", val, port);
+    std::printf("Wrote val(%02x) to port(%02x)\n", val, port);
     if(port % 2 == 1) writeAddress(val);
     else {
         addr_latch = false;

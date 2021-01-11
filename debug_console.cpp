@@ -12,6 +12,7 @@ void dbg_con::reset() {
     col = 0;
     mode = 0;
     top_row = 0;
+    for(int r=0;r<25;r++) for(int c=0;c<80;c++) buffer[r][c].first=' ';
 }
 
 void dbg_con::write_control(uint8_t val) {
@@ -98,7 +99,7 @@ void dbg_con::write_data(uint8_t val) {
 }
 
 void dbg_con::render() {
-    std::cout<<"\n/";
+    std::cout<<"console\n/";
     for(int c = 0; c < 80; c++) {
         std::cout<<"-";
     }
