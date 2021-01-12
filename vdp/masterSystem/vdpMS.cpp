@@ -4,7 +4,7 @@
 #include "vdpMS.h"
 #include "../../util.h"
 
-  
+
 vdpMS::vdpMS(systemType t, systemRegion r):addr_latch(false), vdpMode(t), vdpRegion(r) {
     if(vdpMode == systemType::gameGear) pal_ram.resize(0x40, 0);
     else                                pal_ram.resize(0x20, 0);
@@ -12,9 +12,9 @@ vdpMS::vdpMS(systemType t, systemRegion r):addr_latch(false), vdpMode(t), vdpReg
 }
 
 std::vector<std::vector<uint8_t>> vdpMS::getPartialRender() {
-    int mode = 8 * ctrl_1.fields.mode_4 + 
-               4 * ctrl_2.fields.mode_3 + 
-               2 * ctrl_1.fields.mode_2 + 
+    int mode = 8 * ctrl_1.fields.mode_4 +
+               4 * ctrl_2.fields.mode_3 +
+               2 * ctrl_1.fields.mode_2 +
                    ctrl_2.fields.mode_1;
     std::vector<std::vector<uint8_t>> buffer(192, std::vector<uint8_t>(256*3, 0));
     if(!ctrl_2.fields.enable_display) return buffer;
@@ -63,11 +63,11 @@ void vdpMS::renderGraphic1(std::vector<std::vector<uint8_t>>& buffer) {
     std::cout<<"Graphic I (Mode 0)  render\n";
     for(int y_tile=0;y_tile<24;y_tile++) {
         for(int x_tile=0;x_tile<32;x_tile++) {
-            int tile_num_addr = name_tab_base() + y_tile * 32 + x_tile;
+            int tile_num_addr = (name_tab_base() + y_tile * 32 + x_tile) & 0x3fff;
             int tile_num = vram.at(tile_num_addr);
-            int tile_addr = bg_tile_base() + tile_num * 8;
+            int tile_addr = (bg_tile_base() + tile_num * 8) & 0x3fff;
 
-            int color_addr = col_tab_base() + tile_num / 8;
+            int color_addr = (col_tab_base() + tile_num / 8) & 0x3fff;
             bg_fg_col_t colors{.val = vram.at(color_addr)};
             //std::cout<<"Color base: "<<std::hex<<static_cast<unsigned int>(color_t_base)<<" x_tile: "<<x_tile<<" y_tile: "<<y_tile<<" tile number: "<<tile_num<<"\n";
 
@@ -96,11 +96,11 @@ void vdpMS::renderGraphic2(std::vector<std::vector<uint8_t>>& buffer) {
     for(int y_tile=0;y_tile<24;y_tile++) {
         int y_triad = y_tile / 8;
         for(int x_tile=0;x_tile<32;x_tile++) {
-            int tile_num_addr = name_tab_base() + y_tile * 32 + x_tile;
+            int tile_num_addr = (name_tab_base() + y_tile * 32 + x_tile) & 0x3fff;
 			//std::printf("%04x ", tile_num_addr);
             int tile_num = vram.at(tile_num_addr) + 256 * y_triad;
 			//std::printf("%03x ", tile_num);
-            int tile_addr = bg_tile_base() + tile_num * 8;
+            int tile_addr = (bg_tile_base() + tile_num * 8) & 0x3fff;
 
             int color_addr = (col_tab_base() + tile_num * 8) & 0x3fff ;
             //std::cout<<"Color base: "<<std::hex<<static_cast<unsigned int>(color_t_base)<<" x_tile: "<<x_tile<<" y_tile: "<<y_tile<<" tile number: "<<tile_num<<"\n";
@@ -141,10 +141,10 @@ void vdpMS::renderMode4(std::vector<std::vector<uint8_t>>& buffer) {
     for(int y_tile=0;y_tile<24;y_tile++) {
         for(int x_tile=0;x_tile<32;x_tile++) {
             tile_info_t tile_info;
-            uint16_t tile_info_addr = name_tab_base() + (y_tile * 64) + (x_tile * 2);
+            uint16_t tile_info_addr = (name_tab_base() + (y_tile * 64) + (x_tile * 2)) & 0x3fff;
             tile_info.bytes.byte1 = vram.at(tile_info_addr);
             tile_info.bytes.byte2 = vram.at(tile_info_addr + 1);
-            uint16_t tile_addr = bg_tile_base() + 32 * tile_info.fields.tile_num;
+            uint16_t tile_addr = (bg_tile_base() + 32 * tile_info.fields.tile_num) & 0x3fff;
             for(int y = 0; y < 8; y++) {
                 uint8_t byte0 = vram.at(tile_addr + y*4);
                 uint8_t byte1 = vram.at(tile_addr + y*4 + 1);
@@ -311,7 +311,7 @@ uint8_t vdpMS::readStatus(uint64_t cycle) {
 
 uint8_t vdpMS::readVCounter(uint64_t cycle) {
     //std::printf("v: %ld\n", (cycle / 342) % 262);
-    return (cycle / 342) % 262; 
+    return (cycle / 342) % 262;
 }
 
 uint8_t vdpMS::readHCounter(uint64_t cycle) {

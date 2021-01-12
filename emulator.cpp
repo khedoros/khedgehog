@@ -71,7 +71,7 @@ int emulator::run() {
             std::cerr<<"Found a bad op, I guess?\n";
         }
         //vdp_dev->calc(cycle_chunk); //run VDP for amount matching the CPU
-        //io -> updateWindow(0,0,vdp_dev->getPartialRender());
+        io -> updateWindow(0,0,vdp_dev->getPartialRender());
         //run APU
         //pause for effect
         clock_total_cycles += cycle_chunk;
