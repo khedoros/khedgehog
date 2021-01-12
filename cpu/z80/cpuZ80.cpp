@@ -577,9 +577,9 @@ uint64_t cpuZ80::dd_op_prefix(uint8_t opcode) {
 
 template <uint32_t OPCODE>
 uint64_t cpuZ80::ed_op_prefix(uint8_t opcode) {
-    if(OPCODE >= 0xed40 && OPCODE <= 0xedbb ) {
-        opcode = memory->readByte(pc++);
-        dbg_printf(" %x", opcode);
+    opcode = memory->readByte(pc++);
+    dbg_printf(" %x", opcode);
+    if(opcode >= 0x40 && opcode <= 0xbb ) {
         return CALL_MEMBER_FN(this, ed_op_table[opcode - 0x40])(opcode);
     }
     else {
