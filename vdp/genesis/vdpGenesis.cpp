@@ -20,3 +20,10 @@ uint8_t vdpGenesis::readByte(uint8_t port, uint64_t cycle) {
     return 0;
 }
 
+bool vdpGenesis::lineInterrupt() {
+    return false;
+}
+
+bool vdpGenesis::frameInterrupt() {
+    return false;
+}

@@ -107,12 +107,14 @@ private:
     template <uint32_t OPCODE> uint64_t op_ld16(uint8_t);
     template <uint32_t OPCODE> uint64_t op_ld16rm(uint8_t);
     template <uint32_t OPCODE> uint64_t op_ld16rim(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_ld16rr(uint8_t);
     template <uint32_t OPCODE> uint64_t op_ld8idxri(uint8_t);
     template <uint32_t OPCODE> uint64_t op_ld8mm(uint8_t);
     template <uint32_t OPCODE> uint64_t op_ld8mioff(uint8_t);
     template <uint32_t OPCODE> uint64_t op_ld8ri(uint8_t);
     template <uint32_t OPCODE> uint64_t op_ld8rm(uint8_t);
     template <uint32_t OPCODE> uint64_t op_ld8rr(uint8_t);
+    template <uint32_t OPCODE> uint64_t op_ld8rrir(uint8_t);
     template <uint32_t OPCODE> uint64_t op_ld8rrix(uint8_t);
     template <uint32_t OPCODE> uint64_t op_ld8rriy(uint8_t);
     template <uint32_t OPCODE> uint64_t op_neg(uint8_t);

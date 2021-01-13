@@ -191,6 +191,14 @@ uint64_t vdpMS::calc(uint64_t) {
     return 0;
 }
 
+bool vdpMS::lineInterrupt() {
+    return ctrl_1.fields.line_interrupts;
+}
+
+bool vdpMS::frameInterrupt() {
+    return ctrl_2.fields.frame_interrupts;
+}
+
 void vdpMS::writeByte(uint8_t port, uint8_t val, uint64_t cycle) {
     std::printf("Wrote val(%02x) to port(%02x)\n", val, port);
     if(port % 2 == 1) writeAddress(val);

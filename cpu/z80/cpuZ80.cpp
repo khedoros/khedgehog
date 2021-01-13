@@ -188,7 +188,7 @@ const std::array<z80OpPtr, 256> cpuZ80::op_table = {
   &cpuZ80::op_call_cc<0xec>, &cpuZ80::ed_op_prefix<0xed>, &cpuZ80::op_alu<0xee>,    &cpuZ80::op_call<0xef>,
   &cpuZ80::op_ret<0xf0>,     &cpuZ80::op_pop<0xf1>,       &cpuZ80::op_jp<0xf2>,     &cpuZ80::op_di<0xf3>,
   &cpuZ80::op_call_cc<0xf4>, &cpuZ80::op_push<0xf5>,      &cpuZ80::op_alu<0xf6>,    &cpuZ80::op_call<0xf7>,
-  &cpuZ80::op_ret<0xf8>,     &cpuZ80::op_unimpl<0xf9>,    &cpuZ80::op_jp<0xfa>,     &cpuZ80::op_ei<0xfb>,
+  &cpuZ80::op_ret<0xf8>,     &cpuZ80::op_ld16rr<0xf9>,    &cpuZ80::op_jp<0xfa>,     &cpuZ80::op_ei<0xfb>,
   &cpuZ80::op_call_cc<0xfc>, &cpuZ80::fd_op_prefix<0xfd>, &cpuZ80::op_alu<0xfe>,    &cpuZ80::op_call<0xff>
 };
 
@@ -328,13 +328,13 @@ const std::array<z80OpPtr, 256> cpuZ80::dd_op_table = {
 
 const std::array<z80OpPtr, 256> cpuZ80::ed_op_table = {
   &cpuZ80::op_in<0xed40>,     &cpuZ80::op_out<0xed41>,    &cpuZ80::op_sbc16<0xed42>,  &cpuZ80::op_ld16rim<0xed43>,
-  &cpuZ80::op_neg<0xed44>,    &cpuZ80::op_retn<0xed45>,   &cpuZ80::op_im<0xed46>,     &cpuZ80::op_unimpl<0xed47>,
+  &cpuZ80::op_neg<0xed44>,    &cpuZ80::op_retn<0xed45>,   &cpuZ80::op_im<0xed46>,     &cpuZ80::op_ld8rrir<0xed47>,
   &cpuZ80::op_in<0xed48>,     &cpuZ80::op_out<0xed49>,    &cpuZ80::op_adc16<0xed4a>,  &cpuZ80::op_ld16rim<0xed4b>,
-  &cpuZ80::op_unimpl<0xed4c>, &cpuZ80::op_reti<0xed4d>,   &cpuZ80::op_unimpl<0xed4e>, &cpuZ80::op_unimpl<0xed4f>,
+  &cpuZ80::op_unimpl<0xed4c>, &cpuZ80::op_reti<0xed4d>,   &cpuZ80::op_unimpl<0xed4e>, &cpuZ80::op_ld8rrir<0xed4f>,
   &cpuZ80::op_in<0xed50>,     &cpuZ80::op_out<0xed51>,    &cpuZ80::op_sbc16<0xed52>,  &cpuZ80::op_ld16rim<0xed53>,
-  &cpuZ80::op_unimpl<0xed54>, &cpuZ80::op_retn<0xed55>,   &cpuZ80::op_im<0xed56>,     &cpuZ80::op_unimpl<0xed57>,
+  &cpuZ80::op_unimpl<0xed54>, &cpuZ80::op_retn<0xed55>,   &cpuZ80::op_im<0xed56>,     &cpuZ80::op_ld8rrir<0xed57>,
   &cpuZ80::op_in<0xed58>,     &cpuZ80::op_out<0xed59>,    &cpuZ80::op_adc16<0xed5a>,  &cpuZ80::op_ld16rim<0xed5b>,
-  &cpuZ80::op_unimpl<0xed5c>, &cpuZ80::op_retn<0xed5d>,   &cpuZ80::op_im<0xed5e>,     &cpuZ80::op_unimpl<0xed5f>,
+  &cpuZ80::op_unimpl<0xed5c>, &cpuZ80::op_retn<0xed5d>,   &cpuZ80::op_im<0xed5e>,     &cpuZ80::op_ld8rrir<0xed5f>,
   &cpuZ80::op_in<0xed60>,     &cpuZ80::op_out<0xed61>,    &cpuZ80::op_sbc16<0xed62>,  &cpuZ80::op_ld16rim<0xed63>,
   &cpuZ80::op_unimpl<0xed64>, &cpuZ80::op_retn<0xed65>,   &cpuZ80::op_im<0xed66>,     &cpuZ80::op_rxd<0xed67>,
   &cpuZ80::op_in<0xed68>,     &cpuZ80::op_out<0xed69>,    &cpuZ80::op_adc16<0xed6a>,  &cpuZ80::op_ld16rim<0xed6b>,
@@ -1640,6 +1640,37 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_jr(uint8_t opcode) { //DJNZ and v
     return cycles;
 }
 
+template <uint32_t OPCODE> uint64_t cpuZ80::op_ld16(uint8_t opcode) {
+    uint16_t immediate = memory->readWord(pc);
+    dbg_printf(" %04x", immediate);
+    pc+=2;
+    uint64_t cycles = 10;
+    switch(OPCODE) {
+    case 0x01: //LD BC, nn 4,3,3
+            bc.pair = immediate;
+            break;
+    case 0x11: //LD DE, nn 4,3,3
+            de.pair = immediate;
+            break;
+    case 0x21: //LD HL, nn 4,3,3
+            hl.pair = immediate;
+            break;
+    case 0x31: //LD SP, nn 4,3,3
+            sp = immediate;
+            break;
+    case 0xdd21:
+            ix.pair = immediate;
+            cycles = 14;
+            break;
+    case 0xfd21:
+            iy.pair = immediate;
+            cycles = 14;
+            break;
+    }
+
+    return cycles;
+}
+
 template <uint32_t OPCODE> uint64_t cpuZ80::op_ld16rim(uint8_t opcode) {
     uint16_t * const regset[] = {&(bc.pair), &(de.pair), &(hl.pair), &sp, &(ix.pair), &(iy.pair)};
     uint16_t val = memory->readWord(pc);
@@ -1675,6 +1706,12 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_ld16rm(uint8_t opcode) {  //LD r1
     }
     return 16;
 }
+
+template <uint32_t OPCODE> uint64_t cpuZ80::op_ld16rr(uint8_t opcode) {  //LD SP,HL
+    sp = hl.pair;
+    return 6;
+}
+
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_ld8mm(uint8_t opcode) {  //LDI 16, LDIR 21/16, LDD 16, LDDR 21/16
     uint8_t val = memory->readByte(hl.pair);
@@ -1825,6 +1862,25 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_ld8rr(uint8_t opcode) { //LD r,r 
     return cycles;
 }
 
+
+template <uint32_t OPCODE> uint64_t cpuZ80::op_ld8rrir(uint8_t opcode) { // EDxx LD a/i/r, a/i/r 9
+    switch(OPCODE) {
+        case 0xed47:
+            int_vect = af.hi;
+            break;
+        case 0xed4f:
+            af.hi = int_vect;
+            break;
+        case 0xed57:
+            mem_refresh = af.hi;
+            break;
+        case 0xed5f:
+            af.hi = mem_refresh;
+            break;
+    }
+    return 9;
+}
+
 template <uint32_t OPCODE> uint64_t cpuZ80::op_ld8rrix(uint8_t opcode) { // DD/FD LD r,r 8
     uint8_t* const regset[] = {&(bc.hi), &(bc.low), &(de.hi), &(de.low),
                                &(ix.hi), &(ix.low),  &dummy8, &(af.hi)};
@@ -1847,37 +1903,6 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_ld8rriy(uint8_t opcode) { // DD/F
     uint64_t cycles = 8;
 
     *regset[dest_index] = *regset[src_index];
-
-    return cycles;
-}
-
-template <uint32_t OPCODE> uint64_t cpuZ80::op_ld16(uint8_t opcode) {
-    uint16_t immediate = memory->readWord(pc);
-    dbg_printf(" %04x", immediate);
-    pc+=2;
-    uint64_t cycles = 10;
-    switch(OPCODE) {
-    case 0x01: //LD BC, nn 4,3,3
-            bc.pair = immediate;
-            break;
-    case 0x11: //LD DE, nn 4,3,3
-            de.pair = immediate;
-            break;
-    case 0x21: //LD HL, nn 4,3,3
-            hl.pair = immediate;
-            break;
-    case 0x31: //LD SP, nn 4,3,3
-            sp = immediate;
-            break;
-    case 0xdd21:
-            ix.pair = immediate;
-            cycles = 14;
-            break;
-    case 0xfd21:
-            iy.pair = immediate;
-            cycles = 14;
-            break;
-    }
 
     return cycles;
 }

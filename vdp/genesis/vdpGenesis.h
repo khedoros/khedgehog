@@ -9,5 +9,6 @@ class vdpGenesis: public vdp {
     void writeByte(uint8_t, uint8_t, uint64_t) override;
     uint8_t readByte(uint8_t, uint64_t) override;
     uint64_t calc(uint64_t) override;
-
+    bool lineInterrupt() override;
+    bool frameInterrupt() override;
 };

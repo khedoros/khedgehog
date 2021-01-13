@@ -18,6 +18,8 @@ public:
     uint16_t sprite_attr_tab_base();
     uint16_t sprite_tile_base();
     uint64_t calc(uint64_t) override;
+    bool lineInterrupt() override;
+    bool frameInterrupt() override;
 
 private:
     void writeAddress(uint8_t val);

@@ -9,4 +9,6 @@ public:
     virtual uint64_t calc(uint64_t) = 0;
     virtual void writeByte(uint8_t, uint8_t, uint64_t) = 0;
     virtual uint8_t readByte(uint8_t, uint64_t) = 0;
+    virtual bool lineInterrupt() = 0;
+    virtual bool frameInterrupt() = 0;
 };
