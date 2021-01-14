@@ -223,13 +223,11 @@ uint8_t vdpMS::readByte(uint8_t port, uint64_t cycle) {
 void vdpMS::writeAddress(uint8_t val) {
     if(!addr_latch) {
         addr_latch = true;
-        address &= 0xff00;
-        address |= val;
+        addr_buffer = val;
     }
     else {
         addr_latch = false;
-        address &= 0xff;
-        address |= (0x100 * val);
+        address = 0x100 * val + addr_buffer;
 
         switch(val & 0b11000000) {
         case 0x00: // VRAM read mode

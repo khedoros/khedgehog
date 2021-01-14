@@ -42,6 +42,7 @@ private:
     systemRegion vdpRegion;
 
     bool addr_latch;
+    uint8_t addr_buffer;
     uint8_t data_buffer;
     unsigned int address:14;
     enum class addr_mode_t {vram_read, vram_write, reg_write, cram_write} addr_mode;
