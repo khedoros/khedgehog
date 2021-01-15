@@ -11,4 +11,5 @@ class vdpGenesis: public vdp {
     uint64_t calc(uint64_t) override;
     bool lineInterrupt() override;
     bool frameInterrupt() override;
+    void endLine(uint64_t) override;
 };

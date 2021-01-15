@@ -20,6 +20,7 @@ public:
     uint64_t calc(uint64_t) override;
     bool lineInterrupt() override;
     bool frameInterrupt() override;
+    void endLine(uint64_t lineNum) override;
 
 private:
     void writeAddress(uint8_t val);
@@ -98,7 +99,11 @@ private:
 
     uint8_t bg_x_scroll; // Register #8: 8-bit Horizontal scroll value
     uint8_t bg_y_scroll; // Register #9: 8-bit Vertical scroll value
-    uint8_t line_interrupt; // Register #A: 8-bit indicator of line to produce interrupt on
+    uint8_t line_interrupt; // Register #A: 8-bit indicator of line to produce interrupt on (reset value for line counter)
+    uint8_t line_int_cur; // Current value of line interrupt counter
+    bool line_int_active;
+    bool scr_int_active;
+    uint64_t curLine;
 
     // Registers #B-#F exist, but have no effect in the SG-1000 or SMS, apparently.
 

@@ -44,6 +44,7 @@ int emulator::run() {
     bool paused = false;
     bool muted = false;
 
+    uint64_t line = 0;
     while(running) {
         //process events
         ioEvent e = io->getEvent();
@@ -64,12 +65,13 @@ int emulator::run() {
             }
             //wait a frame
         }
-        uint64_t cycle_chunk = cpu_dev->calc(262*342);
+        uint64_t cycle_chunk = cpu_dev->calc(342);
+        vdp_dev->endLine(line++);
         if(cycle_chunk == 0) {
             running = false;
             std::cerr<<"Found a bad op, I guess?\n";
         }
-        if(vdp_dev->frameInterrupt()) {
+        if(vdp_dev->frameInterrupt() || vdp_dev->lineInterrupt()) {
             cpu_dev->interrupt(0);
         }
 

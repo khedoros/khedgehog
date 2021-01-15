@@ -27,3 +27,5 @@ bool vdpGenesis::lineInterrupt() {
 bool vdpGenesis::frameInterrupt() {
     return false;
 }
+
+void vdpGenesis::endLine(uint64_t line) {}

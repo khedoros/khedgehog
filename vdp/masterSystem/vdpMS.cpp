@@ -139,21 +139,25 @@ void vdpMS::renderMode4(std::vector<std::vector<uint8_t>>& buffer) {
     //for(int i=0;i<32;i++) std::cout<<int(pal_ram.at(i))<<" ";
     //std::cout<<"\n";
     for(int y_tile=0;y_tile<24;y_tile++) {
+        int y_tile_off = (y_tile + (bg_y_scroll / 8)) % 24;
         for(int x_tile=0;x_tile<32;x_tile++) {
+            int x_tile_off = (x_tile + (bg_x_scroll / 8)) % 32;
             tile_info_t tile_info;
-            uint16_t tile_info_addr = (name_tab_base() + (y_tile * 64) + (x_tile * 2)) & 0x3fff;
+            uint16_t tile_info_addr = (name_tab_base() + (y_tile_off * 64) + (x_tile_off * 2)) & 0x3fff;
             tile_info.bytes.byte1 = vram.at(tile_info_addr);
             tile_info.bytes.byte2 = vram.at(tile_info_addr + 1);
             uint16_t tile_addr = (bg_tile_base() + 32 * tile_info.fields.tile_num) & 0x3fff;
             for(int y = 0; y < 8; y++) {
-                uint8_t byte0 = vram.at(tile_addr + y*4);
-                uint8_t byte1 = vram.at(tile_addr + y*4 + 1);
-                uint8_t byte2 = vram.at(tile_addr + y*4 + 2);
-                uint8_t byte3 = vram.at(tile_addr + y*4 + 3);
-                uint32_t mask = 0x80;
+                int y_off = (y + (bg_y_scroll % 8)) % 8;
+                uint8_t byte0 = vram.at(tile_addr + y_off*4);
+                uint8_t byte1 = vram.at(tile_addr + y_off*4 + 1);
+                uint8_t byte2 = vram.at(tile_addr + y_off*4 + 2);
+                uint8_t byte3 = vram.at(tile_addr + y_off*4 + 3);
                 for(int x = 0; x < 8; x++) {
-                    int color_index = (((mask & byte0) + 2*(mask & byte1) + 4*(mask & byte2) + 8*(mask&byte3)) >> (7-x)) + 16 * tile_info.fields.palnum;
-                    mask>>=1;
+                    int x_off = (x + (bg_x_scroll % 8)) % 8;
+                    uint32_t mask = 0x80>>x_off;
+                    int color_index = (((mask & byte0) + 2*(mask & byte1) + 4*(mask & byte2) + 8*(mask&byte3)) >> (7-x_off)) + 16 * tile_info.fields.palnum;
+                    //mask>>=1;
                     sms_color_t color{.val = pal_ram.at(color_index)};
                     buffer[y_tile*8+y][3*(x_tile*8+x)] = sms_pal_component[color.component.blue];
                     buffer[y_tile*8+y][3*(x_tile*8+x)+1] = sms_pal_component[color.component.green];
@@ -176,7 +180,10 @@ uint16_t vdpMS::col_tab_base() { // Register 3, starting address for the Color T
 }
 
 uint16_t vdpMS::bg_tile_base() { // Register 4, starting address for the Pattern Generator Sub-block (background tiles)
-    return 0x800 * pt_base;
+    if(vdpMode == systemType::sg_1000) {
+        return 0x800 * pt_base;
+    }
+    return 0;
 }
 
 uint16_t vdpMS::sprite_attr_tab_base() { // Register 5, starting address for the sprite attribute table (sprite locations, colors, etc)
@@ -192,11 +199,29 @@ uint64_t vdpMS::calc(uint64_t) {
 }
 
 bool vdpMS::lineInterrupt() {
-    return ctrl_1.fields.line_interrupts;
+    if(ctrl_1.fields.line_interrupts) return line_int_active;
+    else return false;
 }
 
 bool vdpMS::frameInterrupt() {
-    return ctrl_2.fields.frame_interrupts;
+    if(ctrl_2.fields.frame_interrupts) return scr_int_active;
+    else return false;
+}
+
+void vdpMS::endLine(uint64_t lineNum) {
+    uint64_t line = lineNum % 262;
+    curLine = line; //VCounter
+    if(line == 191) scr_int_active = true;
+    if(line < 192 && line_int_cur) {
+        line_int_cur--;
+    }
+    if(line < 192 && !line_int_cur) {
+        line_int_active = true;
+        line_int_cur = line_interrupt;
+    }
+    else if(line >= 192) {
+        line_int_cur = line_interrupt;
+    }
 }
 
 void vdpMS::writeByte(uint8_t port, uint8_t val, uint64_t cycle) {
@@ -314,12 +339,23 @@ uint8_t vdpMS::readData() {
 
 uint8_t vdpMS::readStatus(uint64_t cycle) {
     std::printf("Read VDP Status\n");
-    return 0x80;
+    vdpMS::status_t temp;
+
+    // TODO: Calc sprite number
+    // TODO: Keep track of overflow flag
+    // TODO: Keep track of collision flag
+    temp.val = 0;
+    temp.fields.vblank_flag = scr_int_active;
+    scr_int_active = false;
+    line_int_active = false;
+    return temp.val;
+    //return 0x80;
 }
 
 uint8_t vdpMS::readVCounter(uint64_t cycle) {
     //std::printf("v: %ld\n", (cycle / 342) % 262);
-    return (cycle / 342) % 262;
+    return curLine;
+    //return (cycle / 342) % 262;
 }
 
 uint8_t vdpMS::readHCounter(uint64_t cycle) {
