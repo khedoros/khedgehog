@@ -100,9 +100,9 @@ void vdpMS::renderGraphic2(std::vector<std::vector<uint8_t>>& buffer) {
 			//std::printf("%04x ", tile_num_addr);
             int tile_num = vram.at(tile_num_addr) + 256 * y_triad;
 			//std::printf("%03x ", tile_num);
-            int tile_addr = (bg_tile_base() + tile_num * 8) & 0x3fff;
+            int tile_addr = ((bg_tile_base() & 0x2000) + tile_num * 8) & 0x3fff;
 
-            int color_addr = (col_tab_base() + tile_num * 8) & 0x3fff ;
+            int color_addr = ((col_tab_base() & 0x2000) + tile_num * 8) & 0x3fff ;
             //std::cout<<"Color base: "<<std::hex<<static_cast<unsigned int>(color_t_base)<<" x_tile: "<<x_tile<<" y_tile: "<<y_tile<<" tile number: "<<tile_num<<"\n";
 
             for(int y = 0; y < 8; y++) {
@@ -199,7 +199,7 @@ uint64_t vdpMS::calc(uint64_t) {
 }
 
 bool vdpMS::lineInterrupt() {
-    if(ctrl_1.fields.line_interrupts) return line_int_active;
+    if(vdpMode != systemType::sg_1000 && ctrl_1.fields.line_interrupts) return line_int_active;
     else return false;
 }
 
