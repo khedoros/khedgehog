@@ -50,7 +50,7 @@ public:
     genesisEmulator(std::shared_ptr<config> cfg);
     int run() override;
 private:
-    std::shared_ptr<memmapM68k> cpu_map; //child of cpu
+    //std::shared_ptr<memmap> cpu_map; //child of cpu
     //std::shared_ptr<apu>            apu_dev;
     //std::shared_ptr<ti_psg>         psg_dev;
     //std::shared_ptr<yamaha_fm>      yama_dev;
@@ -73,7 +73,7 @@ public:
 private:
     //std::shared_ptr<vdpMS> vdp_dev;
     //std::shared_ptr<apuMS> apu_dev;
-    std::shared_ptr<memmapZ80Console> cpu_map;
+    //std::shared_ptr<memmap> cpu_map;
 };
 
 class noEmulator: public emulator {

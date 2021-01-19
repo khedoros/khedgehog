@@ -42,11 +42,24 @@ ioEvent ioMgr::getEvent() {
     while(SDL_PollEvent(&event)) {
         switch(event.type) {
             case SDL_KEYDOWN:  /* Handle a KEYDOWN event */
-                if(event.key.keysym.scancode==SDL_SCANCODE_Q||
-                        (event.key.keysym.scancode==SDL_SCANCODE_C&&(event.key.keysym.mod==KMOD_RCTRL))||
-                        (event.key.keysym.scancode==SDL_SCANCODE_C&&(event.key.keysym.mod==KMOD_LCTRL))) {
-                    SDL_Quit();
-                    return ioEvent{ioEvent::eventType::window, ioEvent::windowEvent::exit};
+                switch(event.key.keysym.scancode) {
+                    case SDL_SCANCODE_Q:
+                        SDL_Quit();
+                        return ioEvent{ioEvent::eventType::window, ioEvent::windowEvent::exit};
+                    case SDL_SCANCODE_A:
+                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::dpad_left, ioEvent::keyState::keydown};
+                    case SDL_SCANCODE_S:
+                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::dpad_down, ioEvent::keyState::keydown};
+                    case SDL_SCANCODE_D:
+                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::dpad_right, ioEvent::keyState::keydown};
+                    case SDL_SCANCODE_W:
+                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::dpad_up, ioEvent::keyState::keydown};
+                    case SDL_SCANCODE_H:
+                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::button_pause, ioEvent::keyState::keydown};
+                    case SDL_SCANCODE_K:
+                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::button_1, ioEvent::keyState::keydown};
+                    case SDL_SCANCODE_L:
+                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::button_2, ioEvent::keyState::keydown};
                 }
                 break;
             case SDL_KEYUP: /* Handle a KEYUP event*/

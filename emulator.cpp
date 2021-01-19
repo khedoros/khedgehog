@@ -33,7 +33,7 @@ genesisEmulator::genesisEmulator(std::shared_ptr<config> config) {
     cfg = config;
     io = std::make_shared<ioMgr>(cfg);
     cpu_map = std::make_shared<memmapM68k>(config);
-    cpu_dev = std::make_shared<cpuM68k>(cpu_map);
+    cpu_dev = std::make_shared<cpuM68k>(std::dynamic_pointer_cast<memmapM68k>(cpu_map));
     apu_dev = std::make_shared<apuGenesis>();
     vdp_dev = std::make_shared<vdpGenesis>(cfg->getSystemType(), cfg->getSystemRegion());
 }
@@ -51,6 +51,9 @@ int emulator::run() {
         while(e.type != ioEvent::eventType::none) {
             if(e.type == ioEvent::eventType::window && e.key.winEvent == ioEvent::windowEvent::exit) {
                 return 0;
+            }
+            else if(e.type == ioEvent::eventType::smsKey || e.type == ioEvent::eventType::genKey) {
+                cpu_map->sendEvent(e);
             }
             e = io->getEvent();
         }
@@ -74,9 +77,13 @@ int emulator::run() {
         if(vdp_dev->frameInterrupt() || vdp_dev->lineInterrupt()) {
             cpu_dev->interrupt(0);
         }
-
-        //vdp_dev->calc(cycle_chunk); //run VDP for amount matching the CPU
-        io -> updateWindow(0,0,vdp_dev->getPartialRender());
+        if(line == 224) {
+            //vdp_dev->calc(cycle_chunk); //run VDP for amount matching the CPU
+            io -> updateWindow(0,0,vdp_dev->getPartialRender());
+        }
+        else if(line == 262) {
+            line = 0;
+        }
         //run APU
         //pause for effect
         clock_total_cycles += cycle_chunk;
@@ -97,7 +104,7 @@ smsEmulator::smsEmulator(std::shared_ptr<config> config) {
     apu_dev = std::make_shared<apuMS>();
     vdp_dev = std::make_shared<vdpMS>(cfg->getSystemType(), cfg->getSystemRegion());
     cpu_map = std::make_shared<memmapZ80Console>(config, vdp_dev, apu_dev);
-    cpu_dev = std::make_shared<cpuZ80>(cpu_map);
+    cpu_dev = std::make_shared<cpuZ80>(std::dynamic_pointer_cast<memmapZ80Console>(cpu_map));
 }
 
 int smsEmulator::run() {

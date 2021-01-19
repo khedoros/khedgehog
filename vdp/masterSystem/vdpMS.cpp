@@ -31,8 +31,16 @@ std::vector<std::vector<uint8_t>> vdpMS::getPartialRender() {
         case 4:
             renderMulticolor(buffer);
             break;
-		case 8: case 10:
+        case 8: case 10: case 12:
             renderMode4(buffer);
+            break;
+        case 11:
+            // 224-line mode 4
+            std::cerr<<"224-line mode 4 not implemented yet\n";
+            break;
+        case 14:
+            // 240-line mode 4
+            std::cerr<<"240-line mode 4 not implemented yet\n";
             break;
         default:
             std::cerr<<"Unsupported rendering mode "<<mode<<"\n";
@@ -225,7 +233,7 @@ void vdpMS::endLine(uint64_t lineNum) {
 }
 
 void vdpMS::writeByte(uint8_t port, uint8_t val, uint64_t cycle) {
-    std::printf("Wrote val(%02x) to port(%02x)\n", val, port);
+    std::printf("Wrote val(%02x) to port(%02x) = ", val, port);
     if(port % 2 == 1) writeAddress(val);
     else {
         addr_latch = false;
@@ -249,6 +257,7 @@ void vdpMS::writeAddress(uint8_t val) {
     if(!addr_latch) {
         addr_latch = true;
         addr_buffer = val;
+        std::printf("low byte of address\n");
     }
     else {
         addr_latch = false;
@@ -258,16 +267,15 @@ void vdpMS::writeAddress(uint8_t val) {
         case 0x00: // VRAM read mode
             addr_mode = addr_mode_t::vram_read;
             data_buffer = vram[address++];
-            dbg_printf(" set read address to %04x", address);
+            std::printf(" set read address to %04x\n", address);
             break;
         case 0x40: // VRAM write mode
             addr_mode = addr_mode_t::vram_write;
-            dbg_printf(" set write address to %04x", address);
+            std::printf(" set write address to %04x\n", address);
             break;
         case 0x80: // VDP register write mode
             addr_mode = addr_mode_t::reg_write;
-            dbg_printf(" set register %01x to %02x", (val & 0x0f), (address & 0x00ff));
-            std::cout<<" set register "<<int(val & 0x0f)<<" to "<<std::hex<<int(address & 0x00ff)<<"\n";
+            std::printf(" set register %01x to %02x\n", (val & 0x0f), (address & 0x00ff));
             switch(val & 0x0f) {
                 case 0x00:
                     ctrl_1.val = (address & 0x00ff);
@@ -308,7 +316,7 @@ void vdpMS::writeAddress(uint8_t val) {
             break;
         case 0xc0: // CRAM write mode
             addr_mode = addr_mode_t::cram_write;
-            dbg_printf(" set cram write to address %02x", (address & 0x00ff));
+            std::printf(" set cram write to address %02x\n", (address & 0x00ff));
             break;
         }
     }
@@ -323,7 +331,7 @@ void vdpMS::writeData(uint8_t val) {
     }
     else if(addr_mode == addr_mode_t::cram_write) {
         pal_ram[address % pal_ram.size()] = val;
-        //std::printf(" wrote %02x to palette address %04x\n", val, address);
+        std::printf(" wrote %02x to palette address %04x\n", val, address);
         data_buffer = val;
         address++;
     }

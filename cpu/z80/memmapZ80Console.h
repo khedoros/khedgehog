@@ -74,30 +74,48 @@ private:
         io_level_t port_b_th_lev;
     } io_port_ctrl;
 
-    enum class button_state_t {
-        pressed,
-        open
+    enum joya_buttons {
+        p1_up = 1<<0,
+        p1_down = 1<<1,
+        p1_left = 1<<2,
+        p1_right = 1<<3,
+        p1_b1 = 1<<4,
+        p1_b2 = 1<<5,
+        p2_up = 1<<6,
+        p2_down = 1<<7,
     };
 
+    enum joyb_buttons {
+        p2_left = 1<<0,
+        p2_right = 1<<1,
+        p2_b1 = 1<<2,
+        p2_b2 = 1<<3,
+        reset = 1<<4,
+        //bit 5 unused
+        p1_b3 = 1<<6,
+        p2_b3 = 1<<7
+    };
+
+
     struct io_port_ab_t {
-        button_state_t port_a_up;
-        button_state_t port_a_down;
-        button_state_t port_a_left;
-        button_state_t port_a_right;
-        button_state_t port_a_tl;
-        button_state_t port_a_tr;
-        button_state_t port_b_up;
-        button_state_t port_b_down;
+        bool port_a_up;
+        bool port_a_down;
+        bool port_a_left;
+        bool port_a_right;
+        bool port_a_tl;
+        bool port_a_tr;
+        bool port_b_up;
+        bool port_b_down;
     } io_port_ab;
 
     struct io_port_b_misc_t {
-        button_state_t port_b_left;
-        button_state_t port_b_right;
-        button_state_t port_b_tl;
-        button_state_t port_b_tr;
-        button_state_t reset;
-        unsigned unused:1; // always returns 1
-        button_state_t port_a_th;
-        button_state_t port_b_th;
+        bool port_b_left;
+        bool port_b_right;
+        bool port_b_tl;
+        bool port_b_tr;
+        bool reset;
+        bool unused; // always returns 1
+        bool port_a_th;
+        bool port_b_th;
     } io_port_b_misc;
 };

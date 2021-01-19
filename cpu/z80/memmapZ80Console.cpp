@@ -52,8 +52,21 @@ uint8_t memmapZ80Console::readPortByte(uint8_t port, uint64_t cycle) {
             dbg_printf(" (read VDP status bits)");
             return vdp_dev->readByte(port, cycle);
         // Note: Probably need to be implemented as an io controller device
-        case 0xc0: dbg_printf(" (joystick port 1)"); break;
-        case 0xc1: dbg_printf(" (joystick port 2 + nationalization)"); break;
+        case 0xc0:
+            dbg_printf(" (joystick port 1)");
+            return (
+                    ((io_port_ab.port_a_up) ? 0 : p1_up) |
+                    ((io_port_ab.port_a_down) ? 0 : p1_down) |
+                    ((io_port_ab.port_a_left) ? 0 : p1_left) |
+                    ((io_port_ab.port_a_right) ? 0 : p1_right) |
+                    ((io_port_ab.port_a_tl) ? 0 : p1_b1) |
+                    ((io_port_ab.port_a_tr) ? 0 : p1_b2) |
+                    ((io_port_ab.port_b_up) ? 0 : p2_up) |
+                    ((io_port_ab.port_b_down) ? 0 : p2_down) 
+                   );
+        case 0xc1:
+            dbg_printf(" (joystick port 2 + nationalization)");
+            break;
         //case 0xf2: dbg_printf(" (YM2413 status register)"); break;
         default: dbg_printf(" (no info on port)"); break;
     }
@@ -115,10 +128,12 @@ void memmapZ80Console::writePortByte(uint8_t port, uint8_t val, uint64_t cycle) 
 //            dbg_printf(" (VDP address/register)");
             break;
         case 0xc0:
-            dbg_con::write_control(val); break;
+            dbg_con::write_control(val);
+            std::printf("wrote %02x to port %02x (routed to console control)\n", val, port);
             break;
         case 0xc1:
-            dbg_con::write_data(val); break;
+            dbg_con::write_data(val);
+            std::printf("wrote %02x to port %02x (routed to console data)\n", val, port);
             break;
     }
     /*
@@ -136,6 +151,31 @@ void memmapZ80Console::writePortByte(uint8_t port, uint8_t val, uint64_t cycle) 
 
 void memmapZ80Console::sendEvent(ioEvent e) {
     // React to key events
+    if(e.type == ioEvent::eventType::smsKey) {
+        bool pressed = (e.state == ioEvent::keyState::keydown);
+        switch(e.key.sKey) {
+            case ioEvent::smsKey::dpad_up:
+                io_port_ab.port_a_up = pressed;
+                break;
+            case ioEvent::smsKey::dpad_down:
+                io_port_ab.port_a_down = pressed;
+                break;
+            case ioEvent::smsKey::dpad_left:
+                io_port_ab.port_a_left = pressed;
+                break;
+            case ioEvent::smsKey::dpad_right:
+                io_port_ab.port_a_right = pressed;
+                break;
+            case ioEvent::smsKey::button_1:
+                io_port_ab.port_a_tl = pressed;
+                break;
+            case ioEvent::smsKey::button_2:
+                io_port_ab.port_a_tr = pressed;
+                break;
+            case ioEvent::smsKey::button_pause:
+                break;
+        }
+    }
 }
 
 uint8_t& memmapZ80Console::map(uint32_t addr) {
