@@ -63,6 +63,23 @@ ioEvent ioMgr::getEvent() {
                 }
                 break;
             case SDL_KEYUP: /* Handle a KEYUP event*/
+                switch(event.key.keysym.scancode) {
+                    case SDL_SCANCODE_A:
+                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::dpad_left, ioEvent::keyState::keyup};
+                    case SDL_SCANCODE_S:
+                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::dpad_down, ioEvent::keyState::keyup};
+                    case SDL_SCANCODE_D:
+                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::dpad_right, ioEvent::keyState::keyup};
+                    case SDL_SCANCODE_W:
+                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::dpad_up, ioEvent::keyState::keyup};
+                    case SDL_SCANCODE_H:
+                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::button_pause, ioEvent::keyState::keyup};
+                    case SDL_SCANCODE_K:
+                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::button_1, ioEvent::keyState::keyup};
+                    case SDL_SCANCODE_L:
+                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::button_2, ioEvent::keyState::keyup};
+                }
+
                 break;
             case SDL_WINDOWEVENT:
                 switch(event.window.event) {
