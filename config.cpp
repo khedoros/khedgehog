@@ -65,6 +65,17 @@ std::string& config::getRomPath() {
 }
 
 systemType config::detectRomType() {
+    std::string ending = romPath.substr(romPath.size() - 3);
+    if(ending == "sms") return systemType::masterSystem;
+    else if(ending == "bin" || ending == ".md") return systemType::genesis;
+    else if(ending == ".gg") return systemType::gameGear;
+    else if(ending == ".sg") return systemType::sg_1000;
+    else {
+        std::cout<<"Invalid based on file ending: "<<ending<<".\n";
+        return systemType::invalidSystem;
+    }
+
+    /*
     char magic[17] = {0};
     std::ifstream rom(romPath);
 
@@ -111,6 +122,7 @@ systemType config::detectRomType() {
         default:
             return systemType::invalidSystem;
     }
+    */
 }
 
 systemRegion config::detectRomRegion() {

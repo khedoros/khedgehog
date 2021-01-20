@@ -68,7 +68,8 @@ int emulator::run() {
             }
             //wait a frame
         }
-        uint64_t cycle_chunk = cpu_dev->calc(342);
+        // 342 clock pixels per line, VDP clock has a 3:2 relation to CPU clock
+        uint64_t cycle_chunk = cpu_dev->calc((342 * 2) / 3);
         vdp_dev->endLine(line++);
         if(cycle_chunk == 0) {
             running = false;
@@ -77,7 +78,7 @@ int emulator::run() {
         if(vdp_dev->frameInterrupt() || vdp_dev->lineInterrupt()) {
             cpu_dev->interrupt(0);
         }
-        if(line == 224) {
+        if(line == 192) {
             //vdp_dev->calc(cycle_chunk); //run VDP for amount matching the CPU
             io -> updateWindow(0,0,vdp_dev->getPartialRender());
         }

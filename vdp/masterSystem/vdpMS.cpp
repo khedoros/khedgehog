@@ -9,6 +9,14 @@ vdpMS::vdpMS(systemType t, systemRegion r):addr_latch(false), vdpMode(t), vdpReg
     if(vdpMode == systemType::gameGear) pal_ram.resize(0x40, 0);
     else                                pal_ram.resize(0x20, 0);
 
+    switch(t) {
+        case systemType::sg_1000: std::cout<<"VDP started in SG-1000 mode\n";
+        break;
+        case systemType::gameGear: std::cout<<"VDP started in GameGear mode\n";
+        break;
+        case systemType::masterSystem: std::cout<<"VDP startedin Master System mode\n";
+        break;
+    }
 }
 
 std::vector<std::vector<uint8_t>> vdpMS::getPartialRender() {
@@ -143,37 +151,52 @@ void vdpMS::renderMulticolor(std::vector<std::vector<uint8_t>>& buffer) {
 }
 
 void vdpMS::renderMode4(std::vector<std::vector<uint8_t>>& buffer) {
+    std::cout<<"spr_attr_table_base: 0x"<<std::hex<<sprite_attr_tab_base()<<"\n";
+    for(int i=0;i<64;i++) {
+        std::printf("02x ", vram.at(sprite_attr_tab_base() + i));
+    }
+    std::printf("\n");
+    for(int i=64;i<128;i++) {
+        std::printf("02x ", vram.at(sprite_attr_tab_base() + i));
+    }
+    std::printf("\n");
+    for(int i=128;i<192;i++) {
+        std::printf("02x ", vram.at(sprite_attr_tab_base() + i));
+    }
+    std::printf("\n");
+    for(int i=192;i<256;i++) {
+        std::printf("02x ", vram.at(sprite_attr_tab_base() + i));
+    }
+    std::printf("\n");
+    std::printf("\n");
     //std::cout<<"SMS (Mode 4) render: NT: "<<std::hex<<name_tab_base()<<" BG Tiles: "<<bg_tile_base()<<" Palette: ";
     //for(int i=0;i<32;i++) std::cout<<int(pal_ram.at(i))<<" ";
     //std::cout<<"\n";
-    for(int y_tile=0;y_tile<24;y_tile++) {
-        int y_tile_off = (y_tile + (bg_y_scroll / 8)) % 24;
-        for(int x_tile=0;x_tile<32;x_tile++) {
-            int x_tile_off = (x_tile + (bg_x_scroll / 8)) % 32;
-            tile_info_t tile_info;
-            uint16_t tile_info_addr = (name_tab_base() + (y_tile_off * 64) + (x_tile_off * 2)) & 0x3fff;
-            tile_info.bytes.byte1 = vram.at(tile_info_addr);
-            tile_info.bytes.byte2 = vram.at(tile_info_addr + 1);
+	for(int scrY = 0; scrY < 192; scrY++) {
+		int bgY = (scrY + bg_y_scroll) % (28*8);
+		int yTile = bgY / 8;
+		int yFine = bgY % 8;
+		for(int scrX = 0; scrX < 256; scrX++) {
+			int bgX = (scrX + bg_x_scroll) % (32 * 8);
+			int xTile = bgX / 8;
+			int xFine = bgX % 8;
+			uint16_t tile_info_addr = (name_tab_base() + (yTile * 64) + (xTile * 2)) & 0x3fff;
+			tile_info_t tile_info;
+			tile_info.bytes.byte1 = vram.at(tile_info_addr);
+			tile_info.bytes.byte2 = vram.at(tile_info_addr + 1);
             uint16_t tile_addr = (bg_tile_base() + 32 * tile_info.fields.tile_num) & 0x3fff;
-            for(int y = 0; y < 8; y++) {
-                int y_off = (y + (bg_y_scroll % 8)) % 8;
-                uint8_t byte0 = vram.at(tile_addr + y_off*4);
-                uint8_t byte1 = vram.at(tile_addr + y_off*4 + 1);
-                uint8_t byte2 = vram.at(tile_addr + y_off*4 + 2);
-                uint8_t byte3 = vram.at(tile_addr + y_off*4 + 3);
-                for(int x = 0; x < 8; x++) {
-                    int x_off = (x + (bg_x_scroll % 8)) % 8;
-                    uint32_t mask = 0x80>>x_off;
-                    int color_index = (((mask & byte0) + 2*(mask & byte1) + 4*(mask & byte2) + 8*(mask&byte3)) >> (7-x_off)) + 16 * tile_info.fields.palnum;
-                    //mask>>=1;
-                    sms_color_t color{.val = pal_ram.at(color_index)};
-                    buffer[y_tile*8+y][3*(x_tile*8+x)] = sms_pal_component[color.component.blue];
-                    buffer[y_tile*8+y][3*(x_tile*8+x)+1] = sms_pal_component[color.component.green];
-                    buffer[y_tile*8+y][3*(x_tile*8+x)+2] = sms_pal_component[color.component.red];
-                }
-            }
-        }
-    }
+			uint8_t byte0 = vram.at(tile_addr + yFine*4);
+			uint8_t byte1 = vram.at(tile_addr + yFine*4 + 1);
+			uint8_t byte2 = vram.at(tile_addr + yFine*4 + 2);
+			uint8_t byte3 = vram.at(tile_addr + yFine*4 + 3);
+			uint32_t mask = 0x80>>xFine;
+			int color_index = (((mask & byte0) + 2*(mask & byte1) + 4*(mask & byte2) + 8*(mask&byte3)) >> (7-xFine)) + 16 * tile_info.fields.palnum;
+			sms_color_t color{.val = pal_ram.at(color_index)};
+			buffer[scrY][3 * scrX + 0] = sms_pal_component[color.component.blue];
+			buffer[scrY][3 * scrX + 1] = sms_pal_component[color.component.green];
+			buffer[scrY][3 * scrX + 2] = sms_pal_component[color.component.red];
+		}
+	}
 }
 
 uint16_t vdpMS::name_tab_base() { // Register 2, starting address for Name Table sub-block (background layout)
@@ -195,7 +218,12 @@ uint16_t vdpMS::bg_tile_base() { // Register 4, starting address for the Pattern
 }
 
 uint16_t vdpMS::sprite_attr_tab_base() { // Register 5, starting address for the sprite attribute table (sprite locations, colors, etc)
-    return 0x80 * spr_attr_base;
+    if(vdpMode == systemType::sg_1000) {
+        return 0x80 * spr_attr_base;
+    }
+    else {
+        return (0x80 * (spr_attr_base & 0x7e));
+    }
 }
 
 uint16_t vdpMS::sprite_tile_base() { // Register 6, starting address for the Sprite Pattern Generate sub-block (sprite tiles)
