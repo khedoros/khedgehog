@@ -29,6 +29,10 @@ private:
     uint8_t readStatus(uint64_t cycle);
     uint8_t readVCounter(uint64_t cycle);
     uint8_t readHCounter(uint64_t cycle);
+
+    void setPixelSG(std::vector<std::vector<uint8_t>>& buffer, int x, int y, int index);
+    void setPixelGG(std::vector<std::vector<uint8_t>>& buffer, int x, int y, int index);
+    void setPixelSMS(std::vector<std::vector<uint8_t>>& buffer, int x, int y, int index);
     void renderGraphic1(std::vector<std::vector<uint8_t>>&);
     void renderGraphic2(std::vector<std::vector<uint8_t>>&);
     void renderText(std::vector<std::vector<uint8_t>>&);

@@ -132,11 +132,7 @@ void vdpMS::renderGraphic2(std::vector<std::vector<uint8_t>>& buffer) {
                     uint8_t color_index = 0;
                     if((tile_data & mask) == mask) color_index = colors.fields.foreground;
                     else color_index = colors.fields.background;
-
-                    buffer[y_tile * 8 + y][3 * (x_tile * 8 + x) + 0] = tms_palette[color_index * 3 + 0];
-                    buffer[y_tile * 8 + y][3 * (x_tile * 8 + x) + 1] = tms_palette[color_index * 3 + 1];
-                    buffer[y_tile * 8 + y][3 * (x_tile * 8 + x) + 2] = tms_palette[color_index * 3 + 2];
-
+                    setPixelSG(buffer, x_tile * 8 + x, y_tile * 8 + y, color_index);
                     mask>>=1;
                 }
             }
@@ -153,7 +149,33 @@ void vdpMS::renderMulticolor(std::vector<std::vector<uint8_t>>& buffer) {
     std::cout<<"MultiColor (Mode 3) render\n";
 }
 
+void vdpMS::setPixelSG(std::vector<std::vector<uint8_t>>& buffer, int x, int y, int index) {
+    buffer[y][3 * x + 0] = tms_palette[index * 3 + 0];
+    buffer[y][3 * x + 1] = tms_palette[index * 3 + 1];
+    buffer[y][3 * x + 2] = tms_palette[index * 3 + 2];
+}
+
+void vdpMS::setPixelGG(std::vector<std::vector<uint8_t>>& buffer, int x, int y, int index) {
+    gg_color_t color;
+    if(index == 0) index = bg_fg_col.fields.background;
+    color.val[0] = pal_ram.at(index * 2);
+    color.val[1] = pal_ram.at(index * 2 + 1);
+    buffer[y][3 * x + 0] = gg_pal_component[color.component.blue];
+    buffer[y][3 * x + 1] = gg_pal_component[color.component.green];
+    buffer[y][3 * x + 2] = gg_pal_component[color.component.red];
+}
+
+void vdpMS::setPixelSMS(std::vector<std::vector<uint8_t>>& buffer, int x, int y, int index) {
+    if(index == 0) index = bg_fg_col.fields.background;
+    sms_color_t color{.val = pal_ram.at(index)};
+    buffer[y][3 * x + 0] = sms_pal_component[color.component.blue];
+    buffer[y][3 * x + 1] = sms_pal_component[color.component.green];
+    buffer[y][3 * x + 2] = sms_pal_component[color.component.red];
+}
+
 void vdpMS::renderMode4(std::vector<std::vector<uint8_t>>& buffer) {
+
+    /*
     std::cout<<"spr_attr_table_base: 0x"<<std::hex<<sprite_attr_tab_base()<<"\n";
     for(int i=0;vram.at(sprite_attr_tab_base() + i) != 0xd0;i++) {
         int y = vram.at(sprite_attr_tab_base() + i);
@@ -163,6 +185,7 @@ void vdpMS::renderMode4(std::vector<std::vector<uint8_t>>& buffer) {
     }
     std::printf("\n");
     std::printf("\n");
+    */
     //std::cout<<"SMS (Mode 4) render: NT: "<<std::hex<<name_tab_base()<<" BG Tiles: "<<bg_tile_base()<<" Palette: ";
     //for(int i=0;i<32;i++) std::cout<<int(pal_ram.at(i))<<" ";
     //std::cout<<"\n";
@@ -175,11 +198,39 @@ void vdpMS::renderMode4(std::vector<std::vector<uint8_t>>& buffer) {
         scrXEnd = 256 - 6 * 8;
     }
 
+    int sprHeight = (ctrl_2.fields.large_sprites)? 16 : 8;
+
     for(int scrY = scrYStart; scrY < scrYEnd; scrY++) {
         int bgY = (scrY + bg_y_scroll) % (28*8);
         int yTile = bgY / 8;
         int yFine = bgY % 8;
+
+        std::array<int, 8> sprSearch;
+        int sprCount = 0;
+        for(int i=0;vram.at(sprite_attr_tab_base() + i) != 0xd0 && i < 64;i++) {
+            int y = vram.at(sprite_attr_tab_base() + i);
+            if(y > scrY - sprHeight) sprSearch[sprCount++] = i;
+            if(sprCount == 8) break;
+        }
+
         for(int scrX = scrXStart; scrX < scrXEnd; scrX++) {
+//          I'm thinking maybe a 256-element array (lineBuffer), with the index of set color. Draw sprites.
+//          Draw high-priority tiles. Draw low-priority only if it's replacing a 0-index.
+//          Use that line to render to buffer.
+//          TODO: Use a similar algorithm in endLine to work out pixel overflow and collision. Maybe store the 
+//          results to replace the sprSearch array I have above.
+
+            std::array<int, 256> lineBuffer;
+
+            // Sprite tile lookup + drawing
+            for(int spr = 0; spr < sprCount; spr++) {
+                int i = sprSearch[spr];
+                int y = vram.at(sprite_attr_tab_base() + i);
+                int x = vram.at(sprite_attr_tab_base() + 128 + i * 2);
+                int tileIndex = vram.at(sprite_attr_tab_base() + 128 + i * 2 + 1);
+                // TODO: Find correct line of sprite to draw. Fetch correct tile-line.
+            }
+
             int bgX = (scrX + bg_x_scroll) % (32 * 8);
             int xTile = bgX / 8;
             int xFine = bgX % 8;
@@ -187,26 +238,32 @@ void vdpMS::renderMode4(std::vector<std::vector<uint8_t>>& buffer) {
             tile_info_t tile_info;
             tile_info.bytes.byte1 = vram.at(tile_info_addr);
             tile_info.bytes.byte2 = vram.at(tile_info_addr + 1);
+//          if(tile_info.fields.priority || 
+//          TODO: Continue using this and lineBuffer to decide how to draw the background
             uint16_t tile_addr = (bg_tile_base() + 32 * tile_info.fields.tile_num) & 0x3fff;
-            uint8_t byte0 = vram.at(tile_addr + yFine*4);
-            uint8_t byte1 = vram.at(tile_addr + yFine*4 + 1);
-            uint8_t byte2 = vram.at(tile_addr + yFine*4 + 2);
-            uint8_t byte3 = vram.at(tile_addr + yFine*4 + 3);
+            int tileLine = yFine;
+            if(tile_info.fields.vflip) {
+                tileLine = 7 - yFine;
+            }
+            uint8_t byte0 = vram.at(tile_addr + tileLine * 4);
+            uint8_t byte1 = vram.at(tile_addr + tileLine * 4 + 1);
+            uint8_t byte2 = vram.at(tile_addr + tileLine * 4 + 2);
+            uint8_t byte3 = vram.at(tile_addr + tileLine * 4 + 3);
+
             uint32_t mask = 0x80>>xFine;
-            int color_index = (((mask & byte0) + 2*(mask & byte1) + 4*(mask & byte2) + 8*(mask&byte3)) >> (7-xFine)) + 16 * tile_info.fields.palnum;
+            uint32_t indexShift = 7-xFine;
+            if(tile_info.fields.hflip) {
+                mask = 0x01<<xFine;
+                indexShift = xFine;
+            }
+
+            // Actual background pixel-drawing
+            int color_index = (((mask & byte0) + 2*(mask & byte1) + 4*(mask & byte2) + 8*(mask&byte3)) >> indexShift) + 16 * tile_info.fields.palnum;
             if(vdpMode == systemType::masterSystem) {
-                sms_color_t color{.val = pal_ram.at(color_index)};
-                buffer[scrY][3 * (scrX) + 0] = sms_pal_component[color.component.blue];
-                buffer[scrY][3 * (scrX) + 1] = sms_pal_component[color.component.green];
-                buffer[scrY][3 * (scrX) + 2] = sms_pal_component[color.component.red];
+                setPixelSMS(buffer, scrX, scrY, color_index);
             }
             else if(vdpMode == systemType::gameGear) {
-                gg_color_t color;
-                color.val[0] = pal_ram.at(color_index * 2);
-                color.val[1] = pal_ram.at(color_index * 2 + 1);
-                buffer[scrY - scrYStart][3 * (scrX - scrXStart) + 0] = gg_pal_component[color.component.blue];
-                buffer[scrY - scrYStart][3 * (scrX - scrXStart) + 1] = gg_pal_component[color.component.green];
-                buffer[scrY - scrYStart][3 * (scrX - scrXStart) + 2] = gg_pal_component[color.component.red];
+                setPixelGG(buffer, scrX - scrXStart, scrY - scrYStart, color_index);
             }
         }
     }
