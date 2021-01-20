@@ -10,12 +10,15 @@ vdpMS::vdpMS(systemType t, systemRegion r):addr_latch(false), vdpMode(t), vdpReg
     else                                pal_ram.resize(0x20, 0);
 
     switch(t) {
-        case systemType::sg_1000: std::cout<<"VDP started in SG-1000 mode\n";
-        break;
-        case systemType::gameGear: std::cout<<"VDP started in GameGear mode\n";
-        break;
-        case systemType::masterSystem: std::cout<<"VDP startedin Master System mode\n";
-        break;
+        case systemType::sg_1000:
+            std::cout<<"VDP started in SG-1000 mode\n";
+            break;
+        case systemType::gameGear:
+            std::cout<<"VDP started in GameGear mode\n";
+            break;
+        case systemType::masterSystem:
+            std::cout<<"VDP startedin Master System mode\n";
+            break;
     }
 }
 
@@ -113,9 +116,9 @@ void vdpMS::renderGraphic2(std::vector<std::vector<uint8_t>>& buffer) {
         int y_triad = y_tile / 8;
         for(int x_tile=0;x_tile<32;x_tile++) {
             int tile_num_addr = (name_tab_base() + y_tile * 32 + x_tile) & 0x3fff;
-			//std::printf("%04x ", tile_num_addr);
+            //std::printf("%04x ", tile_num_addr);
             int tile_num = vram.at(tile_num_addr) + 256 * y_triad;
-			//std::printf("%03x ", tile_num);
+            //std::printf("%03x ", tile_num);
             int tile_addr = ((bg_tile_base() & 0x2000) + tile_num * 8) & 0x3fff;
 
             int color_addr = ((col_tab_base() & 0x2000) + tile_num * 8) & 0x3fff ;
@@ -138,7 +141,7 @@ void vdpMS::renderGraphic2(std::vector<std::vector<uint8_t>>& buffer) {
                 }
             }
         }
-		//printf("\n");
+        //printf("\n");
     }
 }
 
@@ -152,51 +155,61 @@ void vdpMS::renderMulticolor(std::vector<std::vector<uint8_t>>& buffer) {
 
 void vdpMS::renderMode4(std::vector<std::vector<uint8_t>>& buffer) {
     std::cout<<"spr_attr_table_base: 0x"<<std::hex<<sprite_attr_tab_base()<<"\n";
-    for(int i=0;i<64;i++) {
-        std::printf("02x ", vram.at(sprite_attr_tab_base() + i));
-    }
-    std::printf("\n");
-    for(int i=64;i<128;i++) {
-        std::printf("02x ", vram.at(sprite_attr_tab_base() + i));
-    }
-    std::printf("\n");
-    for(int i=128;i<192;i++) {
-        std::printf("02x ", vram.at(sprite_attr_tab_base() + i));
-    }
-    std::printf("\n");
-    for(int i=192;i<256;i++) {
-        std::printf("02x ", vram.at(sprite_attr_tab_base() + i));
+    for(int i=0;vram.at(sprite_attr_tab_base() + i) != 0xd0;i++) {
+        int y = vram.at(sprite_attr_tab_base() + i);
+        int x = vram.at(sprite_attr_tab_base() + 128 + i * 2);
+        int tile = vram.at(sprite_attr_tab_base() + 128 + i * 2 + 1);
+        std::printf("Sprite #%d: x: %02x y: %02x tile: %02x\n", i, x, y, tile);
     }
     std::printf("\n");
     std::printf("\n");
     //std::cout<<"SMS (Mode 4) render: NT: "<<std::hex<<name_tab_base()<<" BG Tiles: "<<bg_tile_base()<<" Palette: ";
     //for(int i=0;i<32;i++) std::cout<<int(pal_ram.at(i))<<" ";
     //std::cout<<"\n";
-	for(int scrY = 0; scrY < 192; scrY++) {
-		int bgY = (scrY + bg_y_scroll) % (28*8);
-		int yTile = bgY / 8;
-		int yFine = bgY % 8;
-		for(int scrX = 0; scrX < 256; scrX++) {
-			int bgX = (scrX + bg_x_scroll) % (32 * 8);
-			int xTile = bgX / 8;
-			int xFine = bgX % 8;
-			uint16_t tile_info_addr = (name_tab_base() + (yTile * 64) + (xTile * 2)) & 0x3fff;
-			tile_info_t tile_info;
-			tile_info.bytes.byte1 = vram.at(tile_info_addr);
-			tile_info.bytes.byte2 = vram.at(tile_info_addr + 1);
+
+    int scrYStart = 0, scrYEnd = 192, scrXStart = 0, scrXEnd = 256;
+    if(vdpMode == systemType::gameGear) {
+        scrYStart = 3 * 8;
+        scrYEnd = 192 - 3 * 8;
+        scrXStart = 6 * 8;
+        scrXEnd = 256 - 6 * 8;
+    }
+
+    for(int scrY = scrYStart; scrY < scrYEnd; scrY++) {
+        int bgY = (scrY + bg_y_scroll) % (28*8);
+        int yTile = bgY / 8;
+        int yFine = bgY % 8;
+        for(int scrX = scrXStart; scrX < scrXEnd; scrX++) {
+            int bgX = (scrX + bg_x_scroll) % (32 * 8);
+            int xTile = bgX / 8;
+            int xFine = bgX % 8;
+            uint16_t tile_info_addr = (name_tab_base() + (yTile * 64) + (xTile * 2)) & 0x3fff;
+            tile_info_t tile_info;
+            tile_info.bytes.byte1 = vram.at(tile_info_addr);
+            tile_info.bytes.byte2 = vram.at(tile_info_addr + 1);
             uint16_t tile_addr = (bg_tile_base() + 32 * tile_info.fields.tile_num) & 0x3fff;
-			uint8_t byte0 = vram.at(tile_addr + yFine*4);
-			uint8_t byte1 = vram.at(tile_addr + yFine*4 + 1);
-			uint8_t byte2 = vram.at(tile_addr + yFine*4 + 2);
-			uint8_t byte3 = vram.at(tile_addr + yFine*4 + 3);
-			uint32_t mask = 0x80>>xFine;
-			int color_index = (((mask & byte0) + 2*(mask & byte1) + 4*(mask & byte2) + 8*(mask&byte3)) >> (7-xFine)) + 16 * tile_info.fields.palnum;
-			sms_color_t color{.val = pal_ram.at(color_index)};
-			buffer[scrY][3 * scrX + 0] = sms_pal_component[color.component.blue];
-			buffer[scrY][3 * scrX + 1] = sms_pal_component[color.component.green];
-			buffer[scrY][3 * scrX + 2] = sms_pal_component[color.component.red];
-		}
-	}
+            uint8_t byte0 = vram.at(tile_addr + yFine*4);
+            uint8_t byte1 = vram.at(tile_addr + yFine*4 + 1);
+            uint8_t byte2 = vram.at(tile_addr + yFine*4 + 2);
+            uint8_t byte3 = vram.at(tile_addr + yFine*4 + 3);
+            uint32_t mask = 0x80>>xFine;
+            int color_index = (((mask & byte0) + 2*(mask & byte1) + 4*(mask & byte2) + 8*(mask&byte3)) >> (7-xFine)) + 16 * tile_info.fields.palnum;
+            if(vdpMode == systemType::masterSystem) {
+                sms_color_t color{.val = pal_ram.at(color_index)};
+                buffer[scrY][3 * (scrX) + 0] = sms_pal_component[color.component.blue];
+                buffer[scrY][3 * (scrX) + 1] = sms_pal_component[color.component.green];
+                buffer[scrY][3 * (scrX) + 2] = sms_pal_component[color.component.red];
+            }
+            else if(vdpMode == systemType::gameGear) {
+                gg_color_t color;
+                color.val[0] = pal_ram.at(color_index * 2);
+                color.val[1] = pal_ram.at(color_index * 2 + 1);
+                buffer[scrY - scrYStart][3 * (scrX - scrXStart) + 0] = gg_pal_component[color.component.blue];
+                buffer[scrY - scrYStart][3 * (scrX - scrXStart) + 1] = gg_pal_component[color.component.green];
+                buffer[scrY - scrYStart][3 * (scrX - scrXStart) + 2] = gg_pal_component[color.component.red];
+            }
+        }
+    }
 }
 
 uint16_t vdpMS::name_tab_base() { // Register 2, starting address for Name Table sub-block (background layout)
@@ -214,6 +227,7 @@ uint16_t vdpMS::bg_tile_base() { // Register 4, starting address for the Pattern
     if(vdpMode == systemType::sg_1000) {
         return 0x800 * pt_base;
     }
+    //return (pt_base & 0x4) * 0x800;
     return 0;
 }
 
@@ -221,13 +235,15 @@ uint16_t vdpMS::sprite_attr_tab_base() { // Register 5, starting address for the
     if(vdpMode == systemType::sg_1000) {
         return 0x80 * spr_attr_base;
     }
-    else {
-        return (0x80 * (spr_attr_base & 0x7e));
-    }
+    return (0x80 * (spr_attr_base & 0x7e));
 }
 
 uint16_t vdpMS::sprite_tile_base() { // Register 6, starting address for the Sprite Pattern Generate sub-block (sprite tiles)
-    return 0x800 * spr_tile_base;
+    if(vdpMode == systemType::sg_1000) {
+        return 0x800 * spr_tile_base;
+    }
+    //return (spr_tile_base & 0x04) * 0x800;
+    return 0x2000;
 }
 
 uint64_t vdpMS::calc(uint64_t) {
@@ -292,60 +308,61 @@ void vdpMS::writeAddress(uint8_t val) {
         address = 0x100 * val + addr_buffer;
 
         switch(val & 0b11000000) {
-        case 0x00: // VRAM read mode
-            addr_mode = addr_mode_t::vram_read;
-            data_buffer = vram[address++];
-            std::printf(" set read address to %04x\n", address);
-            break;
-        case 0x40: // VRAM write mode
-            addr_mode = addr_mode_t::vram_write;
-            std::printf(" set write address to %04x\n", address);
-            break;
-        case 0x80: // VDP register write mode
-            addr_mode = addr_mode_t::reg_write;
-            std::printf(" set register %01x to %02x\n", (val & 0x0f), (address & 0x00ff));
-            switch(val & 0x0f) {
-                case 0x00:
-                    ctrl_1.val = (address & 0x00ff);
-                case 0x01:
-                    ctrl_2.val = (address & 0x00ff);
-                    break;
-                case 0x02:
-                    nt_base = (address & 0x00ff);
-                    break;
-                case 0x03:
-                    color_t_base = (address & 0x00ff);
-                    break;
-                case 0x04:
-                    pt_base = (address & 0x00ff);
-                    break;
-                case 0x05:
-                    spr_attr_base = (address & 0x00ff);
-                    break;
-                case 0x06:
-                    spr_tile_base = (address & 0x00ff);
-                    break;
-                case 0x07:
-                    bg_fg_col.val = (address & 0x00ff);
-                    break;
-                case 0x08:
-                    bg_x_scroll = (address & 0x00ff);
-                    break;
-                case 0x09:
-                    bg_y_scroll = (address & 0x00ff);
-                    break;
-                case 0x0a:
-                    line_interrupt = (address & 0x00ff);
-                    break;
-                default:
-                    // no effect in SMS or SG-1000 for reg's B-F
-                    break;
-            }
-            break;
-        case 0xc0: // CRAM write mode
-            addr_mode = addr_mode_t::cram_write;
-            std::printf(" set cram write to address %02x\n", (address & 0x00ff));
-            break;
+            case 0x00: // VRAM read mode
+                addr_mode = addr_mode_t::vram_read;
+                data_buffer = vram[address++];
+                std::printf(" set read address to %04x\n", address);
+                break;
+            case 0x40: // VRAM write mode
+                addr_mode = addr_mode_t::vram_write;
+                std::printf(" set write address to %04x\n", address);
+                break;
+            case 0x80: // VDP register write mode
+                addr_mode = addr_mode_t::reg_write;
+                std::printf(" set register %01x to %02x\n", (val & 0x0f), (address & 0x00ff));
+                switch(val & 0x0f) {
+                    case 0x00:
+                        ctrl_1.val = (address & 0x00ff);
+                        break;
+                    case 0x01:
+                        ctrl_2.val = (address & 0x00ff);
+                        break;
+                    case 0x02:
+                        nt_base = (address & 0x00ff);
+                        break;
+                    case 0x03:
+                        color_t_base = (address & 0x00ff);
+                        break;
+                    case 0x04:
+                        pt_base = (address & 0x00ff);
+                        break;
+                    case 0x05:
+                        spr_attr_base = (address & 0x00ff);
+                        break;
+                    case 0x06:
+                        spr_tile_base = (address & 0x00ff);
+                        break;
+                    case 0x07:
+                        bg_fg_col.val = (address & 0x00ff);
+                        break;
+                    case 0x08:
+                        bg_x_scroll = (address & 0x00ff);
+                        break;
+                    case 0x09:
+                        bg_y_scroll = (address & 0x00ff);
+                        break;
+                    case 0x0a:
+                        line_interrupt = (address & 0x00ff);
+                        break;
+                    default:
+                        // no effect in SMS or SG-1000 for reg's B-F
+                        break;
+                }
+                break;
+            case 0xc0: // CRAM write mode
+                addr_mode = addr_mode_t::cram_write;
+                std::printf(" set cram write to address %02x\n", (address & 0x00ff));
+                break;
         }
     }
 }
@@ -353,9 +370,9 @@ void vdpMS::writeAddress(uint8_t val) {
 void vdpMS::writeData(uint8_t val) {
     if(addr_mode == addr_mode_t::vram_write || addr_mode == addr_mode_t::vram_read || addr_mode == addr_mode_t::reg_write) {
         //dbg_printf(" wrote %02x to address %04x\n", val, address);
-		std::printf(" wrote %02x to address %04x\n", val, address);
-                   vram[address++] = val;
-                   data_buffer = val;
+        std::printf(" wrote %02x to address %04x\n", val, address);
+        vram[address++] = val;
+        data_buffer = val;
     }
     else if(addr_mode == addr_mode_t::cram_write) {
         pal_ram[address % pal_ram.size()] = val;
