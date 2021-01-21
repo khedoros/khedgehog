@@ -207,29 +207,40 @@ void vdpMS::renderMode4(std::vector<std::vector<uint8_t>>& buffer) {
 
         std::array<int, 8> sprSearch;
         int sprCount = 0;
-        for(int i=0;vram.at(sprite_attr_tab_base() + i) != 0xd0 && i < 64;i++) {
+        for(int i = 0; vram.at(sprite_attr_tab_base() + i) != 0xd0 && i < 64;i++) {
             int y = vram.at(sprite_attr_tab_base() + i);
-            if(y > scrY - sprHeight) sprSearch[sprCount++] = i;
+            if(scrY - y > 0 && scrY - y <= sprHeight) sprSearch[sprCount++] = i;
             if(sprCount == 8) break;
         }
 
+        std::array<int, 256> lineBuffer{0};
+
+        // Draw sprites into lineBuffer
+        for(int spr = 0; spr < sprCount; spr++) {
+            int y = vram.at(sprite_attr_tab_base() + sprSearch[spr]);
+            int x = vram.at(sprite_attr_tab_base() + 128 + spr * 2);
+            int tile = vram.at(sprite_attr_tab_base() + 128 + spr * 2 + 1);
+            int fineY = scrY - vram.at(sprite_attr_tab_base() + spr);
+
+            uint16_t tile_addr = (sprite_tile_base() + 32 * tile) & 0x3fff;
+            uint8_t byte0 = vram.at(tile_addr + yFine * 4);
+            uint8_t byte1 = vram.at(tile_addr + yFine * 4 + 1);
+            uint8_t byte2 = vram.at(tile_addr + yFine * 4 + 2);
+            uint8_t byte3 = vram.at(tile_addr + yFine * 4 + 3);
+
+            int mask = 0x80;
+            int indexShift = 7;
+            for(int xFine = x; xFine < x + 8 && xFine < 256; xFine++) {
+                int color_index = (((mask & byte0) + 2*(mask & byte1) + 4*(mask & byte2) + 8*(mask&byte3)) >> indexShift) + 16;
+                mask>>=1;
+                indexShift--;
+                lineBuffer[xFine] = color_index;
+            }
+        }
+
         for(int scrX = scrXStart; scrX < scrXEnd; scrX++) {
-//          I'm thinking maybe a 256-element array (lineBuffer), with the index of set color. Draw sprites.
-//          Draw high-priority tiles. Draw low-priority only if it's replacing a 0-index.
-//          Use that line to render to buffer.
 //          TODO: Use a similar algorithm in endLine to work out pixel overflow and collision. Maybe store the 
 //          results to replace the sprSearch array I have above.
-
-            std::array<int, 256> lineBuffer;
-
-            // Sprite tile lookup + drawing
-            for(int spr = 0; spr < sprCount; spr++) {
-                int i = sprSearch[spr];
-                int y = vram.at(sprite_attr_tab_base() + i);
-                int x = vram.at(sprite_attr_tab_base() + 128 + i * 2);
-                int tileIndex = vram.at(sprite_attr_tab_base() + 128 + i * 2 + 1);
-                // TODO: Find correct line of sprite to draw. Fetch correct tile-line.
-            }
 
             int bgX = (scrX + bg_x_scroll) % (32 * 8);
             int xTile = bgX / 8;
@@ -258,7 +269,13 @@ void vdpMS::renderMode4(std::vector<std::vector<uint8_t>>& buffer) {
             }
 
             // Actual background pixel-drawing
+            // Find color of correct background tile
             int color_index = (((mask & byte0) + 2*(mask & byte1) + 4*(mask & byte2) + 8*(mask&byte3)) >> indexShift) + 16 * tile_info.fields.palnum;
+
+            //
+            if(lineBuffer[scrX] && !tile_info.fields.priority) color_index = lineBuffer[scrX];
+            if(!color_index) color_index = 16 + bg_fg_col.fields.background;
+
             if(vdpMode == systemType::masterSystem) {
                 setPixelSMS(buffer, scrX, scrY, color_index);
             }
@@ -299,8 +316,9 @@ uint16_t vdpMS::sprite_tile_base() { // Register 6, starting address for the Spr
     if(vdpMode == systemType::sg_1000) {
         return 0x800 * spr_tile_base;
     }
-    //return (spr_tile_base & 0x04) * 0x800;
-    return 0x2000;
+    return (spr_tile_base & 0x04) * 0x800;
+    //std::printf("%04x\n", spr_tile_base);
+    //return 0x0000;
 }
 
 uint64_t vdpMS::calc(uint64_t) {
