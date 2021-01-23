@@ -22,39 +22,50 @@ vdpMS::vdpMS(systemType t, systemRegion r):addr_latch(false), vdpMode(t), vdpReg
     }
 }
 
-std::vector<std::vector<uint8_t>> vdpMS::getPartialRender() {
+vdpMS::graphicsMode_t vdpMS::getMode() {
     int mode = 8 * ctrl_1.fields.mode_4 +
                4 * ctrl_2.fields.mode_3 +
                2 * ctrl_1.fields.mode_2 +
                    ctrl_2.fields.mode_1;
+    switch(mode) {
+        case 0: return graphicsMode_t::graphics1;
+        case 1: return graphicsMode_t::text;
+        case 2: return graphicsMode_t::graphics2;
+        case 4: return graphicsMode_t::multicolor;
+        case 8: case 10: case 12: return graphicsMode_t::mode4;
+        case 11: return graphicsMode_t::mode4_224;
+        case 14: return graphicsMode_t::mode4_240;
+        default: return graphicsMode_t::unknown;
+    }
+}
+
+std::vector<std::vector<uint8_t>> vdpMS::getPartialRender() {
     std::vector<std::vector<uint8_t>> buffer(192, std::vector<uint8_t>(256*3, 0));
     if(!ctrl_2.fields.enable_display) return buffer;
-    switch(mode) {
-        case 0:
+    switch(getMode()) {
+        case graphicsMode_t::graphics1:
             renderGraphic1(buffer);
             break;
-        case 1:
-            renderText(buffer);
-            break;
-        case 2:
+        case graphicsMode_t::graphics2:
             renderGraphic2(buffer);
             break;
-        case 4:
+        case graphicsMode_t::text:
+            renderText(buffer);
+            break;
+        case graphicsMode_t::multicolor:
             renderMulticolor(buffer);
             break;
-        case 8: case 10: case 12:
+        case graphicsMode_t::mode4:
             renderMode4(buffer);
             break;
-        case 11:
-            // 224-line mode 4
+        case graphicsMode_t::mode4_224:
             std::cerr<<"224-line mode 4 not implemented yet\n";
             break;
-        case 14:
-            // 240-line mode 4
+        case graphicsMode_t::mode4_240:
             std::cerr<<"240-line mode 4 not implemented yet\n";
             break;
         default:
-            std::cerr<<"Unsupported rendering mode "<<mode<<"\n";
+            std::cerr<<"Unsupported rendering mode "<<static_cast<int>(getMode())<<"\n";
     }
 
     // SG-1000 modes:
@@ -284,6 +295,11 @@ void vdpMS::renderMode4(std::vector<std::vector<uint8_t>>& buffer) {
             }
         }
     }
+}
+
+std::vector<std::vector<uint8_t>> vdpMS::getDebugRender() {
+    std::vector<std::vector<uint8_t>> buffer(512, std::vector<uint8_t>(512*3, 0));
+    return buffer;
 }
 
 uint16_t vdpMS::name_tab_base() { // Register 2, starting address for Name Table sub-block (background layout)

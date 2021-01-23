@@ -12,6 +12,7 @@ public:
     void writeByte(uint8_t address, uint8_t val, uint64_t cycle) override;
     uint8_t readByte(uint8_t address, uint64_t cycle) override;
     std::vector<std::vector<uint8_t>> getPartialRender() override; // Render a composited view of the current VDP memory state
+    std::vector<std::vector<uint8_t>> getDebugRender() override; // Render VDP memory in a rawer format
     uint16_t name_tab_base();
     uint16_t col_tab_base();
     uint16_t bg_tile_base();
@@ -30,6 +31,9 @@ private:
     uint8_t readVCounter(uint64_t cycle);
     uint8_t readHCounter(uint64_t cycle);
 
+    enum class graphicsMode_t {text, graphics1, graphics2, multicolor, mode4, mode4_224, mode4_240, unknown};
+
+    graphicsMode_t getMode();
     void setPixelSG(std::vector<std::vector<uint8_t>>& buffer, int x, int y, int index);
     void setPixelGG(std::vector<std::vector<uint8_t>>& buffer, int x, int y, int index);
     void setPixelSMS(std::vector<std::vector<uint8_t>>& buffer, int x, int y, int index);
