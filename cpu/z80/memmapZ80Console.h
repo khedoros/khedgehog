@@ -36,10 +36,14 @@ private:
     std::array<uint8_t, 0x2000> ram; // 8KB of RAM, mapped to 0xC000-0xDFFF and mirrored to 0xE000-0xFFFB
     std::array<uint8_t, 0x10'0000> rom; // ROM is only visible in 3 chunks of 16KB each, with most games controlled by a Sega family of mappers. Largest GG/SMS/SG-1000 ROMs are 1MB in size.
     std::size_t romsize;
-    std::array<uint8_t, 0x8000> cart_ram;
+    std::array<uint8_t, 0x8000> cartRam;
+
+    bool slot2RamActive;
+    uint8_t slot2RamPage;
 
     uint8_t map_ctrl, map_slot0, map_slot1, map_slot2;
     uint32_t map_slot0_offset, map_slot1_offset, map_slot2_offset;
+
 
     // Port 3E: Memory control
     struct mem_ctrl_t {

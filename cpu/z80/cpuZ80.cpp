@@ -1959,7 +1959,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_out(uint8_t opcode) { // OUTI 16 
 
     memory->writePortByte(port, val, total_cycles);
 
-    std::printf("%04x: %04x wrote %02x to port %02x", pc, OPCODE, val, port);
+    //std::printf("%04x: %04x wrote %02x to port %02x", pc, OPCODE, val, port);
 
 
     if(OPCODE > 0xed80) { // versions of the opcode that auto-inc/dec and repeat

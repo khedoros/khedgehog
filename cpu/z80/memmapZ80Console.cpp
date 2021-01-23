@@ -6,7 +6,10 @@
 #include "../../util.h"
 #include "../../debug_console.h"
 
-memmapZ80Console::memmapZ80Console(std::shared_ptr<config> cfg, std::shared_ptr<vdp> v, std::shared_ptr<apu> a) : map_ctrl(0), map_slot0_offset(0), map_slot1_offset(1 * 0x4000), map_slot2_offset(2 * 0x4000), vdp_dev(v), apu_dev(a) {
+memmapZ80Console::memmapZ80Console(std::shared_ptr<config> cfg, std::shared_ptr<vdp> v, std::shared_ptr<apu> a) : 
+    map_ctrl(0), map_slot0_offset(0), map_slot1_offset(1 * 0x4000), map_slot2_offset(2 * 0x4000), 
+    vdp_dev(v), apu_dev(a), slot2RamActive(false), slot2RamPage(0)
+    {
     ram.fill(0);
     std::ifstream romfile(cfg->getRomPath().c_str());
     if(!romfile.is_open()) {
@@ -87,6 +90,10 @@ void memmapZ80Console::writeByte(uint32_t addr, uint8_t val) {
     }
     switch(addr) {
     case 0xfffc:
+        slot2RamActive = (val & 0b00001000)? true: false;
+        slot2RamPage = (val & 0b00000100)? 1: 0;
+        //std::printf("Wrote %02x to %04x. Exiting.\n", val, addr);
+        //exit(1);
         break;
     case 0xfffd:
         map_slot0_offset = (0x4000 * val) % romsize;
@@ -112,6 +119,8 @@ void memmapZ80Console::writePortByte(uint8_t port, uint8_t val, uint64_t cycle) 
     switch(port & 0b11000001) {
         case 0x00:
 //            dbg_printf(" (memory control)");
+              std::cerr<<"Really not implemented. Got port "<<std::hex<<int(port)<<" = "<<int(val)<<"\n";
+              exit(1);
             break;
         case 0x01:
 //            dbg_printf(" (I/O control + automatic nationalization)"); break;
@@ -189,7 +198,12 @@ uint8_t& memmapZ80Console::map(uint32_t addr) {
         return rom[(addr & 0x3fff) + map_slot1_offset];
     }
     else if(addr < 0xC000) { // slot2 rom TODO: implement rom-ram swapout
-        return rom[(addr & 0x3fff) + map_slot2_offset];
+        if(slot2RamActive) {
+            return cartRam[addr & 0x1fff + 0x2000 * slot2RamPage];
+        }
+        else {
+            return rom[(addr & 0x3fff) + map_slot2_offset];
+        }
     }
     else if(addr < 0x10000) { // system ram TODO: implement paging control
         return ram[addr & 0x1fff];
