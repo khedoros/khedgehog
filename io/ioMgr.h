@@ -13,7 +13,6 @@ class sdlWindow {
 public:
     sdlWindow(unsigned int xres, unsigned int yres, std::string title);
     ~sdlWindow();
-    void resizeWindow(unsigned int xres, unsigned int yres);
     void updateWindow(int startx, int starty, const std::vector<std::vector<uint8_t>>& image);
     void updateOverlay(int startx, int starty, const std::vector<std::vector<uint8_t>>& image);
     void resize(unsigned int xres, unsigned int yres);
