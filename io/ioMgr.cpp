@@ -1,7 +1,108 @@
 #include "ioMgr.h"
 #include<tuple>
+    sdlWindow::sdlWindow(unsigned int xres, unsigned int yres, std::string t) : screen(nullptr), renderer(nullptr), buffer(nullptr), texture(nullptr), overlay(nullptr), title(t)
+    {
+        resizeWindow(xres, yres);
+        SDL_SetWindowTitle(screen, title.c_str());
+        SDL_SetRenderDrawColor(renderer, 255,255,255,255);
+        SDL_RenderFillRect(renderer, nullptr);
+        SDL_RenderPresent(renderer);
+    }
 
-ioMgr::ioMgr(std::shared_ptr<config> cfg): screen(nullptr), renderer(nullptr), buffer(nullptr), texture(nullptr), overlay(nullptr) {
+    sdlWindow::~sdlWindow() {
+        if(screen) {
+            SDL_DestroyWindow(screen);
+            screen = nullptr;
+        }
+        if(renderer) {
+            SDL_DestroyRenderer(renderer);
+            renderer = nullptr;
+        }
+        if(texture) {
+            SDL_DestroyTexture(texture);
+            texture = nullptr;
+        }
+        if(buffer) {
+            SDL_FreeSurface(buffer);
+            buffer = nullptr;
+        }
+        if(overlay) {
+            SDL_FreeSurface(overlay);
+            overlay = nullptr;
+        }
+    }
+
+    void sdlWindow::resizeWindow(unsigned int xres, unsigned int yres) {
+        if(screen) {
+            SDL_DestroyWindow(screen);
+            screen = NULL;
+        }
+        if(renderer) {
+            SDL_DestroyRenderer(renderer);
+            renderer = NULL;
+        }
+        if(texture) {
+            SDL_DestroyTexture(texture);
+            texture = NULL;
+        }
+
+        /* Initialize the SDL library */
+        screen = SDL_CreateWindow(title.c_str(),
+                                SDL_WINDOWPOS_CENTERED,
+                                SDL_WINDOWPOS_CENTERED,
+                                xres*2, yres*2,
+                                SDL_WINDOW_RESIZABLE);
+        if ( !screen ) {
+            fprintf(stderr, "ioMgr::Couldn't set %dx%dx32 video mode: %s\nStarting without video output.\n", xres*2, yres*2, SDL_GetError());
+        }
+
+        SDL_SetWindowMinimumSize(screen, xres, yres);
+
+        renderer = SDL_CreateRenderer(screen, -1, SDL_RENDERER_ACCELERATED/*|SDL_RENDERER_PRESENTVSYNC*/);
+        //renderer = SDL_CreateRenderer(screen, -1, SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
+        //renderer = SDL_CreateRenderer(screen, -1, SDL_RENDERER_SOFTWARE|SDL_RENDERER_PRESENTVSYNC);
+        //renderer = SDL_CreateRenderer(screen, -1, SDL_RENDERER_SOFTWARE/*|SDL_RENDERER_PRESENTVSYNC*/);
+        SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
+        if(!renderer) {
+            fprintf(stderr, "ioMgr::Couldn't create a renderer: %s\nStarting without video output.\n", SDL_GetError());
+            SDL_DestroyWindow(screen);
+            screen = NULL;
+        }
+
+        texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888,SDL_TEXTUREACCESS_STREAMING,xres,yres);
+        if(!texture) {
+            fprintf(stderr, "ioMgr::Couldn't create a texture: %s\nStarting without video output.\n", SDL_GetError());
+            SDL_DestroyRenderer(renderer);
+            renderer = NULL;
+            SDL_DestroyWindow(screen);
+            screen = NULL;
+        }
+    }
+
+    void sdlWindow::updateWindow(int startx, int starty, const std::vector<std::vector<uint8_t>>& image) {
+        int xres = image[0].size() / 3;
+        int yres = image.size();
+        std::vector<uint8_t> out_buf(yres * xres * 4, 0xff);
+        for(int line = 0; line < yres; line++) {
+            for(int pixel = 0; pixel < xres; pixel++) {
+                out_buf[4 * (line * xres + pixel) + 0] = image[line][pixel * 3];
+                out_buf[4 * (line * xres + pixel) + 1] = image[line][pixel * 3 + 1];
+                out_buf[4 * (line * xres + pixel) + 2] = image[line][pixel * 3 + 2];
+            }
+        }
+        if(texture) {
+            SDL_UpdateTexture(texture, NULL, out_buf.data(), 256 * 4);
+            SDL_RenderCopy(renderer, texture, NULL, NULL);
+            SDL_RenderPresent(renderer);
+        }
+
+//        return false;
+    }
+
+    void sdlWindow::updateOverlay(int startx, int starty, const std::vector<std::vector<uint8_t>>& image) {}
+    void sdlWindow::resize(unsigned int xres, unsigned int yres) {}
+
+ioMgr::ioMgr(std::shared_ptr<config> cfg) {
     Uint32 sdl_init_flags = SDL_INIT_EVERYTHING|SDL_INIT_JOYSTICK|SDL_INIT_GAMECONTROLLER;
     //if(headless) sdl_init_flags &= (~SDL_INIT_VIDEO);
     //if(!audio)   sdl_init_flags &= (~SDL_INIT_AUDIO);
@@ -10,31 +111,13 @@ ioMgr::ioMgr(std::shared_ptr<config> cfg): screen(nullptr), renderer(nullptr), b
     }
     auto res = cfg->getResolution();
 
-    if(reinitWindow(res.first, res.second)) {
-        SDL_SetRenderDrawColor(renderer, 255,255,255,255);
-        SDL_RenderFillRect(renderer, nullptr);
-        SDL_RenderPresent(renderer);
-    }
+    std::string title("Khedgehog Main Window");
+    window.emplace_back(sdlWindow{res.first, res.second, title});
+
 }
 
-bool ioMgr::updateWindow(int startx, int starty, const std::vector<std::vector<uint8_t>>& image) {
-    int xres = image[0].size() / 3;
-    int yres = image.size();
-    std::vector<uint8_t> out_buf(yres * xres * 4, 0xff);
-    for(int line = 0; line < yres; line++) {
-        for(int pixel = 0; pixel < xres; pixel++) {
-            out_buf[4 * (line * xres + pixel) + 0] = image[line][pixel * 3];
-            out_buf[4 * (line * xres + pixel) + 1] = image[line][pixel * 3 + 1];
-            out_buf[4 * (line * xres + pixel) + 2] = image[line][pixel * 3 + 2];
-        }
-    }
-    if(texture) {
-            SDL_UpdateTexture(texture, NULL, out_buf.data(), 256 * 4);
-            SDL_RenderCopy(renderer, texture, NULL, NULL);
-            SDL_RenderPresent(renderer);
-    }
+bool ioMgr::updateWindow(unsigned int winIndex, int startx, int starty, const std::vector<std::vector<uint8_t>>& image) {
 
-    return false;
 }
 
 ioEvent ioMgr::getEvent() {
@@ -123,53 +206,6 @@ ioEvent ioMgr::getEvent() {
     return ioEvent(ioEvent::eventType::none);
 }
 
-bool ioMgr::reinitWindow(unsigned int xres, unsigned int yres) {
-    if(screen) {
-        SDL_DestroyWindow(screen);
-        screen = NULL;
-    }
-    if(renderer) {
-        SDL_DestroyRenderer(renderer);
-        renderer = NULL;
-    }
-    if(texture) {
-        SDL_DestroyTexture(texture);
-        texture = NULL;
-    }
+bool ioMgr::resizeWindow(unsigned int winIndex, unsigned int xres, unsigned int yres) {
 
-    /* Initialize the SDL library */
-    screen = SDL_CreateWindow("Khedgehog",
-                              SDL_WINDOWPOS_CENTERED,
-                              SDL_WINDOWPOS_CENTERED,
-                              xres*2, yres*2,
-                              SDL_WINDOW_RESIZABLE);
-    if ( !screen ) {
-        fprintf(stderr, "ioMgr::Couldn't set %dx%dx32 video mode: %s\nStarting without video output.\n", xres*2, yres*2, SDL_GetError());
-        return false;
-    }
-
-    SDL_SetWindowMinimumSize(screen, xres, yres);
-
-    renderer = SDL_CreateRenderer(screen, -1, SDL_RENDERER_ACCELERATED/*|SDL_RENDERER_PRESENTVSYNC*/);
-    //renderer = SDL_CreateRenderer(screen, -1, SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
-    //renderer = SDL_CreateRenderer(screen, -1, SDL_RENDERER_SOFTWARE|SDL_RENDERER_PRESENTVSYNC);
-    //renderer = SDL_CreateRenderer(screen, -1, SDL_RENDERER_SOFTWARE/*|SDL_RENDERER_PRESENTVSYNC*/);
-    SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
-    if(!renderer) {
-        fprintf(stderr, "ioMgr::Couldn't create a renderer: %s\nStarting without video output.\n", SDL_GetError());
-        SDL_DestroyWindow(screen);
-        screen = NULL;
-        return false;
-    }
-
-    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888,SDL_TEXTUREACCESS_STREAMING,xres,yres);
-    if(!texture) {
-        fprintf(stderr, "ioMgr::Couldn't create a texture: %s\nStarting without video output.\n", SDL_GetError());
-        SDL_DestroyRenderer(renderer);
-        renderer = NULL;
-        SDL_DestroyWindow(screen);
-        screen = NULL;
-        return false;
-    }
-    return true;
 }
