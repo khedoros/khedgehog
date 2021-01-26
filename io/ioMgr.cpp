@@ -114,8 +114,12 @@ ioMgr::ioMgr(std::shared_ptr<config> cfg) {
     }
     auto res = cfg->getResolution();
 
-    std::string title("Khedgehog Main Window");
-    window.emplace_back(res.first, res.second, title);
+    window.emplace_back(res.first, res.second, "Khedgehog Main Window");
+}
+
+unsigned int ioMgr::createWindow(unsigned int xres, unsigned int yres, std::string title) {
+    window.emplace_back(xres, yres, title);
+    return window.size() - 1;
 }
 
 bool ioMgr::updateWindow(unsigned int winIndex, int startx, int starty, const std::vector<std::vector<uint8_t>>& image) {
@@ -126,84 +130,56 @@ bool ioMgr::updateWindow(unsigned int winIndex, int startx, int starty, const st
 ioEvent ioMgr::getEvent() {
     SDL_Event event;
     while(SDL_PollEvent(&event)) {
-        switch(event.type) {
-            case SDL_KEYDOWN:  /* Handle a KEYDOWN event */
-                switch(event.key.keysym.scancode) {
-                    case SDL_SCANCODE_Q:
-                        SDL_Quit();
-                        return ioEvent{ioEvent::eventType::window, ioEvent::windowEvent::exit};
-                    case SDL_SCANCODE_A:
-                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::dpad_left, ioEvent::keyState::keydown};
-                    case SDL_SCANCODE_S:
-                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::dpad_down, ioEvent::keyState::keydown};
-                    case SDL_SCANCODE_D:
-                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::dpad_right, ioEvent::keyState::keydown};
-                    case SDL_SCANCODE_W:
-                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::dpad_up, ioEvent::keyState::keydown};
-                    case SDL_SCANCODE_H:
-                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::button_pause, ioEvent::keyState::keydown};
-                    case SDL_SCANCODE_K:
-                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::button_1, ioEvent::keyState::keydown};
-                    case SDL_SCANCODE_L:
-                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::button_2, ioEvent::keyState::keydown};
-                }
-                break;
-            case SDL_KEYUP: /* Handle a KEYUP event*/
-                switch(event.key.keysym.scancode) {
-                    case SDL_SCANCODE_A:
-                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::dpad_left, ioEvent::keyState::keyup};
-                    case SDL_SCANCODE_S:
-                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::dpad_down, ioEvent::keyState::keyup};
-                    case SDL_SCANCODE_D:
-                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::dpad_right, ioEvent::keyState::keyup};
-                    case SDL_SCANCODE_W:
-                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::dpad_up, ioEvent::keyState::keyup};
-                    case SDL_SCANCODE_H:
-                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::button_pause, ioEvent::keyState::keyup};
-                    case SDL_SCANCODE_K:
-                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::button_1, ioEvent::keyState::keyup};
-                    case SDL_SCANCODE_L:
-                        return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::button_2, ioEvent::keyState::keyup};
-                }
-
-                break;
-            case SDL_WINDOWEVENT:
-                switch(event.window.event) {
-                    case SDL_WINDOWEVENT_SHOWN:
-                        break;
-                    case SDL_WINDOWEVENT_HIDDEN:
-                        break;
-                    case SDL_WINDOWEVENT_SIZE_CHANGED:
-                        //newx=event.window.data1;
-                        //newy=event.window.data2;
-                        //bus->win_resize(newx, newy);
-                        break;
-                    case SDL_WINDOWEVENT_EXPOSED:
-                        break;
-                    case SDL_WINDOWEVENT_CLOSE:
-                        SDL_Quit();
-                        return ioEvent(ioEvent::eventType::window, ioEvent::windowEvent::exit);
-                    default:
-                        //printf("something else (%d)\n", event.window.event);
-                        break;
-                }
-                break;
-            case SDL_QUIT:
+        if(event.type == SDL_KEYDOWN) { /* Handle a KEYDOWN event */
+            switch(event.key.keysym.scancode) {
+                case SDL_SCANCODE_Q:
+                    SDL_Quit();
+                    return ioEvent{ioEvent::eventType::window, ioEvent::windowEvent::exit};
+                case SDL_SCANCODE_A:
+                    return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::dpad_left, ioEvent::keyState::keydown};
+                case SDL_SCANCODE_S:
+                    return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::dpad_down, ioEvent::keyState::keydown};
+                case SDL_SCANCODE_D:
+                    return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::dpad_right, ioEvent::keyState::keydown};
+                case SDL_SCANCODE_W:
+                    return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::dpad_up, ioEvent::keyState::keydown};
+                case SDL_SCANCODE_H:
+                    return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::button_pause, ioEvent::keyState::keydown};
+                case SDL_SCANCODE_K:
+                    return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::button_1, ioEvent::keyState::keydown};
+                case SDL_SCANCODE_L:
+                    return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::button_2, ioEvent::keyState::keydown};
+                default:
+                    break;
+            }
+        }
+        else if(event.type == SDL_KEYUP) { /* Handle a KEYUP event*/
+            switch(event.key.keysym.scancode) {
+                case SDL_SCANCODE_A:
+                    return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::dpad_left, ioEvent::keyState::keyup};
+                case SDL_SCANCODE_S:
+                    return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::dpad_down, ioEvent::keyState::keyup};
+                case SDL_SCANCODE_D:
+                    return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::dpad_right, ioEvent::keyState::keyup};
+                case SDL_SCANCODE_W:
+                    return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::dpad_up, ioEvent::keyState::keyup};
+                case SDL_SCANCODE_H:
+                    return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::button_pause, ioEvent::keyState::keyup};
+                case SDL_SCANCODE_K:
+                    return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::button_1, ioEvent::keyState::keyup};
+                case SDL_SCANCODE_L:
+                    return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::button_2, ioEvent::keyState::keyup};
+                default:
+                    break;
+            }
+        }
+        else if(event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE) {
+            SDL_Quit();
+            return ioEvent(ioEvent::eventType::window, ioEvent::windowEvent::exit);
+        }
+        else if(event.type == SDL_QUIT) {
                 SDL_Quit();
                 return ioEvent(ioEvent::eventType::window, ioEvent::windowEvent::exit);
-                break;
-            case SDL_MOUSEMOTION: case SDL_MOUSEBUTTONDOWN: case SDL_MOUSEBUTTONUP: case SDL_MOUSEWHEEL:
-                break;
-            case SDL_TEXTINPUT:
-                break;
-            case SDL_KEYMAPCHANGED:
-                break;
-            case SDL_AUDIODEVICEADDED:
-                break;
-            default: /* Report an unhandled event */
-                //printf("util::I don't know what this event is (%d)! Flushing it.\n", event.type);
-                SDL_FlushEvent(event.type);
-                break;
         }
     }
     return ioEvent(ioEvent::eventType::none);

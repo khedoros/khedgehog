@@ -32,7 +32,7 @@ private:
 class ioMgr {
 public:
     ioMgr(std::shared_ptr<config> cfg);
-    unsigned int createWindow(unsigned int xres, unsigned int yres, std::string& title);
+    unsigned int createWindow(unsigned int xres, unsigned int yres, std::string title);
     bool resizeWindow(unsigned int winIndex, unsigned int xres, unsigned int yres);
     bool updateWindow(unsigned int winIndex, int startx, int starty, const std::vector<std::vector<uint8_t>>& image); // need to decide how I want to represent the image. Maybe std::vector<std::vector<uint8_t>>?
     bool overlayWindow(unsigned int winIndex, int startx, int starty, const std::vector<std::vector<uint8_t>>& image);
