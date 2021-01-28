@@ -11,6 +11,7 @@ class ioMgr;
 
 class sdlWindow {
 public:
+    sdlWindow();
     sdlWindow(unsigned int xres, unsigned int yres, std::string title);
     ~sdlWindow();
     void updateWindow(int startx, int starty, const std::vector<std::vector<uint8_t>>& image);

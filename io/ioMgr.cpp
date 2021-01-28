@@ -2,6 +2,8 @@
 #include<tuple>
 #include<iostream>
 
+    sdlWindow::sdlWindow() {}
+
     sdlWindow::sdlWindow(unsigned int width, unsigned int height, std::string t) : screen(nullptr), renderer(nullptr), buffer(nullptr), texture(nullptr), overlay(nullptr), title(t), xres(width), yres(height)
     {
         std::cerr<<"Creating window \""<<title<<"\" at res "<<xres<<" x "<<yres<<"\n";
@@ -55,7 +57,7 @@
         screen = SDL_CreateWindow(title.c_str(),
                                 SDL_WINDOWPOS_CENTERED,
                                 SDL_WINDOWPOS_CENTERED,
-                                width*2, height*2,
+                                width, height,
                                 SDL_WINDOW_RESIZABLE);
         if ( !screen ) {
             fprintf(stderr, "ioMgr::Couldn't set %dx%dx32 video mode: %s\nStarting without video output.\n", width*2, height*2, SDL_GetError());
@@ -105,7 +107,7 @@
 
     void sdlWindow::updateOverlay(int startx, int starty, const std::vector<std::vector<uint8_t>>& image) {}
 
-ioMgr::ioMgr(std::shared_ptr<config> cfg) {
+ioMgr::ioMgr(std::shared_ptr<config> cfg) : window(0) {
     Uint32 sdl_init_flags = SDL_INIT_EVERYTHING|SDL_INIT_JOYSTICK|SDL_INIT_GAMECONTROLLER;
     //if(headless) sdl_init_flags &= (~SDL_INIT_VIDEO);
     //if(!audio)   sdl_init_flags &= (~SDL_INIT_AUDIO);
@@ -114,7 +116,8 @@ ioMgr::ioMgr(std::shared_ptr<config> cfg) {
     }
     auto res = cfg->getResolution();
 
-    window.emplace_back(res.first, res.second, "Khedgehog Main Window");
+//    createWindow(res.first, res.second, "Khedgehog Main Window");
+    createWindow(1024, 1024, "Khedgehog Main Window");
 }
 
 unsigned int ioMgr::createWindow(unsigned int xres, unsigned int yres, std::string title) {
@@ -123,7 +126,7 @@ unsigned int ioMgr::createWindow(unsigned int xres, unsigned int yres, std::stri
 }
 
 bool ioMgr::updateWindow(unsigned int winIndex, int startx, int starty, const std::vector<std::vector<uint8_t>>& image) {
-    window[winIndex].updateWindow(startx, starty, image);
+    window.at(winIndex).updateWindow(startx, starty, image);
     return true;
 }
 

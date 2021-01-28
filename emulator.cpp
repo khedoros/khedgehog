@@ -44,7 +44,7 @@ int emulator::run() {
     bool paused = false;
     bool muted = false;
 
-    //unsigned int debugWindow = io->createWindow(100, 100, "Khedgehog Debug Window");
+    //unsigned int debugWindow = io->createWindow(1024, 1024, "Khedgehog Debug Window");
     unsigned int mainWindow = 0;
 
     uint64_t line = 0;
@@ -83,7 +83,9 @@ int emulator::run() {
         }
         if(line == 192) {
             //vdp_dev->calc(cycle_chunk); //run VDP for amount matching the CPU
-            io -> updateWindow(mainWindow, 0, 0, vdp_dev->getPartialRender());
+      //      io -> updateWindow(mainWindow, 0, 0, vdp_dev->getPartialRender());
+        //    io -> updateWindow(debugWindow, 0, 0, vdp_dev->getDebugRender());
+              io -> updateWindow(mainWindow, 0, 0, vdp_dev->getDebugRender());
         }
         else if(line == 262) {
             line = 0;
