@@ -90,7 +90,7 @@
             }
         }
         if(texture) {
-            SDL_UpdateTexture(texture, NULL, out_buf.data(), 256 * 4);
+            SDL_UpdateTexture(texture, NULL, out_buf.data(), width * 4);
             SDL_RenderCopy(renderer, texture, NULL, NULL);
             SDL_RenderPresent(renderer);
         }
