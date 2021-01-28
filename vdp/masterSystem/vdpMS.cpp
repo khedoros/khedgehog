@@ -302,19 +302,21 @@ std::vector<std::vector<uint8_t>> vdpMS::getDebugRender() {
     std::vector<std::vector<uint8_t>> buffer(1024, std::vector<uint8_t>(1024*3, 0));
     for(int row = 0; row < 128; row++) {
         for(int col = 0; col < 128; col++) {
-            int data = vram.at((127-row) * 128 + col);
+            int data = vram.at(row * 128 + col);
             int lineCol = (data >= 128) ? 0: 255;
             for(int y = 0; y < 8; y++) {
                 auto line = getFontTileLine(data, y);
-                for(int x=0;x<8;x++) {
-                    int toSet = (line[x] > 0)?lineCol:data;
+                for(int x = 0; x < 8; x++) {
+                    uint8_t toSet = /*(line[x] > 0)?lineCol:*/data;
                     buffer.at((row * 8) + y).at(3 * ((col * 8) +  x) + 0) = toSet;
                     buffer.at((row * 8) + y).at(3 * ((col * 8) +  x) + 1) = toSet;
                     buffer.at((row * 8) + y).at(3 * ((col * 8) +  x) + 2) = toSet;
+                    
                 }
             }
         }
     }
+    count++;
     return buffer;
 }
 

@@ -49,6 +49,7 @@ private:
 
     systemType vdpMode;
     systemRegion vdpRegion;
+    uint8_t count = 0;
 
     bool addr_latch;
     uint8_t addr_buffer;
