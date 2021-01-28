@@ -16,10 +16,12 @@ public:
     ~sdlWindow();
     void updateWindow(int startx, int starty, const std::vector<std::vector<uint8_t>>& image);
     void resize(unsigned int xres, unsigned int yres);
+    void show();
 
 private:
     std::string title;
     int xres, yres;
+    int windowId;
     SDL_Window * screen;
     SDL_Renderer * renderer;
     SDL_Texture * texture; //Texture used for output

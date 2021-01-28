@@ -120,7 +120,7 @@ void memmapZ80Console::writePortByte(uint8_t port, uint8_t val, uint64_t cycle) 
         case 0x00:
 //            dbg_printf(" (memory control)");
               std::cerr<<"Really not implemented. Got port "<<std::hex<<int(port)<<" = "<<int(val)<<"\n";
-              exit(1);
+              //exit(1);
             break;
         case 0x01:
 //            dbg_printf(" (I/O control + automatic nationalization)"); break;
