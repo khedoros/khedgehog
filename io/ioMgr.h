@@ -15,7 +15,6 @@ public:
     sdlWindow(unsigned int xres, unsigned int yres, std::string title);
     ~sdlWindow();
     void updateWindow(int startx, int starty, const std::vector<std::vector<uint8_t>>& image);
-    void updateOverlay(int startx, int starty, const std::vector<std::vector<uint8_t>>& image);
     void resize(unsigned int xres, unsigned int yres);
 
 private:
@@ -23,11 +22,7 @@ private:
     int xres, yres;
     SDL_Window * screen;
     SDL_Renderer * renderer;
-
-    SDL_Surface * buffer; //Output buffer
     SDL_Texture * texture; //Texture used for output
-
-    SDL_Surface * overlay; //overlay surface (if I want to render non-game info)
 };
 
 class ioMgr {

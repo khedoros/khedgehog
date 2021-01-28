@@ -4,7 +4,7 @@
 
     sdlWindow::sdlWindow() {}
 
-    sdlWindow::sdlWindow(unsigned int width, unsigned int height, std::string t) : screen(nullptr), renderer(nullptr), buffer(nullptr), texture(nullptr), overlay(nullptr), title(t), xres(width), yres(height)
+    sdlWindow::sdlWindow(unsigned int width, unsigned int height, std::string t) : screen(nullptr), renderer(nullptr), texture(nullptr), title(t), xres(width), yres(height)
     {
         std::cerr<<"Creating window \""<<title<<"\" at res "<<xres<<" x "<<yres<<"\n";
         resize(xres, yres);
@@ -27,14 +27,6 @@
         if(texture) {
             SDL_DestroyTexture(texture);
             texture = nullptr;
-        }
-        if(buffer) {
-            SDL_FreeSurface(buffer);
-            buffer = nullptr;
-        }
-        if(overlay) {
-            SDL_FreeSurface(overlay);
-            overlay = nullptr;
         }
     }
 
@@ -104,8 +96,6 @@
         }
 
     }
-
-    void sdlWindow::updateOverlay(int startx, int starty, const std::vector<std::vector<uint8_t>>& image) {}
 
 ioMgr::ioMgr(std::shared_ptr<config> cfg) : window(0) {
     Uint32 sdl_init_flags = SDL_INIT_EVERYTHING|SDL_INIT_JOYSTICK|SDL_INIT_GAMECONTROLLER;
