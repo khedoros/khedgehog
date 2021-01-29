@@ -4,22 +4,22 @@
 
 sdlWindow::sdlWindow() {}
 
-sdlWindow::sdlWindow(unsigned int width, unsigned int height, std::string t) : screen(nullptr), renderer(nullptr), texture(nullptr), title(t), xres(width), yres(height)
+sdlWindow::sdlWindow(unsigned int width, unsigned int height, std::string t) : window(nullptr), renderer(nullptr), texture(nullptr), title(t), xres(width), yres(height)
 {
     std::cerr<<"Creating window \""<<title<<"\" at res "<<xres<<" x "<<yres<<"\n";
     resize(xres, yres);
-    SDL_SetWindowTitle(screen, title.c_str());
+    SDL_SetWindowTitle(window, title.c_str());
     SDL_SetRenderDrawColor(renderer, 255,255,255,255);
     SDL_RenderFillRect(renderer, nullptr);
     SDL_RenderPresent(renderer);
-    windowId = SDL_GetWindowID(screen);
+    windowId = SDL_GetWindowID(window);
 }
 
 sdlWindow::~sdlWindow() {
     std::cerr<<"Destroying window \""<<title<<"\" at res "<<xres<<" x "<<yres<<"\n";
-    if(screen) {
-        SDL_DestroyWindow(screen);
-        screen = nullptr;
+    if(window) {
+        SDL_DestroyWindow(window);
+        window = nullptr;
     }
     if(renderer) {
         SDL_DestroyRenderer(renderer);
@@ -33,54 +33,50 @@ sdlWindow::~sdlWindow() {
 
 void sdlWindow::resize(unsigned int width, unsigned int height) {
     std::cerr<<"Resize window \""<<title<<"\" to "<<width<<" x "<<height<<"\n";
-    if(screen) {
-        SDL_DestroyWindow(screen);
-        screen = NULL;
+    if(window) {
+        SDL_DestroyWindow(window);
+        window = nullptr;
     }
     if(renderer) {
         SDL_DestroyRenderer(renderer);
-        renderer = NULL;
+        renderer = nullptr;
     }
     if(texture) {
         SDL_DestroyTexture(texture);
-        texture = NULL;
+        texture = nullptr;
     }
 
     /* Initialize the SDL library */
-    screen = SDL_CreateWindow(title.c_str(),
+    window = SDL_CreateWindow(title.c_str(),
             SDL_WINDOWPOS_CENTERED,
             SDL_WINDOWPOS_CENTERED,
             width, height,
             SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN);
-    if ( !screen ) {
+    if ( !window ) {
         fprintf(stderr, "ioMgr::Couldn't set %dx%dx32 video mode: %s\nStarting without video output.\n", width*2, height*2, SDL_GetError());
     }
 
-    SDL_SetWindowMinimumSize(screen, width, height);
+    SDL_SetWindowMinimumSize(window, width, height);
 
-    renderer = SDL_CreateRenderer(screen, -1, SDL_RENDERER_ACCELERATED/*|SDL_RENDERER_PRESENTVSYNC*/);
-    //renderer = SDL_CreateRenderer(screen, -1, SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
-    //renderer = SDL_CreateRenderer(screen, -1, SDL_RENDERER_SOFTWARE|SDL_RENDERER_PRESENTVSYNC);
-    //renderer = SDL_CreateRenderer(screen, -1, SDL_RENDERER_SOFTWARE/*|SDL_RENDERER_PRESENTVSYNC*/);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED/*|SDL_RENDERER_PRESENTVSYNC*/);
+    //renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
+    //renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE|SDL_RENDERER_PRESENTVSYNC);
+    //renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE/*|SDL_RENDERER_PRESENTVSYNC*/);
     SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
     if(!renderer) {
         fprintf(stderr, "ioMgr::Couldn't create a renderer: %s\nStarting without video output.\n", SDL_GetError());
-        SDL_DestroyWindow(screen);
-        screen = NULL;
+        SDL_DestroyWindow(window);
+        window = nullptr;
     }
 
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888,SDL_TEXTUREACCESS_STREAMING,width,height);
     if(!texture) {
         fprintf(stderr, "ioMgr::Couldn't create a texture: %s\nStarting without video output.\n", SDL_GetError());
         SDL_DestroyRenderer(renderer);
-        renderer = NULL;
-        SDL_DestroyWindow(screen);
-        screen = NULL;
+        renderer = nullptr;
+        SDL_DestroyWindow(window);
+        window = nullptr;
     }
-}
-
-void sdlWindow::show() {
-    SDL_ShowWindow(screen);
 }
 
 void sdlWindow::updateWindow(int startx, int starty, const std::vector<std::vector<uint8_t>>& image) {
@@ -95,14 +91,15 @@ void sdlWindow::updateWindow(int startx, int starty, const std::vector<std::vect
         }
     }
     if(texture) {
-        SDL_UpdateTexture(texture, NULL, out_buf.data(), width * 4);
-        SDL_RenderCopy(renderer, texture, NULL, NULL);
+        SDL_UpdateTexture(texture, nullptr, out_buf.data(), width * 4);
+        SDL_RenderCopy(renderer, texture, nullptr, nullptr);
         SDL_RenderPresent(renderer);
     }
 
 }
 
-ioMgr::ioMgr(std::shared_ptr<config> cfg) : window(0) {
+ioMgr::ioMgr(std::shared_ptr<config> cfg) {
+    windowList.reserve(4);
     Uint32 sdl_init_flags = SDL_INIT_EVERYTHING|SDL_INIT_JOYSTICK|SDL_INIT_GAMECONTROLLER;
     //if(headless) sdl_init_flags &= (~SDL_INIT_VIDEO);
     //if(!audio)   sdl_init_flags &= (~SDL_INIT_AUDIO);
@@ -115,12 +112,12 @@ ioMgr::ioMgr(std::shared_ptr<config> cfg) : window(0) {
 }
 
 unsigned int ioMgr::createWindow(unsigned int xres, unsigned int yres, std::string title) {
-    window.emplace_back(xres, yres, title);
-    return window.size() - 1;
+    windowList.emplace_back(xres, yres, title);
+    return windowList.size() - 1;
 }
 
 bool ioMgr::updateWindow(unsigned int winIndex, int startx, int starty, const std::vector<std::vector<uint8_t>>& image) {
-    window.at(winIndex).updateWindow(startx, starty, image);
+    windowList.at(winIndex).updateWindow(startx, starty, image);
     return true;
 }
 
@@ -178,16 +175,11 @@ ioEvent ioMgr::getEvent() {
             SDL_Quit();
             return ioEvent(ioEvent::eventType::window, ioEvent::windowEvent::exit);
         }
-        else if(event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_HIDDEN) {
-            for(auto & w: window) {
-                w.show();
-            }
-        }
     }
     return ioEvent(ioEvent::eventType::none);
 }
 
 bool ioMgr::resizeWindow(unsigned int winIndex, unsigned int xres, unsigned int yres) {
-    window[winIndex].resize(xres, yres);
+    windowList[winIndex].resize(xres, yres);
     return true;
 }
