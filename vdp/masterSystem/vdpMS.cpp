@@ -298,11 +298,69 @@ void vdpMS::renderMode4(std::vector<std::vector<uint8_t>>& buffer) {
     }
 }
 
+/*
+// Raw VRAM visualization, rendering to a grid of grayscale and little tiny numbers
 std::vector<std::vector<uint8_t>> vdpMS::getDebugRender() {
     std::vector<std::vector<uint8_t>> buffer(1024, std::vector<uint8_t>(1024*3, 0));
     for(int row = 0; row < 128; row++) {
         for(int col = 0; col < 128; col++) {
             int data = vram.at((127 - row) * 128 + col);
+            int lineCol = (data >= 128) ? 0: 255;
+            for(int y = 0; y < 8; y++) {
+                auto line = getFontTileLine(data, y);
+                for(int x = 0; x < 8; x++) {
+                    uint8_t toSet = (line[x] > 0)?lineCol:data;
+                    buffer.at((row * 8) + y).at(3 * ((col * 8) +  x) + 0) = toSet;
+                    buffer.at((row * 8) + y).at(3 * ((col * 8) +  x) + 1) = toSet;
+                    buffer.at((row * 8) + y).at(3 * ((col * 8) +  x) + 2) = toSet;
+                    
+                }
+            }
+        }
+    }
+    count++;
+    return buffer;
+}
+*/
+
+
+std::vector<std::vector<uint8_t>> vdpMS::getDebugRender() {
+    if(getMode() == graphicsMode_t::mode4) {
+        return getDBM4Render();
+    }
+    else if(getMode() == graphcisMode_t::graphics2) {
+        return getDBG2Render();
+    }
+}
+
+//TODO: Finish. Should render tiles for graphics mode 2 (and maybe 1), 64 tiles by 32 tiles
+std::vector<std::vector<uint8_t>> vdpMS::getDBG2Render() {
+    std::vector<std::vector<uint8_t>> buffer(1024, std::vector<uint8_t>(1024*3, 0));
+    for(int tileRow = 0; tileRow < 64; tileRow++) {
+        for(int tileCol = 0; tileCol < 32; tileCol++) {
+            for(int fineRow = 0; fineRow < 8; fineRow++) {
+                int data = vram.at(512 * tileRow + 8 * tileCol + fineRow);
+                auto line = getG2TileLine(data, fineRow);
+                for(int x = 0; x < 8; x++) {
+                    uint8_t toSet = line[x] * 255;
+                    buffer.at((tileRow * 8) + fineRow).at(3 * ((tileCol * 8) +  x) + 0) = toSet;
+                    buffer.at((tileRow * 8) + fineRow).at(3 * ((tileCol * 8) +  x) + 1) = toSet;
+                    buffer.at((tileRow * 8) + fineRow).at(3 * ((tileCol * 8) +  x) + 2) = toSet;
+                }
+            }
+        }
+    }
+    count++;
+    return buffer;
+}
+
+//TODO: Finish. Should render tiles for Mode 4 graphics, 32 tiles by 16 tiles
+std::vector<std::vector<uint8_t>> vdpMS::getDBM4Render() {
+    std::vector<std::vector<uint8_t>> buffer(1024, std::vector<uint8_t>(1024*3, 0));
+    for(int tileRow = 0; tileRow < 32; tileRow++) {
+        for(int tileCol = 0; tileCol < 16; tileCol++) {
+            for(int fineRow = 0; fineRow < 8; fineRow++) {
+                int data = vram.at((127 - row) * 128 + col);
             int lineCol = (data >= 128) ? 0: 255;
             for(int y = 0; y < 8; y++) {
                 auto line = getFontTileLine(data, y);

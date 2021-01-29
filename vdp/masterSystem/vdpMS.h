@@ -42,6 +42,8 @@ private:
     void renderText(std::vector<std::vector<uint8_t>>&);
     void renderMulticolor(std::vector<std::vector<uint8_t>>&);
     void renderMode4(std::vector<std::vector<uint8_t>>&);
+    std::vector<std::vector<uint8_t>> getDBG2Render();
+    std::vector<std::vector<uint8_t>> getDBM4Render();
 
 
     std::array<uint8_t, 0x4000> vram;
