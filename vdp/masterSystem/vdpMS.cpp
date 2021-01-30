@@ -100,21 +100,12 @@ void vdpMS::renderGraphic1(std::vector<std::vector<uint8_t>>& buffer) {
 
             int color_addr = (col_tab_base() + tile_num / 8) & 0x3fff;
             bg_fg_col_t colors{.val = vram.at(color_addr)};
-            //std::cout<<"Color base: "<<std::hex<<static_cast<unsigned int>(color_t_base)<<" x_tile: "<<x_tile<<" y_tile: "<<y_tile<<" tile number: "<<tile_num<<"\n";
 
             for(int y = 0; y < 8; y++) {
-                uint8_t tile_data = vram.at(tile_addr + y);
-                uint8_t mask = 128;
+                auto line = getG2TileLine(tile_addr, y);
                 for(int x = 0; x < 8; x++) {
-                    uint8_t color_index = 0;
-                    if((tile_data & mask) == mask) color_index = colors.fields.foreground;
-                    else color_index = colors.fields.background;
-
-                    buffer[y_tile * 8 + y][3 * (x_tile * 8 + x) + 0] = tms_palette[color_index * 3 + 0];
-                    buffer[y_tile * 8 + y][3 * (x_tile * 8 + x) + 1] = tms_palette[color_index * 3 + 1];
-                    buffer[y_tile * 8 + y][3 * (x_tile * 8 + x) + 2] = tms_palette[color_index * 3 + 2];
-
-                    mask>>=1;
+                    uint8_t color_index = line[x] ? colors.fields.foreground: colors.fields.background;
+                    setPixelSG(buffer, x_tile * 8 + x, y_tile * 8 + y, color_index);
                 }
             }
         }
@@ -128,28 +119,20 @@ void vdpMS::renderGraphic2(std::vector<std::vector<uint8_t>>& buffer) {
         int y_triad = y_tile / 8;
         for(int x_tile=0;x_tile<32;x_tile++) {
             int tile_num_addr = (name_tab_base() + y_tile * 32 + x_tile) & 0x3fff;
-            //std::printf("%04x ", tile_num_addr);
             int tile_num = vram.at(tile_num_addr) + 256 * y_triad;
-            //std::printf("%03x ", tile_num);
             int tile_addr = ((bg_tile_base() & 0x2000) + tile_num * 8) & 0x3fff;
 
             int color_addr = ((col_tab_base() & 0x2000) + tile_num * 8) & 0x3fff ;
-            //std::cout<<"Color base: "<<std::hex<<static_cast<unsigned int>(color_t_base)<<" x_tile: "<<x_tile<<" y_tile: "<<y_tile<<" tile number: "<<tile_num<<"\n";
 
             for(int y = 0; y < 8; y++) {
                 bg_fg_col_t colors{.val = vram.at(color_addr + y)};
-                uint8_t tile_data = vram.at(tile_addr + y);
-                uint8_t mask = 128;
+                auto line = getG2TileLine(tile_addr, y);
                 for(int x = 0; x < 8; x++) {
-                    uint8_t color_index = 0;
-                    if((tile_data & mask) == mask) color_index = colors.fields.foreground;
-                    else color_index = colors.fields.background;
+                    uint8_t color_index = line[x] ? colors.fields.foreground : colors.fields.background;
                     setPixelSG(buffer, x_tile * 8 + x, y_tile * 8 + y, color_index);
-                    mask>>=1;
                 }
             }
         }
-        //printf("\n");
     }
 }
 
@@ -187,21 +170,6 @@ void vdpMS::setPixelSMS(std::vector<std::vector<uint8_t>>& buffer, int x, int y,
 
 void vdpMS::renderMode4(std::vector<std::vector<uint8_t>>& buffer) {
 
-    /*
-    std::cout<<"spr_attr_table_base: 0x"<<std::hex<<sprite_attr_tab_base()<<"\n";
-    for(int i=0;vram.at(sprite_attr_tab_base() + i) != 0xd0;i++) {
-        int y = vram.at(sprite_attr_tab_base() + i);
-        int x = vram.at(sprite_attr_tab_base() + 128 + i * 2);
-        int tile = vram.at(sprite_attr_tab_base() + 128 + i * 2 + 1);
-        std::printf("Sprite #%d: x: %02x y: %02x tile: %02x\n", i, x, y, tile);
-    }
-    std::printf("\n");
-    std::printf("\n");
-    */
-    //std::cout<<"SMS (Mode 4) render: NT: "<<std::hex<<name_tab_base()<<" BG Tiles: "<<bg_tile_base()<<" Palette: ";
-    //for(int i=0;i<32;i++) std::cout<<int(pal_ram.at(i))<<" ";
-    //std::cout<<"\n";
-
     int scrYStart = 0, scrYEnd = 192, scrXStart = 0, scrXEnd = 256;
     if(vdpMode == systemType::gameGear) {
         scrYStart = 3 * 8;
@@ -235,17 +203,10 @@ void vdpMS::renderMode4(std::vector<std::vector<uint8_t>>& buffer) {
             int fineY = scrY - vram.at(sprite_attr_tab_base() + spr);
 
             uint16_t tile_addr = (sprite_tile_base() + 32 * tile) & 0x3fff;
-            uint8_t byte0 = vram.at(tile_addr + yFine * 4);
-            uint8_t byte1 = vram.at(tile_addr + yFine * 4 + 1);
-            uint8_t byte2 = vram.at(tile_addr + yFine * 4 + 2);
-            uint8_t byte3 = vram.at(tile_addr + yFine * 4 + 3);
+            auto line = getM4TileLine(tile_addr, fineY);
 
-            int mask = 0x80;
-            int indexShift = 7;
             for(int xFine = x; xFine < x + 8 && xFine < 256; xFine++) {
-                int color_index = (((mask & byte0) + 2*(mask & byte1) + 4*(mask & byte2) + 8*(mask&byte3)) >> indexShift) + 16;
-                mask>>=1;
-                indexShift--;
+                int color_index = line[xFine] + 16;
                 lineBuffer[xFine] = color_index;
             }
         }
@@ -323,24 +284,34 @@ std::vector<std::vector<uint8_t>> vdpMS::getDebugRender() {
 }
 */
 
-
 std::vector<std::vector<uint8_t>> vdpMS::getDebugRender() {
     if(getMode() == graphicsMode_t::mode4) {
         return getDBM4Render();
     }
-    else if(getMode() == graphcisMode_t::graphics2) {
+    else if(getMode() == graphicsMode_t::graphics2) {
         return getDBG2Render();
     }
+    return std::vector<std::vector<uint8_t>>(1024,std::vector<uint8_t>(1024*3,0xff));
 }
 
-//TODO: Finish. Should render tiles for graphics mode 2 (and maybe 1), 64 tiles by 32 tiles
+std::array<uint8_t, 8> vdpMS::getG2TileLine(uint16_t tileAddr, uint8_t row) {
+    std::array<uint8_t, 8> retval;
+    uint8_t val = vram.at(tileAddr + row);
+    uint8_t mask = 128;
+    for(int x = 0; x < 8; x++) {
+        retval[x] = (val & mask) >> (7 - x);
+        mask>>=1;
+    }
+    return retval;
+}
+
 std::vector<std::vector<uint8_t>> vdpMS::getDBG2Render() {
     std::vector<std::vector<uint8_t>> buffer(1024, std::vector<uint8_t>(1024*3, 0));
     for(int tileRow = 0; tileRow < 64; tileRow++) {
         for(int tileCol = 0; tileCol < 32; tileCol++) {
             for(int fineRow = 0; fineRow < 8; fineRow++) {
-                int data = vram.at(512 * tileRow + 8 * tileCol + fineRow);
-                auto line = getG2TileLine(data, fineRow);
+                uint16_t tileAddr = 256 * tileRow + 8 * tileCol;
+                auto line = getG2TileLine(tileAddr, fineRow);
                 for(int x = 0; x < 8; x++) {
                     uint8_t toSet = line[x] * 255;
                     buffer.at((tileRow * 8) + fineRow).at(3 * ((tileCol * 8) +  x) + 0) = toSet;
@@ -350,31 +321,39 @@ std::vector<std::vector<uint8_t>> vdpMS::getDBG2Render() {
             }
         }
     }
-    count++;
     return buffer;
 }
 
-//TODO: Finish. Should render tiles for Mode 4 graphics, 32 tiles by 16 tiles
+std::array<uint8_t, 8> vdpMS::getM4TileLine(uint16_t tileAddr, uint8_t row) {
+    std::array<uint8_t, 8> retval;
+    uint8_t data0 = vram.at(tileAddr + row * 4 + 0);
+    uint8_t data1 = vram.at(tileAddr + row * 4 + 1);
+    uint8_t data2 = vram.at(tileAddr + row * 4 + 2);
+    uint8_t data3 = vram.at(tileAddr + row * 4 + 3);
+   
+    uint8_t mask = 128;
+    for(int x = 0; x < 8; x++) {
+        retval[x] = ((data0 & mask) >> (7 - x)) + 2 * ((data1 & mask) >> (7 - x)) + 4 * ((data2 & mask) >> (7 - x)) + 8 * ((data3 & mask) >> (7 - x));
+        mask>>=1;
+    }
+    return retval;
+}
+
 std::vector<std::vector<uint8_t>> vdpMS::getDBM4Render() {
     std::vector<std::vector<uint8_t>> buffer(1024, std::vector<uint8_t>(1024*3, 0));
     for(int tileRow = 0; tileRow < 32; tileRow++) {
         for(int tileCol = 0; tileCol < 16; tileCol++) {
             for(int fineRow = 0; fineRow < 8; fineRow++) {
-                int data = vram.at((127 - row) * 128 + col);
-            int lineCol = (data >= 128) ? 0: 255;
-            for(int y = 0; y < 8; y++) {
-                auto line = getFontTileLine(data, y);
+                uint16_t tileAddr = tileRow * 512 + tileCol * 32;
+                auto line = getM4TileLine(tileAddr, fineRow);
                 for(int x = 0; x < 8; x++) {
-                    uint8_t toSet = (line[x] > 0)?lineCol:data;
-                    buffer.at((row * 8) + y).at(3 * ((col * 8) +  x) + 0) = toSet;
-                    buffer.at((row * 8) + y).at(3 * ((col * 8) +  x) + 1) = toSet;
-                    buffer.at((row * 8) + y).at(3 * ((col * 8) +  x) + 2) = toSet;
-                    
+                    buffer.at((tileRow * 8) + fineRow).at(3 * ((tileCol * 8) +  x) + 0) = tms_palette[line[x] * 3 + 0];
+                    buffer.at((tileRow * 8) + fineRow).at(3 * ((tileCol * 8) +  x) + 1) = tms_palette[line[x] * 3 + 1];
+                    buffer.at((tileRow * 8) + fineRow).at(3 * ((tileCol * 8) +  x) + 2) = tms_palette[line[x] * 3 + 2];
                 }
             }
         }
     }
-    count++;
     return buffer;
 }
 

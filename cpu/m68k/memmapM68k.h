@@ -4,9 +4,6 @@
 #include<memory>
 #include "../../memmap.h"
 #include "../../config.h"
-#include "../../apu/genesis/memmapGenesisApu.h"
-#include "../../vdp/genesis/memmapGenesisVdp.h"
-#include "../../io/genesis/inputMapperGenesis.h"
 #include "../../io/ioEvent.h"
 
 class memmapM68k : public memmap {
@@ -27,8 +24,8 @@ protected:
 private:
     std::array<uint8_t, 0x400000> rom;
     std::array<uint8_t, 0x10000>  ram;
-    std::shared_ptr<memmapGenesisApu>   apu;
-    std::shared_ptr<memmapGenesisVdp>   vdp;
+    //std::shared_ptr<memmapGenesisApu>   apu;
+    //std::shared_ptr<memmapGenesisVdp>   vdp;
     std::shared_ptr<inputMapperGenesis> io;
     bool valid;
 };

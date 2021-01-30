@@ -44,7 +44,8 @@ private:
     void renderMode4(std::vector<std::vector<uint8_t>>&);
     std::vector<std::vector<uint8_t>> getDBG2Render();
     std::vector<std::vector<uint8_t>> getDBM4Render();
-
+    std::array<uint8_t, 8> getG2TileLine(uint16_t tileAddr, uint8_t row);
+    std::array<uint8_t, 8> getM4TileLine(uint16_t tileAddr, uint8_t row);
 
     std::array<uint8_t, 0x4000> vram;
     std::vector<uint8_t> pal_ram;
