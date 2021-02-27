@@ -26,8 +26,13 @@ uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
     return cycles_to_run - cycles_remaining;
 }
 
-cpuZ80::cpuZ80(std::shared_ptr<memmapZ80Console> memmap): memory(memmap), cycles_remaining(0), pc(0), iff1(false), iff2(false), total_cycles(0), halted(false), sp(0xffff), int_mode(cpuZ80::mode0) {
+cpuZ80::cpuZ80(std::shared_ptr<memmapZ80Console> memmap): memory(memmap), cycles_remaining(0), pc(0), iff1(false), iff2(false), total_cycles(0), halted(false), sp(0xdfef), int_mode(cpuZ80::mode0) {
     af.pair = 0xffff;
+    bc.pair = 0;
+    de.pair = 0;
+    hl.pair = 0;
+    ix.pair = 0;
+    iy.pair = 0;
     reset();
 }
 
@@ -1569,7 +1574,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_incr8(uint8_t opcode) {
 template <uint32_t OPCODE> uint64_t cpuZ80::op_jp(uint8_t opcode) {
     uint16_t jump_addr = 0;
     if(OPCODE == 0xe9) {
-        jump_addr = memory->readWord(hl.pair);
+        jump_addr = hl.pair;
     }
     else {
         jump_addr = memory->readWord(pc);
