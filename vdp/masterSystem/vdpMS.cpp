@@ -153,6 +153,7 @@ void vdpMS::setPixelSG(std::vector<std::vector<uint8_t>>& buffer, int x, int y, 
 void vdpMS::setPixelGG(std::vector<std::vector<uint8_t>>& buffer, int x, int y, int index) {
     gg_color_t color;
     if(index == 0) index = bg_fg_col.fields.background;
+    else index %= pal_ram.size();
     color.val[0] = pal_ram.at(index * 2);
     color.val[1] = pal_ram.at(index * 2 + 1);
     buffer[y][3 * x + 0] = gg_pal_component[color.component.blue];
@@ -162,6 +163,7 @@ void vdpMS::setPixelGG(std::vector<std::vector<uint8_t>>& buffer, int x, int y, 
 
 void vdpMS::setPixelSMS(std::vector<std::vector<uint8_t>>& buffer, int x, int y, int index) {
     if(index == 0) index = bg_fg_col.fields.background;
+    else index %= pal_ram.size();
     sms_color_t color{.val = pal_ram.at(index)};
     buffer[y][3 * x + 0] = sms_pal_component[color.component.blue];
     buffer[y][3 * x + 1] = sms_pal_component[color.component.green];
