@@ -6,9 +6,9 @@
 #include "../../util.h"
 #include "../../debug_console.h"
 
-memmapZ80Console::memmapZ80Console(std::shared_ptr<config> cfg, std::shared_ptr<vdp> v, std::shared_ptr<apu> a) : 
+memmapZ80Console::memmapZ80Console(std::shared_ptr<config> conf, std::shared_ptr<vdp> v, std::shared_ptr<apu> a) : 
     map_ctrl(0), map_slot0_offset(0), map_slot1_offset(1 * 0x4000), map_slot2_offset(2 * 0x4000), 
-    vdp_dev(v), apu_dev(a), slot2RamActive(false), slot2RamPage(0)
+    vdp_dev(v), apu_dev(a), cfg(conf), slot2RamActive(false), slot2RamPage(0)
     {
     ram.fill(0);
     std::ifstream romfile(cfg->getRomPath().c_str());
@@ -35,6 +35,9 @@ uint8_t& memmapZ80Console::readByte(uint32_t addr) {
 uint8_t memmapZ80Console::readPortByte(uint8_t port, uint64_t cycle) {
     // TODO: Implement :-D
     dbg_printf(" read port %02x >> [dummy]", port);
+    if(port == 0 && cfg->getSystemType() == systemType::gameGear) {
+        return 0x7f | (!(gg_port_0.start))<<7;
+    }
     switch(port & 0b11000001) {
         case 0x00:
             dbg_printf(" (memory control register)");
@@ -85,7 +88,10 @@ uint32_t& memmapZ80Console::readLong(uint32_t addr) {
 }
 
 void memmapZ80Console::writeByte(uint32_t addr, uint8_t val) {
-    if(addr >= 0xC000) {
+    if(addr >= 0x8000 && addr < 0xc000 && slot2RamActive) {
+        cartRam[addr & 0x1fff] = val;
+    }
+    else if(addr >= 0xC000) {
         ram[addr & 0x1fff] = val;
     }
     switch(addr) {
@@ -93,16 +99,20 @@ void memmapZ80Console::writeByte(uint32_t addr, uint8_t val) {
         slot2RamActive = (val & 0b00001000)? true: false;
         slot2RamPage = (val & 0b00000100)? 1: 0;
         //std::printf("Wrote %02x to %04x. Exiting.\n", val, addr);
+        std::cerr<<"Slot 2 RAM: "<<std::hex<<int(val)<<" (active: "<<slot2RamActive<<", page: "<<int(slot2RamPage)<<"\n";
         //exit(1);
         break;
     case 0xfffd:
         map_slot0_offset = (0x4000 * val) % romsize;
+        std::cerr<<"Slot 0 page: "<<std::hex<<int(val)<<"\n";
         break;
     case 0xfffe:
         map_slot1_offset = (0x4000 * val) % romsize;
+        std::cerr<<"Slot 1 page: "<<std::hex<<int(val)<<"\n";
         break;
     case 0xffff:
         map_slot2_offset = (0x4000 * val) % romsize;
+        std::cerr<<"Slot 2 page: "<<std::hex<<int(val)<<"\n";
         break;
     }
 }
@@ -182,6 +192,9 @@ void memmapZ80Console::sendEvent(ioEvent e) {
                 io_port_ab.port_a_tr = pressed;
                 break;
             case ioEvent::smsKey::button_pause:
+                if(cfg->getSystemType() == systemType::gameGear) {
+                    gg_port_0.start = pressed;
+                }
                 break;
         }
     }

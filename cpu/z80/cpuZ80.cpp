@@ -321,9 +321,9 @@ const std::array<z80OpPtr, 256> cpuZ80::dd_op_table = {
   &cpuZ80::op_unimpl<0xddd4>, &cpuZ80::op_unimpl<0xddd5>, &cpuZ80::op_unimpl<0xddd6>, &cpuZ80::op_unimpl<0xddd7>,
   &cpuZ80::op_unimpl<0xddd8>, &cpuZ80::op_unimpl<0xddd9>, &cpuZ80::op_unimpl<0xddda>, &cpuZ80::op_unimpl<0xdddb>,
   &cpuZ80::op_unimpl<0xdddc>, &cpuZ80::op_unimpl<0xdddd>, &cpuZ80::op_unimpl<0xddde>, &cpuZ80::op_unimpl<0xdddf>,
-  &cpuZ80::op_unimpl<0xdde0>, &cpuZ80::op_pop<0xdde1>,    &cpuZ80::op_unimpl<0xdde2>, &cpuZ80::op_unimpl<0xdde3>,
+  &cpuZ80::op_unimpl<0xdde0>, &cpuZ80::op_pop<0xdde1>,    &cpuZ80::op_unimpl<0xdde2>, &cpuZ80::op_ex16<0xdde3>,
   &cpuZ80::op_unimpl<0xdde4>, &cpuZ80::op_push<0xdde5>,   &cpuZ80::op_unimpl<0xdde6>, &cpuZ80::op_unimpl<0xdde7>,
-  &cpuZ80::op_unimpl<0xdde8>, &cpuZ80::op_unimpl<0xdde9>, &cpuZ80::op_unimpl<0xddea>, &cpuZ80::op_unimpl<0xddeb>,
+  &cpuZ80::op_unimpl<0xdde8>, &cpuZ80::op_jp<0xdde9>,     &cpuZ80::op_unimpl<0xddea>, &cpuZ80::op_unimpl<0xddeb>,
   &cpuZ80::op_unimpl<0xddec>, &cpuZ80::op_unimpl<0xdded>, &cpuZ80::op_unimpl<0xddee>, &cpuZ80::op_unimpl<0xddef>,
   &cpuZ80::op_unimpl<0xddf0>, &cpuZ80::op_unimpl<0xddf1>, &cpuZ80::op_unimpl<0xddf2>, &cpuZ80::op_unimpl<0xddf3>,
   &cpuZ80::op_unimpl<0xddf4>, &cpuZ80::op_unimpl<0xddf5>, &cpuZ80::op_unimpl<0xddf6>, &cpuZ80::op_unimpl<0xddf7>,
@@ -422,9 +422,9 @@ const std::array<z80OpPtr, 256> cpuZ80::fd_op_table = {
   &cpuZ80::op_unimpl<0xfdd4>, &cpuZ80::op_unimpl<0xfdd5>, &cpuZ80::op_unimpl<0xfdd6>, &cpuZ80::op_unimpl<0xfdd7>,
   &cpuZ80::op_unimpl<0xfdd8>, &cpuZ80::op_unimpl<0xfdd9>, &cpuZ80::op_unimpl<0xfdda>, &cpuZ80::op_unimpl<0xfddb>,
   &cpuZ80::op_unimpl<0xfddc>, &cpuZ80::op_unimpl<0xfddd>, &cpuZ80::op_unimpl<0xfdde>, &cpuZ80::op_unimpl<0xfddf>,
-  &cpuZ80::op_unimpl<0xfde0>, &cpuZ80::op_pop<0xfde1>,    &cpuZ80::op_unimpl<0xfde2>, &cpuZ80::op_unimpl<0xfde3>,
+  &cpuZ80::op_unimpl<0xfde0>, &cpuZ80::op_pop<0xfde1>,    &cpuZ80::op_unimpl<0xfde2>, &cpuZ80::op_ex16<0xfde3>,
   &cpuZ80::op_unimpl<0xfde4>, &cpuZ80::op_push<0xfde5>,   &cpuZ80::op_unimpl<0xfde6>, &cpuZ80::op_unimpl<0xfde7>,
-  &cpuZ80::op_unimpl<0xfde8>, &cpuZ80::op_unimpl<0xfde9>, &cpuZ80::op_unimpl<0xfdea>, &cpuZ80::op_unimpl<0xfdeb>,
+  &cpuZ80::op_unimpl<0xfde8>, &cpuZ80::op_jp<0xfde9>,     &cpuZ80::op_unimpl<0xfdea>, &cpuZ80::op_unimpl<0xfdeb>,
   &cpuZ80::op_unimpl<0xfdec>, &cpuZ80::op_unimpl<0xfded>, &cpuZ80::op_unimpl<0xfdee>, &cpuZ80::op_unimpl<0xfdef>,
   &cpuZ80::op_unimpl<0xfdf0>, &cpuZ80::op_unimpl<0xfdf1>, &cpuZ80::op_unimpl<0xfdf2>, &cpuZ80::op_unimpl<0xfdf3>,
   &cpuZ80::op_unimpl<0xfdf4>, &cpuZ80::op_unimpl<0xfdf5>, &cpuZ80::op_unimpl<0xfdf6>, &cpuZ80::op_unimpl<0xfdf7>,
@@ -1390,7 +1390,20 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_ex16(uint8_t opcode) { // EX (sp)
         std::swap(de.pair, hl.pair);
         cycles = 4;
     }
-
+    else if(OPCODE == 0xdde3) {
+        uint16_t val = memory->readWord(sp);
+        uint16_t temp = ix.pair;
+        ix.pair = val;
+        memory->writeWord(sp, temp);
+        cycles = 23;
+    }
+    else if(OPCODE == 0xfde3) {
+        uint16_t val = memory->readWord(sp);
+        uint16_t temp = iy.pair;
+        iy.pair = val;
+        memory->writeWord(sp, temp);
+        cycles = 23;
+    }
     return cycles;
 }
 
@@ -1573,8 +1586,18 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_incr8(uint8_t opcode) {
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_jp(uint8_t opcode) {
     uint16_t jump_addr = 0;
+    uint64_t cycles = -1;
     if(OPCODE == 0xe9) {
         jump_addr = hl.pair;
+        cycles = 4;
+    }
+    else if(OPCODE == 0xdde9) {
+        jump_addr = ix.pair;
+        cycles = 8;
+    }
+    else if(OPCODE == 0xfde9) {
+        jump_addr = iy.pair;
+        cycles = 8;
     }
     else {
         jump_addr = memory->readWord(pc);
@@ -1585,10 +1608,10 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_jp(uint8_t opcode) {
     switch(OPCODE) {
     case 0xc3: //JP nn 4,3,3
         pc = jump_addr;
-        return 10;
-    case 0xe9: //JP (HL)
+        cycles = 10;
+    case 0xe9: case 0xdde9: case 0xfde9: //JP HL/IX/IY
         pc = jump_addr;
-        return 4;
+        break;
     case 0xc2: case 0xca: case 0xd2: case 0xda: case 0xe2: case 0xea: case 0xf2: case 0xfa: // JP cc, nn
         if(condition((OPCODE>>3) & 7)) {
             pc = jump_addr;
@@ -1599,7 +1622,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_jp(uint8_t opcode) {
         }
         return 10;
     }
-    return -1;
+    return cycles;
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_jr(uint8_t opcode) { //DJNZ and various JR instructions
