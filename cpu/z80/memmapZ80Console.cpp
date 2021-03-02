@@ -1,12 +1,13 @@
 #include "memmapZ80Console.h"
 #include "../../vdp/masterSystem/vdpMS.h"
 #include "../../apu/masterSystem/apuMS.h"
+#include "../../apu/tiPsg.h"
 #include<iostream>
 #include<fstream>
 #include "../../util.h"
 #include "../../debug_console.h"
 
-memmapZ80Console::memmapZ80Console(std::shared_ptr<config> conf, std::shared_ptr<vdp> v, std::shared_ptr<apu> a) : 
+memmapZ80Console::memmapZ80Console(std::shared_ptr<config> conf, std::shared_ptr<vdp> v, std::shared_ptr<TiPsg> a) : 
     map_ctrl(0), map_slot0_offset(0), map_slot1_offset(1 * 0x4000), map_slot2_offset(2 * 0x4000), 
     vdp_dev(v), apu_dev(a), cfg(conf), slot2RamActive(false), slot2RamPage(0)
     {
@@ -137,6 +138,7 @@ void memmapZ80Console::writePortByte(uint8_t port, uint8_t val, uint64_t cycle) 
             break;
         case 0x40: case 0x41:
 //            dbg_printf(" (PSG SN76489 output control)"); break;
+              apu_dev->writeRegister(val);
             break;
         case 0x80:
             vdp_dev->writeByte(port, val, cycle);

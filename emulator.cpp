@@ -11,7 +11,8 @@
 #include "cpu/m68k/cpuM68k.h"
 #include "cpu/z80/cpuZ80.h"
 #include "apu/genesis/apuGenesis.h"
-#include "apu/masterSystem/apuMS.h"
+//#include "apu/masterSystem/apuMS.h"
+#include "apu/tiPsg.h"
 #include "vdp/genesis/vdpGenesis.h"
 #include "vdp/masterSystem/vdpMS.h"
 
@@ -44,7 +45,7 @@ int emulator::run() {
     bool paused = false;
     bool muted = false;
 
-    unsigned int debugWindow = io->createWindow(1024, 1024, "Khedgehog Debug Window");
+    //unsigned int debugWindow = io->createWindow(1024, 1024, "Khedgehog Debug Window");
     unsigned int mainWindow = 0;
 
     uint64_t line = 0;
@@ -84,7 +85,7 @@ int emulator::run() {
         if(line == 192) {
             //vdp_dev->calc(cycle_chunk); //run VDP for amount matching the CPU
             io -> updateWindow(mainWindow, 0, 0, vdp_dev->getPartialRender());
-            io -> updateWindow(debugWindow, 0, 0, vdp_dev->getDebugRender());
+            //io -> updateWindow(debugWindow, 0, 0, vdp_dev->getDebugRender());
         }
         else if(line == 262) {
             line = 0;
@@ -106,9 +107,9 @@ int genesisEmulator::run() {
 smsEmulator::smsEmulator(std::shared_ptr<config> config) {
     cfg = config;
     io = std::make_shared<ioMgr>(cfg);
-    apu_dev = std::make_shared<apuMS>();
+    apu_dev = std::make_shared<TiPsg>();
     vdp_dev = std::make_shared<vdpMS>(cfg->getSystemType(), cfg->getSystemRegion());
-    cpu_map = std::make_shared<memmapZ80Console>(config, vdp_dev, apu_dev);
+    cpu_map = std::make_shared<memmapZ80Console>(config, vdp_dev, std::dynamic_pointer_cast<TiPsg>(apu_dev));
     cpu_dev = std::make_shared<cpuZ80>(std::dynamic_pointer_cast<memmapZ80Console>(cpu_map));
 }
 
