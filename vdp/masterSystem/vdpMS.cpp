@@ -190,8 +190,8 @@ void vdpMS::renderMode4(std::vector<std::vector<uint8_t>>& buffer) {
         std::array<int, 8> sprSearch;
         int sprCount = 0;
         for(int i = 0; vram.at(sprite_attr_tab_base() + i) != 0xd0 && i < 64;i++) {
-            int y = vram.at(sprite_attr_tab_base() + i);
-            if(scrY - y > 0 && scrY - y <= sprHeight) sprSearch[sprCount++] = i;
+            int y = vram.at(sprite_attr_tab_base() + i) + 1;
+            if(scrY - y >= 0 && scrY - y < sprHeight) sprSearch[sprCount++] = i;
             if(sprCount == 8) break;
         }
 
@@ -199,17 +199,22 @@ void vdpMS::renderMode4(std::vector<std::vector<uint8_t>>& buffer) {
 
         // Draw sprites into lineBuffer
         for(int spr = 0; spr < sprCount; spr++) {
-            int y = vram.at(sprite_attr_tab_base() + sprSearch[spr]);
-            int x = vram.at(sprite_attr_tab_base() + 128 + spr * 2);
-            int tile = vram.at(sprite_attr_tab_base() + 128 + spr * 2 + 1);
-            int fineY = scrY - vram.at(sprite_attr_tab_base() + spr);
+            int y = vram.at(sprite_attr_tab_base() + sprSearch[spr]) + 1;
+            int x = vram.at(sprite_attr_tab_base() + 128 + sprSearch[spr] * 2);
+            int tile = vram.at(sprite_attr_tab_base() + 128 + sprSearch[spr] * 2 + 1);
+            int fineY = scrY - y;
+            //std::cout<<"Sprite#: "<<spr<<" Line: "<<scrY<<" Spr_y: "<<y
+            assert(fineY >= 0);
+            assert(fineY < sprHeight);
 
             uint16_t tile_addr = (sprite_tile_base() + 32 * tile) & 0x3fff;
             auto line = getM4TileLine(tile_addr, fineY);
 
             for(int xFine = x; xFine < x + 8 && xFine < 256; xFine++) {
                 int color_index = line[xFine] + 16;
-                lineBuffer[xFine] = color_index;
+                if(color_index) {
+                    lineBuffer[xFine] = color_index;
+                }
             }
         }
 
@@ -389,7 +394,8 @@ uint16_t vdpMS::sprite_tile_base() { // Register 6, starting address for the Spr
     if(vdpMode == systemType::sg_1000) {
         return 0x800 * spr_tile_base;
     }
-    return (spr_tile_base & 0x04) * 0x800;
+    if(spr_tile_base & 0x04) return 0x2000;
+    else return 0;
     //std::printf("%04x\n", spr_tile_base);
     //return 0x0000;
 }
