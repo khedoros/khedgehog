@@ -33,4 +33,9 @@ bool vdpGenesis::frameInterrupt() {
     return false;
 }
 
+std::vector<std::vector<uint8_t>>& vdpGenesis::getFrameBuffer() {
+    return buffer;
+}
+
+
 void vdpGenesis::endLine(uint64_t line) {}

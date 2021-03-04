@@ -13,14 +13,25 @@ vdpMS::vdpMS(systemType t, systemRegion r):addr_latch(false), vdpMode(t), vdpReg
     switch(t) {
         case systemType::sg_1000:
             std::cout<<"VDP started in SG-1000 mode\n";
+            resizeBuffer(256, 192);
             break;
         case systemType::gameGear:
             std::cout<<"VDP started in GameGear mode\n";
+            resizeBuffer(160, 144);
             break;
         case systemType::masterSystem:
             std::cout<<"VDP startedin Master System mode\n";
+            resizeBuffer(256, 192);
             break;
     }
+}
+
+void vdpMS::resizeBuffer(unsigned int x, unsigned int y) {
+    curXRes = x;
+    curYRes = y;
+
+    buffer.resize(curYRes);
+    for(auto& row: buffer) row.resize(curXRes * 3, 0);
 }
 
 vdpMS::graphicsMode_t vdpMS::getMode() {
@@ -38,6 +49,14 @@ vdpMS::graphicsMode_t vdpMS::getMode() {
         case 14: return graphicsMode_t::mode4_240;
         default: return graphicsMode_t::unknown;
     }
+}
+
+std::vector<std::vector<uint8_t>>& vdpMS::getFrameBuffer() {
+    return buffer;
+}
+
+void vdpMS::renderLine(unsigned int line) {
+
 }
 
 std::vector<std::vector<uint8_t>> vdpMS::getPartialRender() {

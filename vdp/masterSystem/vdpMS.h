@@ -13,6 +13,7 @@ public:
     uint8_t readByte(uint8_t address, uint64_t cycle) override;
     std::vector<std::vector<uint8_t>> getPartialRender() override; // Render a composited view of the current VDP memory state
     std::vector<std::vector<uint8_t>> getDebugRender() override; // Render VDP memory in a rawer format
+    std::vector<std::vector<uint8_t>>& getFrameBuffer() override; // Get current framebuffer state (e.g. after completing the frame)
     uint16_t name_tab_base();
     uint16_t col_tab_base();
     uint16_t bg_tile_base();
@@ -46,6 +47,7 @@ private:
     std::vector<std::vector<uint8_t>> getDBM4Render();
     std::array<uint8_t, 8> getG2TileLine(uint16_t tileAddr, uint8_t row);
     std::array<uint8_t, 8> getM4TileLine(uint16_t tileAddr, uint8_t row);
+    void resizeBuffer(unsigned int x, unsigned int y);
 
     std::array<uint8_t, 0x4000> vram;
     std::vector<uint8_t> pal_ram;
@@ -53,6 +55,9 @@ private:
     systemType vdpMode;
     systemRegion vdpRegion;
     uint8_t count = 0;
+    unsigned int curXRes;
+    unsigned int curYRes;
+    std::vector<std::vector<uint8_t>> buffer;
 
     bool addr_latch;
     uint8_t addr_buffer;
