@@ -100,20 +100,20 @@ void memmapZ80Console::writeByte(uint32_t addr, uint8_t val) {
         slot2RamActive = (val & 0b00001000)? true: false;
         slot2RamPage = (val & 0b00000100)? 1: 0;
         //std::printf("Wrote %02x to %04x. Exiting.\n", val, addr);
-        std::cerr<<"Slot 2 RAM: "<<std::hex<<int(val)<<" (active: "<<slot2RamActive<<", page: "<<int(slot2RamPage)<<"\n";
+        //std::cerr<<"Slot 2 RAM: "<<std::hex<<int(val)<<" (active: "<<slot2RamActive<<", page: "<<int(slot2RamPage)<<"\n";
         //exit(1);
         break;
     case 0xfffd:
         map_slot0_offset = (0x4000 * val) % romsize;
-        std::cerr<<"Slot 0 page: "<<std::hex<<int(val)<<"\n";
+        //std::cerr<<"Slot 0 page: "<<std::hex<<int(val)<<"\n";
         break;
     case 0xfffe:
         map_slot1_offset = (0x4000 * val) % romsize;
-        std::cerr<<"Slot 1 page: "<<std::hex<<int(val)<<"\n";
+        //std::cerr<<"Slot 1 page: "<<std::hex<<int(val)<<"\n";
         break;
     case 0xffff:
         map_slot2_offset = (0x4000 * val) % romsize;
-        std::cerr<<"Slot 2 page: "<<std::hex<<int(val)<<"\n";
+        //std::cerr<<"Slot 2 page: "<<std::hex<<int(val)<<"\n";
         break;
     }
 }

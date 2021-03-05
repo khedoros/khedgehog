@@ -359,13 +359,19 @@ std::array<uint8_t, 8> vdpMS::getM4TileLine(uint16_t tileAddr, uint8_t row) {
 }
 
 void vdpMS::setPixelSG(std::vector<std::vector<uint8_t>>& buffer, int x, int y, int index) {
-	std::cout<<"y: "<<y<<" x: "<<x<<"\n";
+	//std::cout<<"y: "<<y<<" x: "<<x<<"\n";
     buffer[y][3 * x + 0] = tms_palette[index * 3 + 0];
     buffer[y][3 * x + 1] = tms_palette[index * 3 + 1];
     buffer[y][3 * x + 2] = tms_palette[index * 3 + 2];
 }
 
 void vdpMS::setPixelGG(std::vector<std::vector<uint8_t>>& buffer, int x, int y, int index) {
+    assert(x >= 0);
+    assert(x < 160);
+    assert(y >= 0);
+    assert(y < 144);
+    assert(buffer.size() == 144);
+    assert(buffer[0].size() == 160);
     gg_color_t color;
     if(index == 0) index = bg_fg_col.fields.background;
     else index %= pal_ram.size();
@@ -500,9 +506,11 @@ void vdpMS::writeAddress(uint8_t val) {
                 switch(val & 0x0f) {
                     case 0x00:
                         ctrl_1.val = (address & 0x00ff);
+                        curMode = getMode();
                         break;
                     case 0x01:
                         ctrl_2.val = (address & 0x00ff);
+                        curMode = getMode();
                         break;
                     case 0x02:
                         nt_base = (address & 0x00ff);
@@ -524,6 +532,7 @@ void vdpMS::writeAddress(uint8_t val) {
                         break;
                     case 0x08:
                         bg_x_scroll = (address & 0x00ff);
+                        std::printf("scroll bg to %d\n", bg_x_scroll);
                         break;
                     case 0x09:
                         bg_y_scroll = (address & 0x00ff);

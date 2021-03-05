@@ -33,6 +33,7 @@ private:
     uint8_t readHCounter(uint64_t cycle);
 
     enum class graphicsMode_t {text, graphics1, graphics2, multicolor, mode4, mode4_224, mode4_240, unknown};
+    graphicsMode_t curMode;
 
     graphicsMode_t getMode();
     void setPixelSG(std::vector<std::vector<uint8_t>>& buffer, int x, int y, int index);

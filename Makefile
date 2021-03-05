@@ -13,7 +13,7 @@ ifdef DEBUG
 endif
 
 $(target): $(objects)
-	g++ $(debug) -flto -O3 -o $@ $^ $(SDLLDFLAGS)
+	$(CXX) $(debug) -flto -O3 -o $@ $^ $(SDLLDFLAGS)
 
 %.od: %.cpp
 	$(CXX) -c $(debug) $(CPPFLAGS) $(CXXFLAGS) $< -o $@

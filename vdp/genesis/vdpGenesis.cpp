@@ -1,6 +1,6 @@
 #include "vdpGenesis.h"
 
-vdpGenesis::vdpGenesis(systemType t = systemType::genesis, systemRegion r = systemRegion::ntsc) {
+vdpGenesis::vdpGenesis(systemType t, systemRegion r) {
 
 }
 
