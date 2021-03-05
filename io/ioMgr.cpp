@@ -90,6 +90,10 @@ void sdlWindow::updateWindow(int startx, int starty, const std::vector<std::vect
             out_buf[4 * (line * width + pixel) + 2] = image[line][pixel * 3 + 2];
         }
     }
+	if(width != xres || height != yres) {
+		resize(width, height);
+	}
+
     if(texture) {
         SDL_UpdateTexture(texture, nullptr, out_buf.data(), width * 4);
         SDL_RenderCopy(renderer, texture, nullptr, nullptr);

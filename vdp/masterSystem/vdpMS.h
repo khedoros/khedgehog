@@ -38,11 +38,12 @@ private:
     void setPixelSG(std::vector<std::vector<uint8_t>>& buffer, int x, int y, int index);
     void setPixelGG(std::vector<std::vector<uint8_t>>& buffer, int x, int y, int index);
     void setPixelSMS(std::vector<std::vector<uint8_t>>& buffer, int x, int y, int index);
-    void renderGraphic1(std::vector<std::vector<uint8_t>>&);
-    void renderGraphic2(std::vector<std::vector<uint8_t>>&);
-    void renderText(std::vector<std::vector<uint8_t>>&);
-    void renderMulticolor(std::vector<std::vector<uint8_t>>&);
-    void renderMode4(std::vector<std::vector<uint8_t>>&);
+    void renderGraphic1(unsigned int line, std::vector<std::vector<uint8_t>>&);
+    void renderGraphic2(unsigned int line, std::vector<std::vector<uint8_t>>&);
+    void renderText(unsigned int line, std::vector<std::vector<uint8_t>>&);
+    void renderMulticolor(unsigned int line, std::vector<std::vector<uint8_t>>&);
+    void renderMode4(unsigned int line, std::vector<std::vector<uint8_t>>&);
+	void renderLine(unsigned int line, std::vector<std::vector<uint8_t>>& renderBuffer);
     std::vector<std::vector<uint8_t>> getDBG2Render();
     std::vector<std::vector<uint8_t>> getDBM4Render();
     std::array<uint8_t, 8> getG2TileLine(uint16_t tileAddr, uint8_t row);

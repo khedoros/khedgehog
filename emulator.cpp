@@ -84,7 +84,8 @@ int emulator::run() {
         }
         if(line == 192) {
             //vdp_dev->calc(cycle_chunk); //run VDP for amount matching the CPU
-            io -> updateWindow(mainWindow, 0, 0, vdp_dev->getPartialRender());
+            //io -> updateWindow(mainWindow, 0, 0, vdp_dev->getPartialRender());
+            io -> updateWindow(mainWindow, 0, 0, vdp_dev->getFrameBuffer());
             //io -> updateWindow(debugWindow, 0, 0, vdp_dev->getDebugRender());
         }
         else if(line == 262) {
