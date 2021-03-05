@@ -58,7 +58,15 @@ std::vector<uint8_t>& vdpMS::getFrameBuffer() {
 }
 
 void vdpMS::renderLine(unsigned int line, std::vector<uint8_t>& renderBuffer) {
-	if(line >= curYRes) return;
+    if(line >= curYRes) return;
+    if(!ctrl_2.fields.enable_display) {
+        for(int x=0;x<curXRes;x++) {
+            renderBuffer[curXRes * 3 * line + x * 3 + 0] = 0;
+            renderBuffer[curXRes * 3 * line + x * 3 + 1] = 0;
+            renderBuffer[curXRes * 3 * line + x * 3 + 2] = 0;
+        }
+        return;
+    }
     switch(getMode()) {
         case graphicsMode_t::graphics1:
             renderGraphic1(line, renderBuffer);
@@ -336,6 +344,7 @@ std::array<uint8_t, 8> vdpMS::getM4TileLine(uint16_t tileAddr, uint8_t row) {
 }
 
 void vdpMS::setPixelSG(std::vector<uint8_t>& buffer, int x, int y, int index) {
+    if(x >= curXRes || y >= curYRes) return;
 	//std::cout<<"y: "<<y<<" x: "<<x<<"\n";
     buffer[y * 256 * 3 + 3 * x + 0] = tms_palette[index * 3 + 0];
     buffer[y * 256 * 3 + 3 * x + 1] = tms_palette[index * 3 + 1];
@@ -343,11 +352,12 @@ void vdpMS::setPixelSG(std::vector<uint8_t>& buffer, int x, int y, int index) {
 }
 
 void vdpMS::setPixelGG(std::vector<uint8_t>& buffer, int x, int y, int index) {
-    assert(x >= 0);
-    assert(x < 160);
-    assert(y >= 0);
-    assert(y < 144);
-    assert(buffer.size() == 144 * 160 * 3);
+    //assert(x >= 0);
+    //assert(x < 160);
+    //assert(y >= 0);
+    //assert(y < 144);
+    //assert(buffer.size() == 144 * 160 * 3);
+    if(x >= curXRes || y >= curYRes) return;
     gg_color_t color;
     if(index == 0) index = bg_fg_col.fields.background;
     else index %= pal_ram.size();
@@ -359,6 +369,7 @@ void vdpMS::setPixelGG(std::vector<uint8_t>& buffer, int x, int y, int index) {
 }
 
 void vdpMS::setPixelSMS(std::vector<uint8_t>& buffer, int x, int y, int index) {
+    if(x >= curXRes || y >= curYRes) return;
     if(index == 0) index = bg_fg_col.fields.background;
     else index %= pal_ram.size();
     sms_color_t color{.val = pal_ram.at(index)};
