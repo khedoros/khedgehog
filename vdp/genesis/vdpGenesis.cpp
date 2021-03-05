@@ -4,13 +4,17 @@ vdpGenesis::vdpGenesis(systemType t, systemRegion r) {
 
 }
 
-std::vector<std::vector<uint8_t>> vdpGenesis::getPartialRender() {
-    return std::vector<std::vector<uint8_t>>(224, std::vector<uint8_t>(256*3, 0));
+std::vector<uint8_t> vdpGenesis::getPartialRender() {
+    return std::vector<uint8_t>(224 * 256 * 3, 0);
 }
 
-std::vector<std::vector<uint8_t>> vdpGenesis::getDebugRender() {
-    std::vector<std::vector<uint8_t>> buffer(512, std::vector<uint8_t>(512*3, 0));
+std::vector<uint8_t> vdpGenesis::getDebugRender() {
+    std::vector<uint8_t> buffer(512 * 512 * 3, 0);
     return buffer;
+}
+
+int vdpGenesis::getStride() {
+    return 0;
 }
 
 uint64_t vdpGenesis::calc(uint64_t) {
@@ -33,7 +37,7 @@ bool vdpGenesis::frameInterrupt() {
     return false;
 }
 
-std::vector<std::vector<uint8_t>>& vdpGenesis::getFrameBuffer() {
+std::vector<uint8_t>& vdpGenesis::getFrameBuffer() {
     return buffer;
 }
 

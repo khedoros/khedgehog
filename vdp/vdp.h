@@ -5,9 +5,10 @@
 
 class vdp {
 public:
-    virtual std::vector<std::vector<uint8_t>> getPartialRender() = 0; // Render a composited view of the current VDP memory state
-    virtual std::vector<std::vector<uint8_t>> getDebugRender() = 0; // Render a rawer view of VDP memory
-    virtual std::vector<std::vector<uint8_t>>& getFrameBuffer() = 0; // Get current framebuffer state
+    virtual std::vector<uint8_t> getPartialRender() = 0; // Render a composited view of the current VDP memory state
+    virtual std::vector<uint8_t> getDebugRender() = 0; // Render a rawer view of VDP memory
+    virtual std::vector<uint8_t>& getFrameBuffer() = 0; // Get current framebuffer state
+    virtual int getStride() = 0;
 
 
     virtual uint64_t calc(uint64_t) = 0;

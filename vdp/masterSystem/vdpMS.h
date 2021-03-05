@@ -11,9 +11,10 @@ public:
     vdpMS(systemType t, systemRegion r);
     void writeByte(uint8_t address, uint8_t val, uint64_t cycle) override;
     uint8_t readByte(uint8_t address, uint64_t cycle) override;
-    std::vector<std::vector<uint8_t>> getPartialRender() override; // Render a composited view of the current VDP memory state
-    std::vector<std::vector<uint8_t>> getDebugRender() override; // Render VDP memory in a rawer format
-    std::vector<std::vector<uint8_t>>& getFrameBuffer() override; // Get current framebuffer state (e.g. after completing the frame)
+    std::vector<uint8_t> getPartialRender() override; // Render a composited view of the current VDP memory state
+    std::vector<uint8_t> getDebugRender() override; // Render VDP memory in a rawer format
+    std::vector<uint8_t>& getFrameBuffer() override; // Get current framebuffer state (e.g. after completing the frame)
+    int getStride() override;
     uint16_t name_tab_base();
     uint16_t col_tab_base();
     uint16_t bg_tile_base();
@@ -36,17 +37,17 @@ private:
     graphicsMode_t curMode;
 
     graphicsMode_t getMode();
-    void setPixelSG(std::vector<std::vector<uint8_t>>& buffer, int x, int y, int index);
-    void setPixelGG(std::vector<std::vector<uint8_t>>& buffer, int x, int y, int index);
-    void setPixelSMS(std::vector<std::vector<uint8_t>>& buffer, int x, int y, int index);
-    void renderGraphic1(unsigned int line, std::vector<std::vector<uint8_t>>&);
-    void renderGraphic2(unsigned int line, std::vector<std::vector<uint8_t>>&);
-    void renderText(unsigned int line, std::vector<std::vector<uint8_t>>&);
-    void renderMulticolor(unsigned int line, std::vector<std::vector<uint8_t>>&);
-    void renderMode4(unsigned int line, std::vector<std::vector<uint8_t>>&);
-	void renderLine(unsigned int line, std::vector<std::vector<uint8_t>>& renderBuffer);
-    std::vector<std::vector<uint8_t>> getDBG2Render();
-    std::vector<std::vector<uint8_t>> getDBM4Render();
+    void setPixelSG(std::vector<uint8_t>& buffer, int x, int y, int index);
+    void setPixelGG(std::vector<uint8_t>& buffer, int x, int y, int index);
+    void setPixelSMS(std::vector<uint8_t>& buffer, int x, int y, int index);
+    void renderGraphic1(unsigned int line, std::vector<uint8_t>&);
+    void renderGraphic2(unsigned int line, std::vector<uint8_t>&);
+    void renderText(unsigned int line, std::vector<uint8_t>&);
+    void renderMulticolor(unsigned int line, std::vector<uint8_t>&);
+    void renderMode4(unsigned int line, std::vector<uint8_t>&);
+	void renderLine(unsigned int line, std::vector<uint8_t>& renderBuffer);
+    std::vector<uint8_t> getDBG2Render();
+    std::vector<uint8_t> getDBM4Render();
     std::array<uint8_t, 8> getG2TileLine(uint16_t tileAddr, uint8_t row);
     std::array<uint8_t, 8> getM4TileLine(uint16_t tileAddr, uint8_t row);
     void resizeBuffer(unsigned int x, unsigned int y);
@@ -59,7 +60,7 @@ private:
     uint8_t count = 0;
     unsigned int curXRes;
     unsigned int curYRes;
-    std::vector<std::vector<uint8_t>> buffer;
+    std::vector<uint8_t> buffer;
 
     bool addr_latch;
     uint8_t addr_buffer;

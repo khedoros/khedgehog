@@ -79,16 +79,14 @@ void sdlWindow::resize(unsigned int width, unsigned int height) {
     }
 }
 
-void sdlWindow::updateWindow(int startx, int starty, const std::vector<std::vector<uint8_t>>& image) {
-    int width = image[0].size() / 3;
-    int height = image.size();
-    std::vector<uint8_t> out_buf(height * width * 4, 0xff);
-    for(int line = 0; line < height; line++) {
-        for(int pixel = 0; pixel < width; pixel++) {
-            out_buf[4 * (line * width + pixel) + 0] = image[line][pixel * 3];
-            out_buf[4 * (line * width + pixel) + 1] = image[line][pixel * 3 + 1];
-            out_buf[4 * (line * width + pixel) + 2] = image[line][pixel * 3 + 2];
-        }
+void sdlWindow::updateWindow(int startx, int starty, int stride, const std::vector<uint8_t>& image) {
+    std::vector<uint8_t> out_buf((image.size() * 4) / 3, 0xff);
+    int width = stride / 3;
+    int height = image.size() / stride;
+    for(int pixel = 0; pixel < image.size() / 3; pixel++) {
+        out_buf[4 * pixel + 0] = image[pixel * 3 + 0];
+        out_buf[4 * pixel + 1] = image[pixel * 3 + 1];
+        out_buf[4 * pixel + 2] = image[pixel * 3 + 2];
     }
 	if(width != xres || height != yres) {
 		resize(width, height);
@@ -120,8 +118,8 @@ unsigned int ioMgr::createWindow(unsigned int xres, unsigned int yres, std::stri
     return windowList.size() - 1;
 }
 
-bool ioMgr::updateWindow(unsigned int winIndex, int startx, int starty, const std::vector<std::vector<uint8_t>>& image) {
-    windowList.at(winIndex).updateWindow(startx, starty, image);
+bool ioMgr::updateWindow(unsigned int winIndex, int startx, int starty, int stride, const std::vector<uint8_t>& image) {
+    windowList.at(winIndex).updateWindow(startx, starty, stride, image);
     return true;
 }
 
