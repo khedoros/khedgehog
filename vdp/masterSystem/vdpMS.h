@@ -42,10 +42,13 @@ private:
     void setPixelSMS(std::vector<uint8_t>& buffer, int x, int y, int index);
     void renderGraphic1(unsigned int line, std::vector<uint8_t>&);
     void renderGraphic2(unsigned int line, std::vector<uint8_t>&);
+    void renderSgSprites(unsigned int line, std::vector<uint8_t>& buffer);
+
     void renderText(unsigned int line, std::vector<uint8_t>&);
     void renderMulticolor(unsigned int line, std::vector<uint8_t>&);
     void renderMode4(unsigned int line, std::vector<uint8_t>&);
-	void renderLine(unsigned int line, std::vector<uint8_t>& renderBuffer);
+    void renderSmsSprites(unsigned int line, std::vector<uint8_t>& buffer);
+    void renderLine(unsigned int line, std::vector<uint8_t>& renderBuffer);
     std::vector<uint8_t> getDBG2Render();
     std::vector<uint8_t> getDBM4Render();
     std::array<uint8_t, 8> getG2TileLine(uint16_t tileAddr, uint8_t row);
@@ -104,7 +107,7 @@ private:
 
     uint8_t nt_base:4;       //Register #2: Name table base address, used as top 3 (SMS) to 4 (SG-1000) bits of the name table base
     uint8_t color_t_base;    // Register #3: Color table base address, used as top 8 bits of the color table base
-	uint8_t pt_base:3;       // Register #4: Pattern generator table start address, used as top 3 bits of pattern (bg tile) table
+    uint8_t pt_base:3;       // Register #4: Pattern generator table start address, used as top 3 bits of pattern (bg tile) table
     uint8_t spr_attr_base:7; // Register #5: Sprite attribute table base, top 7 bits of sprite attribute table
     uint8_t spr_tile_base:3; // Register #6: Sprite generator table start address, used as top 3 bits of sprite tile table
 
@@ -125,6 +128,8 @@ private:
     bool line_int_active;
     bool scr_int_active;
     uint64_t curLine;
+    uint8_t fifthSprite; //fifth sprite found in SG-1000 mode
+    bool sprOverflow;    //5 sprites found in SG-1000, 8 sprites found in SMS
 
     // Registers #B-#F exist, but have no effect in the SG-1000 or SMS, apparently.
 

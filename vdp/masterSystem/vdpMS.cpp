@@ -162,6 +162,36 @@ void vdpMS::renderGraphic2(unsigned int line, std::vector<uint8_t>& buffer) {
 	}
 }
 
+void vdpMS::renderSgSprites(unsigned int line, std::vector<uint8_t>& buffer) {
+    int sprHeight = 8;
+    if(ctrl_2.fields.doubled_sprites && ctrl_2.fields.large_sprites) sprHeight = 32;
+    else if(ctrl_2.fields.doubled_sprites || ctrl_2.fields.large_sprites) sprHeight = 16;
+    uint16_t sprAttrTabAddr = sprite_attr_tab_base();
+    std::array<uint8_t, 4> sprSearch;
+    int sprCount = 0;
+
+    // Find sprites on this line, and handle overflow
+    for(int spr = 0; spr < 32 && sprCount != 5; spr++) {
+        int sprY = vram.at(sprAttrTabAddr + spr * 4);
+        if(line >= sprY && line - sprY < sprHeight) {
+            if(sprCount == 4) {
+                status.fields.sprite_num = spr;
+                status.fields.overflow_flag = true;
+            }
+            else {
+                sprSearch[sprCount] = spr;
+            }
+            sprCount++;
+        }
+    }
+}
+
+void vdpMS::renderSmsSprites(unsigned int line, std::vector<uint8_t>& buffer) {
+
+}
+
+    // 
+
 void vdpMS::renderText(unsigned int line, std::vector<uint8_t>& buffer) {
     std::cout<<"Text (Mode 1) render\n";
 }
@@ -565,9 +595,9 @@ uint8_t vdpMS::readStatus(uint64_t cycle) {
     std::printf("Read VDP Status\n");
     vdpMS::status_t temp;
 
-    // TODO: Calc sprite number
-    // TODO: Keep track of overflow flag
-    // TODO: Keep track of collision flag
+    // TODO: Calc sprite number (SG-1000 only)
+    // TODO: Keep track of overflow flag (SG-1000: 5th sprite, SMS: 9th sprite)
+    // TODO: Keep track of collision flag (SG: includes transparent pixels, SMS: Doesn't?)
     temp.val = 0;
     temp.fields.vblank_flag = scr_int_active;
     scr_int_active = false;
