@@ -1,5 +1,6 @@
 #include<iostream>
 #include<cassert>
+#include<algorithm>
 
 #include "vdpMS.h"
 #include "../../util.h"
@@ -186,6 +187,23 @@ void vdpMS::renderSgSprites(unsigned int line, std::vector<uint8_t>& buffer) {
         }
     }
 
+	// Check collision
+	std::vector<uint8_t> sprCollis(sprCount);
+	for(int i=0;i<sprCount;i++) {
+		int sprX = vram.at(sprAttrTabAddr + sprSearch[i] * 4 + 1); // sprite X coordinate
+		int info = vram.at(sprAttrTabAddr + sprSearch[i] * 4 + 3); // sprite info
+        if(info & 0x80) sprX -= 32;
+		sprCollis[i] = sprX;
+	}
+	std::sort(sprCollis.begin(), sprCollis.end());
+	int first = 0;
+	if(sprCount > 0) first = sprCollis[0];
+	for(int i=1;i<sprCount;i++) {
+		if(sprCollis[i] - first < sprHeight) status.fields.collision_flag = 1;
+		first = sprCollis[i];
+	}
+
+	// Draw the sprites
     int tileRepeat = ctrl_2.fields.large_sprites + 1; // 4 tiles drawn in a square
     int pixelRepeat = ctrl_2.fields.doubled_sprites + 1; // tile pixels are doubled
 
@@ -199,7 +217,9 @@ void vdpMS::renderSgSprites(unsigned int line, std::vector<uint8_t>& buffer) {
         int color = (info & 0x0f);
 
         int sprLine = line - sprY;
-        if(ctrl_2.fields.doubled_sprites) sprLine /= 2;
+        if(ctrl_2.fields.doubled_sprites) {
+			sprLine /= 2;
+		}
         if(ctrl_2.fields.large_sprites && sprLine > 7) {
             tile++; // vertical tile increment
             sprLine -= 8;
@@ -408,9 +428,9 @@ std::array<uint8_t, 8> vdpMS::getM4TileLine(uint16_t tileAddr, uint8_t row) {
 void vdpMS::setPixelSG(std::vector<uint8_t>& buffer, int x, int y, int index) {
     if(x < 0 || x >= curXRes || y < 0 || y >= curYRes) return;
 	//std::cout<<"y: "<<y<<" x: "<<x<<"\n";
-    buffer[y * 256 * 3 + 3 * x + 0] = tms_palette[index * 3 + 0];
+    buffer[y * 256 * 3 + 3 * x + 0] = tms_palette[index * 3 + 2];
     buffer[y * 256 * 3 + 3 * x + 1] = tms_palette[index * 3 + 1];
-    buffer[y * 256 * 3 + 3 * x + 2] = tms_palette[index * 3 + 2];
+    buffer[y * 256 * 3 + 3 * x + 2] = tms_palette[index * 3 + 0];
 }
 
 void vdpMS::setPixelGG(std::vector<uint8_t>& buffer, int x, int y, int index) {
@@ -487,14 +507,17 @@ bool vdpMS::lineInterrupt() {
 }
 
 bool vdpMS::frameInterrupt() {
-    if(ctrl_2.fields.frame_interrupts) return scr_int_active;
+    if(ctrl_2.fields.frame_interrupts) return status.fields.vblank_flag;
     else return false;
 }
 
 void vdpMS::endLine(uint64_t lineNum) {
     uint64_t line = lineNum % 262;
     curLine = line; //VCounter
-    if(line == 191) scr_int_active = true;
+    if(line == 191) {
+		//scr_int_active = true;
+		status.fields.vblank_flag = 1;
+	}
     if(line < 192 && line_int_cur) {
         line_int_cur--;
     }
@@ -509,7 +532,7 @@ void vdpMS::endLine(uint64_t lineNum) {
 }
 
 void vdpMS::writeByte(uint8_t port, uint8_t val, uint64_t cycle) {
-    std::printf("Wrote val(%02x) to port(%02x) = ", val, port);
+    //std::printf("Wrote val(%02x) to port(%02x) = ", val, port);
     if(port % 2 == 1) writeAddress(val);
     else {
         addr_latch = false;
@@ -533,7 +556,7 @@ void vdpMS::writeAddress(uint8_t val) {
     if(!addr_latch) {
         addr_latch = true;
         addr_buffer = val;
-        std::printf("low byte of address\n");
+        //std::printf("low byte of address\n");
     }
     else {
         addr_latch = false;
@@ -543,15 +566,15 @@ void vdpMS::writeAddress(uint8_t val) {
             case 0x00: // VRAM read mode
                 addr_mode = addr_mode_t::vram_read;
                 data_buffer = vram[address++];
-                std::printf(" set read address to %04x\n", address);
+                //std::printf(" set read address to %04x\n", address);
                 break;
             case 0x40: // VRAM write mode
                 addr_mode = addr_mode_t::vram_write;
-                std::printf(" set write address to %04x\n", address);
+                //std::printf(" set write address to %04x\n", address);
                 break;
             case 0x80: // VDP register write mode
                 addr_mode = addr_mode_t::reg_write;
-                std::printf(" set register %01x to %02x\n", (val & 0x0f), (address & 0x00ff));
+                //std::printf(" set register %01x to %02x\n", (val & 0x0f), (address & 0x00ff));
                 switch(val & 0x0f) {
                     case 0x00:
                         ctrl_1.val = (address & 0x00ff);
@@ -596,7 +619,7 @@ void vdpMS::writeAddress(uint8_t val) {
                 break;
             case 0xc0: // CRAM write mode
                 addr_mode = addr_mode_t::cram_write;
-                std::printf(" set cram write to address %02x\n", (address & 0x00ff));
+                //std::printf(" set cram write to address %02x\n", (address & 0x00ff));
                 break;
         }
     }
@@ -605,13 +628,13 @@ void vdpMS::writeAddress(uint8_t val) {
 void vdpMS::writeData(uint8_t val) {
     if(addr_mode == addr_mode_t::vram_write || addr_mode == addr_mode_t::vram_read || addr_mode == addr_mode_t::reg_write) {
         //dbg_printf(" wrote %02x to address %04x\n", val, address);
-        std::printf(" wrote %02x to address %04x\n", val, address);
+        //std::printf(" wrote %02x to address %04x\n", val, address);
         vram[address++] = val;
         data_buffer = val;
     }
     else if(addr_mode == addr_mode_t::cram_write) {
         pal_ram[address % pal_ram.size()] = val;
-        std::printf(" wrote %02x to palette address %04x\n", val, address);
+        //std::printf(" wrote %02x to palette address %04x\n", val, address);
         data_buffer = val;
         address++;
     }
@@ -624,18 +647,23 @@ uint8_t vdpMS::readData() {
 }
 
 uint8_t vdpMS::readStatus(uint64_t cycle) {
-    std::printf("Read VDP Status\n");
-    vdpMS::status_t temp;
+    //std::printf("Read VDP Status\n");
+    //vdpMS::status_t temp;
 
-    // TODO: Calc sprite number (SG-1000 only)
-    // TODO: Keep track of overflow flag (SG-1000: 5th sprite, SMS: 9th sprite)
-    // TODO: Keep track of collision flag (SG: includes transparent pixels, SMS: Doesn't?)
-    temp.val = 0;
-    temp.fields.vblank_flag = scr_int_active;
-    scr_int_active = false;
-    line_int_active = false;
-    return temp.val;
+    // TODO: Calc sprite number (SG-1000 only) (DONE)
+    // TODO: Keep track of overflow flag (SG-1000: 5th sprite (DONE), SMS: 9th sprite)
+    // TODO: Keep track of collision flag (SG: includes transparent pixels (DONE), SMS: Doesn't?)
+    //temp.val = 0;
+    //temp.fields.vblank_flag = scr_int_active;
+    //scr_int_active = false;
+    //line_int_active = false;
+    //return temp.val;
     //return 0x80;
+	uint8_t retval = status.val;
+	status.fields.collision_flag = 0;
+	status.fields.overflow_flag = 0;
+	status.fields.vblank_flag = 0;
+	return retval;
 }
 
 uint8_t vdpMS::readVCounter(uint64_t cycle) {
