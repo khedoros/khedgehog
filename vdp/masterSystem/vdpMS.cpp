@@ -160,6 +160,7 @@ void vdpMS::renderGraphic2(unsigned int line, std::vector<uint8_t>& buffer) {
 			setPixelSG(buffer, x_tile * 8 + x, yTile * 8 + yLine, color_index);
 		}
 	}
+        renderSgSprites(line, buffer);
 }
 
 void vdpMS::renderSgSprites(unsigned int line, std::vector<uint8_t>& buffer) {
@@ -183,6 +184,37 @@ void vdpMS::renderSgSprites(unsigned int line, std::vector<uint8_t>& buffer) {
             }
             sprCount++;
         }
+    }
+
+    int tileRepeat = ctrl_2.fields.large_sprites + 1; // 4 tiles drawn in a square
+    int pixelRepeat = ctrl_2.fields.doubled_sprites + 1; // tile pixels are doubled
+
+    for(int spr = 0; spr < sprCount; spr++) {
+        int sprY = vram.at(sprAttrTabAddr + sprSearch[spr] * 4 + 0);
+        int sprX = vram.at(sprAttrTabAddr + sprSearch[spr] * 4 + 1);
+        int tile = vram.at(sprAttrTabAddr + sprSearch[spr] * 4 + 2);
+        int info = vram.at(sprAttrTabAddr + sprSearch[spr] * 4 + 3);
+
+        if(info & 0x80) sprX -= 32;
+        int color = (info & 0x0f);
+
+        int sprLine = line - sprY;
+        if(ctrl_2.fields.doubled_sprites) sprLine /= 2;
+        if(ctrl_2.fields.large_sprites && sprLine > 7) {
+            tile++; // vertical tile increment
+            sprLine -= 8;
+        }
+        for(int t = 0; t < tileRepeat; t++) {
+            auto tileData = getG2TileLine(sprite_tile_base() + tile * 8, sprLine);
+            for(int x = 0; x < 8; x++) {
+                for(int r = 0; r < pixelRepeat; r++) {
+                    if(tileData[x])
+                        setPixelSG(buffer, sprX + pixelRepeat * x + r, line, color);    
+                }
+            }
+            tile += 2; // horizontal tile increment
+        }
+        
     }
 }
 
@@ -374,7 +406,7 @@ std::array<uint8_t, 8> vdpMS::getM4TileLine(uint16_t tileAddr, uint8_t row) {
 }
 
 void vdpMS::setPixelSG(std::vector<uint8_t>& buffer, int x, int y, int index) {
-    if(x >= curXRes || y >= curYRes) return;
+    if(x < 0 || x >= curXRes || y < 0 || y >= curYRes) return;
 	//std::cout<<"y: "<<y<<" x: "<<x<<"\n";
     buffer[y * 256 * 3 + 3 * x + 0] = tms_palette[index * 3 + 0];
     buffer[y * 256 * 3 + 3 * x + 1] = tms_palette[index * 3 + 1];
