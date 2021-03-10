@@ -24,6 +24,7 @@ public:
     bool lineInterrupt() override;
     bool frameInterrupt() override;
     void endLine(uint64_t lineNum) override;
+    unsigned int getFrameLines();
 
 private:
     void writeAddress(uint8_t val);

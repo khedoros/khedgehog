@@ -88,7 +88,7 @@ int emulator::run() {
             io -> updateWindow(mainWindow, 0, 0, vdp_dev->getStride(), vdp_dev->getFrameBuffer());
             //io -> updateWindow(debugWindow, 0, 0, vdp_dev->getDebugRender());
         }
-        else if(line == 262) {
+        else if(line == cfg->getFrameLines()) {
             line = 0;
         }
         //run APU

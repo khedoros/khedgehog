@@ -309,7 +309,7 @@ void vdpMS::renderMode4(unsigned int line, std::vector<uint8_t>& buffer) {
 		//          TODO: Use a similar algorithm in endLine to work out pixel overflow and collision. Maybe store the 
 		//          results to replace the sprSearch array I have above.
 
-		int bgX = (scrX + bg_x_scroll) % (32 * 8);
+		int bgX = (scrX + (255 - bg_x_scroll)) % (32 * 8);
 		int xTile = bgX / 8;
 		int xFine = bgX % 8;
 		uint16_t tile_info_addr = (name_tab_base() + (yTile * 64) + (xTile * 2)) & 0x3fff;
@@ -502,20 +502,34 @@ uint64_t vdpMS::calc(uint64_t) {
 }
 
 bool vdpMS::lineInterrupt() {
-    if(vdpMode != systemType::sg_1000 && ctrl_1.fields.line_interrupts) return line_int_active;
+    if(vdpMode != systemType::sg_1000 && ctrl_1.fields.line_interrupts) {
+        bool retval = line_int_active;
+        line_int_active = false;
+        return retval;
+    }
     else return false;
 }
 
 bool vdpMS::frameInterrupt() {
-    if(ctrl_2.fields.frame_interrupts) return status.fields.vblank_flag;
+    if(ctrl_2.fields.frame_interrupts) {
+        bool retval = scr_int_active;
+        scr_int_active = false;
+        return retval;
+    }
     else return false;
 }
 
+unsigned int vdpMS::getFrameLines() {
+    if(vdpRegion == systemRegion::ntsc) return 262;
+    else if(vdpRegion == systemRegion::pal) return 314;
+    return 288;
+}
+
 void vdpMS::endLine(uint64_t lineNum) {
-    uint64_t line = lineNum % 262;
+    uint64_t line = lineNum % getFrameLines();
     curLine = line; //VCounter
     if(line == 191) {
-		//scr_int_active = true;
+		scr_int_active = true;
 		status.fields.vblank_flag = 1;
 	}
     if(line < 192 && line_int_cur) {

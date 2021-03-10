@@ -27,6 +27,7 @@ public:
     systemRegion getSystemRegion();
     std::pair<int,int> getResolution();
     std::pair<int,int> getResolution(systemType,systemRegion);
+    unsigned int getFrameLines();
     std::string& getRomPath();
     size_t getHeaderOffset();
 private:

@@ -60,6 +60,12 @@ std::pair<int,int> config::getResolution(systemType t, systemRegion r) {
     }
 }
 
+unsigned int config::getFrameLines() {
+    if(region == systemRegion::ntsc) return 262;
+    else if(region == systemRegion::pal) return 314;
+    return 288;
+}
+
 std::string& config::getRomPath() {
     return romPath;
 }
