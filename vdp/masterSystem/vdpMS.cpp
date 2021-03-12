@@ -297,10 +297,10 @@ void vdpMS::renderMode4(unsigned int line, std::vector<uint8_t>& buffer) {
 		uint16_t tile_addr = (sprite_tile_base() + 32 * tile) & 0x3fff;
 		auto line = getM4TileLine(tile_addr, fineY);
 
-		for(int xFine = x; xFine < x + 8 && xFine < 256; xFine++) {
+		for(int xFine = 0; xFine < 8 && xFine + x < 256; xFine++) {
 			int color_index = line[xFine] + 16;
-			if(color_index) {
-				lineBuffer[xFine] = color_index;
+			if(color_index != 16) {
+				lineBuffer[x + xFine] = color_index;
 			}
 		}
 	}
