@@ -59,8 +59,9 @@ std::vector<uint8_t>& vdpMS::getFrameBuffer() {
 }
 
 void vdpMS::renderLine(unsigned int line, std::vector<uint8_t>& renderBuffer) {
-    if(line >= curYRes) return;
+    if((line >= curYRes && vdpMode != systemType::gameGear) || line >= curYRes + 3 * 24 ) return;
     if(!ctrl_2.fields.enable_display) {
+               if(vdpMode == systemType::gameGear && line >= 3 * 24) line -= 3 * 24;
         for(int x=0;x<curXRes;x++) {
             renderBuffer[curXRes * 3 * line + x * 3 + 0] = 0;
             renderBuffer[curXRes * 3 * line + x * 3 + 1] = 0;
