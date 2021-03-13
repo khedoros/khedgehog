@@ -50,16 +50,16 @@ void sdlWindow::resize(unsigned int width, unsigned int height) {
     window = SDL_CreateWindow(title.c_str(),
             SDL_WINDOWPOS_CENTERED,
             SDL_WINDOWPOS_CENTERED,
-            width, height,
+            640, 480,
             SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN);
     if ( !window ) {
-        fprintf(stderr, "ioMgr::Couldn't set %dx%dx32 video mode: %s\nStarting without video output.\n", width*2, height*2, SDL_GetError());
+        fprintf(stderr, "ioMgr::Couldn't set %dx%dx32 video mode: %s\nStarting without video output.\n", 640, 480, SDL_GetError());
     }
 
     SDL_SetWindowMinimumSize(window, width, height);
 
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED/*|SDL_RENDERER_PRESENTVSYNC*/);
-    //renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
+    //renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED/*|SDL_RENDERER_PRESENTVSYNC*/);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
     //renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE|SDL_RENDERER_PRESENTVSYNC);
     //renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE/*|SDL_RENDERER_PRESENTVSYNC*/);
     SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
@@ -88,9 +88,9 @@ void sdlWindow::updateWindow(int startx, int starty, int stride, const std::vect
         out_buf[4 * pixel + 1] = image[pixel * 3 + 1];
         out_buf[4 * pixel + 2] = image[pixel * 3 + 2];
     }
-	if(width != xres || height != yres) {
-		resize(width, height);
-	}
+    if(width != xres || height != yres) {
+        resize(width, height);
+    }
 
     if(texture) {
         SDL_UpdateTexture(texture, nullptr, out_buf.data(), width * 4);
