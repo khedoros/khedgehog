@@ -775,7 +775,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
         dummy8 = memory->readByte(hl.pair);
         cycles = 7;
     }
-    else if(OPCODE >= 0xc0 && reg == 6) { // ops [cdef][6e] 2nd operand from immediate
+    else if(OPCODE >= 0xc0 && (OPCODE & 0xff00) == 0 && reg == 6) { // ops [cdef][6e] 2nd operand from immediate
         dummy8 = memory->readByte(pc++);
         dbg_printf(" %02x", dummy8);
         cycles = 7;
