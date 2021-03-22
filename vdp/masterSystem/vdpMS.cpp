@@ -271,10 +271,6 @@ void vdpMS::renderMode4(unsigned int line, std::vector<uint8_t>& buffer) {
     // but "scrY" was the original loop variable when this function wasn't line-based
     int scrY = line;
 
-    int bgY = (scrY + bg_y_scroll) % (28*8);
-    int yTile = bgY / 8;
-    int yFine = bgY % 8;
-
     std::array<int, 8> sprSearch;
     int sprCount = 0;
     for(int i = 0; vram.at(sprite_attr_tab_base() + i) != 0xd0 && i < 64;i++) {
@@ -317,18 +313,25 @@ void vdpMS::renderMode4(unsigned int line, std::vector<uint8_t>& buffer) {
     }
 
     for(int scrX = scrXStart; scrX < scrXEnd; scrX++) {
-        //          TODO: Use a similar algorithm in endLine to work out pixel overflow and collision. Maybe store the 
-        //          results to replace the sprSearch array I have above.
 
-        int bgX = (scrX + (255 - bg_x_scroll)) % (32 * 8);
+        int bgY = scrY; // Lock last 8 tiles so they don't scroll vertically
+        if(scrX < 192 || !ctrl_1.fields.v_scroll_lock) { // Otherwise, allow them to scroll
+            bgY = (scrY + bg_y_scroll) % (28*8);
+        }
+        int yTile = bgY / 8;
+        int yFine = bgY % 8;
+
+        int bgX = scrX; // Lock first 2 tiles so they don't scroll horizontally
+        if(!ctrl_1.fields.h_scroll_lock || line >= 16) {  // Otherwise, allow them to scroll
+            bgX = (scrX + (255 - bg_x_scroll)) % (32 * 8);
+        }
         int xTile = bgX / 8;
         int xFine = bgX % 8;
+
         uint16_t tile_info_addr = (name_tab_base() + (yTile * 64) + (xTile * 2)) & 0x3fff;
         tile_info_t tile_info;
         tile_info.bytes.byte1 = vram.at(tile_info_addr);
         tile_info.bytes.byte2 = vram.at(tile_info_addr + 1);
-        //          if(tile_info.fields.priority || 
-        //          TODO: Continue using this and lineBuffer to decide how to draw the background
         uint16_t tile_addr = (bg_tile_base() + 32 * tile_info.fields.tile_num) & 0x3fff;
         int tileLine = yFine;
         if(tile_info.fields.vflip) {
@@ -355,6 +358,9 @@ void vdpMS::renderMode4(unsigned int line, std::vector<uint8_t>& buffer) {
         if(!color_index) color_index = 16 + bg_fg_col.fields.background;
 
         if(vdpMode == systemType::masterSystem) {
+            if(scrX < 8 && ctrl_1.fields.hide_left) { // hide left column
+                color_index = 16 + bg_fg_col.fields.background;
+            }
             setPixelSMS(buffer, scrX, scrY, color_index);
         }
         else if(vdpMode == systemType::gameGear) {
