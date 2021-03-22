@@ -715,13 +715,13 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_adc16(uint8_t opcode) { // ADC HL
 
     clear(SUB_FLAG);
 
+    if((hl.pair & 0xfff) + ((*regset[reg] + carry()) & 0xfff) >= 4096) set(HALF_CARRY_FLAG);
+    else clear(HALF_CARRY_FLAG);
+ 
     if(uint32_t(temp) > 0xffff) set(CARRY_FLAG);
     else              clear(CARRY_FLAG);
 
-    if((hl.pair & 0xfff) + ((*regset[reg] + carry()) & 0xfff) >= 4096) set(HALF_CARRY_FLAG);
-    else clear(HALF_CARRY_FLAG);
-
-    if(temp > 32767 || temp < -32768) set(OVERFLOW_FLAG);
+   if(temp > 32767 || temp < -32768) set(OVERFLOW_FLAG);
     else clear(OVERFLOW_FLAG);
 
     if(!temp) set(ZERO_FLAG);
@@ -2109,11 +2109,11 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_sbc16(uint8_t opcode) { // SBC HL
     int32_t temp = hl.pair - (*regset[reg] + carry());
 
     set(SUB_FLAG);
-    if(temp < 0) set(CARRY_FLAG);
-    else         clear(CARRY_FLAG);
-
     if((((*regset[reg]) + carry()) & 0xfff) > (hl.pair & 0xfff)) set(HALF_CARRY_FLAG);
     else clear(HALF_CARRY_FLAG);
+
+    if(temp < 0) set(CARRY_FLAG);
+    else         clear(CARRY_FLAG);
 
     if(temp < -32768 || temp > 32767) set(OVERFLOW_FLAG);
     else clear(OVERFLOW_FLAG);
