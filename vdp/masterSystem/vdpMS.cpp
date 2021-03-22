@@ -537,7 +537,7 @@ bool vdpMS::frameInterrupt() {
 }
 
 unsigned int vdpMS::getFrameLines() {
-    if(vdpRegion == systemRegion::ntsc) return 262;
+    if(vdpRegion == systemRegion::ntsc || vdpMode == systemType::gameGear) return 262;
     else if(vdpRegion == systemRegion::pal) return 314;
     return 288;
 }
@@ -698,9 +698,35 @@ uint8_t vdpMS::readStatus(uint64_t cycle) {
 }
 
 uint8_t vdpMS::readVCounter(uint64_t cycle) {
-    //std::printf("v: %ld\n", (cycle / 342) % 262);
+    if(vdpRegion == systemRegion::ntsc) {
+        // NTSC, 256x192 00-DA, D5-FF
+        // NTSC, 256x224 00-EA, E5-FF
+        // NTSC, 256x240 00-FF, 00-06
+        switch(getMode()) {
+            case graphicsMode_t::graphics1:
+            case graphicsMode_t::text:
+            case graphicsMode_t::graphics2:
+            case graphicsMode_t::multicolor:
+            case graphicsMode_t::mode4: break;
+            case graphicsMode_t::mode4_224: break;
+            case graphicsMode_t::mode4_240: break;
+        }
+    }
+    else { //systemRegion == pal
+        // PAL,  256x192 00-F2, BA-FF
+        // PAL,  256x224 00-FF, 00-02, CA-FF
+        // PAL,  256x240 00-FF, 00-0A, D2-FF
+        switch(getMode()) {
+            case graphicsMode_t::graphics1:
+            case graphicsMode_t::text:
+            case graphicsMode_t::graphics2:
+            case graphicsMode_t::multicolor:
+            case graphicsMode_t::mode4: break;
+            case graphicsMode_t::mode4_224: break;
+            case graphicsMode_t::mode4_240: break;
+        }
+    }
     return curLine;
-    //return (cycle / 342) % 262;
 }
 
 uint8_t vdpMS::readHCounter(uint64_t cycle) {
