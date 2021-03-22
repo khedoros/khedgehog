@@ -35,32 +35,32 @@ uint8_t& memmapZ80Console::readByte(uint32_t addr) {
 
 uint8_t memmapZ80Console::readPortByte(uint8_t port, uint64_t cycle) {
     // TODO: Implement :-D
-    dbg_printf(" read port %02x >> [dummy]", port);
+    dbg_printf(" read port %02x ", port);
     if(port == 0 && cfg->getSystemType() == systemType::gameGear) {
         return 0x7f | (!(gg_port_0.start))<<7;
     }
     switch(port & 0b11000001) {
         case 0x00:
-            dbg_printf(" (memory control register)");
+            dbg_printf(" (memory control register)\n");
             return 0xff;
         case 0x01:
-            dbg_printf(" (i/o control register)");
+            dbg_printf(" (i/o control register)\n");
             return 0xff;
         case 0x40:
-            dbg_printf(" (V counter)");
+            dbg_printf(" (V counter)\n");
             return vdp_dev->readByte(port, cycle);
         case 0x41:
-            dbg_printf(" (H counter)");
+            dbg_printf(" (H counter)\n");
             return vdp_dev->readByte(port, cycle);
         case 0x80:
-            dbg_printf(" (read VDP data)");
+            dbg_printf(" (read VDP data)\n");
             return vdp_dev->readByte(port, cycle);
         case 0x81:
-            dbg_printf(" (read VDP status bits)");
+            dbg_printf(" (read VDP status bits)\n");
             return vdp_dev->readByte(port, cycle);
         // Note: Probably need to be implemented as an io controller device
         case 0xc0:
-            dbg_printf(" (joystick port 1)");
+            dbg_printf(" (joystick port 1)\n");
             return (
                     ((io_port_ab.port_a_up) ? 0 : p1_up) |
                     ((io_port_ab.port_a_down) ? 0 : p1_down) |
@@ -72,10 +72,10 @@ uint8_t memmapZ80Console::readPortByte(uint8_t port, uint64_t cycle) {
                     ((io_port_ab.port_b_down) ? 0 : p2_down) 
                    );
         case 0xc1:
-            dbg_printf(" (joystick port 2 + nationalization)");
+            dbg_printf(" (joystick port 2 + nationalization)\n");
             break;
         //case 0xf2: dbg_printf(" (YM2413 status register)"); break;
-        default: dbg_printf(" (no info on port)"); break;
+        default: dbg_printf(" (no info on port)\n"); break;
     }
     return 0xff;
 }
@@ -89,6 +89,9 @@ uint32_t& memmapZ80Console::readLong(uint32_t addr) {
 }
 
 void memmapZ80Console::writeByte(uint32_t addr, uint8_t val) {
+    if(addr < 0x8000) {
+        std::printf("Wrote %04x = %02x\n", addr, val);
+    }
     if(addr >= 0x8000 && addr < 0xc000 && slot2RamActive) {
         cartRam[addr & 0x1fff] = val;
     }
@@ -126,48 +129,68 @@ void memmapZ80Console::writeWord(uint32_t addr, uint16_t val) {
 void memmapZ80Console::writeLong(uint32_t addr, uint32_t val) {}
 
 void memmapZ80Console::writePortByte(uint8_t port, uint8_t val, uint64_t cycle) {
-//    dbg_printf(" wrote %02x to port %02x", val, port);
+    dbg_printf(" wrote %02x to port %02x", val, port);
     switch(port & 0b11000001) {
         case 0x00:
-//            dbg_printf(" (memory control)");
-              std::cerr<<"Really not implemented. Got port "<<std::hex<<int(port)<<" = "<<int(val)<<"\n";
-              //exit(1);
+            switch(port) {
+                case 0: dbg_printf(" (Game Gear registers)"); break;
+                case 2: dbg_printf(" (Game Gear registers)"); break;
+                case 4: dbg_printf(" (Game Gear registers)"); break;
+                case 6: dbg_printf(" (Game Gear registers)"); break;
+                default:
+                    dbg_printf(" (memory control)");
+                    break;
+            }
             break;
         case 0x01:
-//            dbg_printf(" (I/O control + automatic nationalization)"); break;
+            switch(port) {
+                case 1: dbg_printf(" (Game Gear registers)"); break;
+                case 3: dbg_printf(" (Game Gear registers)"); break;
+                case 5: dbg_printf(" (Game Gear registers)"); break;
+                default:
+                    dbg_printf(" (I/O control + automatic nationalization)"); break;
+                    std::cerr<<"Really not implemented. Got port "<<std::hex<<int(port)<<" = "<<int(val)<<"\n";
+            }
             break;
         case 0x40: case 0x41:
-//            dbg_printf(" (PSG SN76489 output control)"); break;
-              apu_dev->writeRegister(val);
+            dbg_printf(" (PSG SN76489 output control)"); break;
+            apu_dev->writeRegister(val);
             break;
         case 0x80:
+            dbg_printf(" (VDP data)");
             vdp_dev->writeByte(port, val, cycle);
-//            dbg_printf(" (VDP data)");
             break;
         case 0x81:
+            dbg_printf(" (VDP address/register)");
             vdp_dev->writeByte(port, val, cycle);
-//            dbg_printf(" (VDP address/register)");
             break;
         case 0xc0:
-            dbg_con::write_control(val);
-            std::printf("wrote %02x to port %02x (routed to console control)\n", val, port);
+            switch(port) {
+                case 0xde: case 0xdf: dbg_printf(" (keyboard control, not implemented)"); break;
+                case 0xf0: dbg_printf(" (YM2413 address register, not implemented)"); break;
+                case 0xf2: dbg_printf(" (YM2413 control register, not implemented)"); break;
+                case 0xfc:
+                    std::printf("wrote %02x to port %02x (routed to console control)\n", val, port); 
+                    dbg_con::write_control(val);
+                    break;
+                default:
+                    dbg_printf(" (Joystick port #0");
+                    break;
+            }
             break;
         case 0xc1:
-            dbg_con::write_data(val);
-            std::printf("wrote %02x to port %02x (routed to console data)\n", val, port);
-            break;
+            switch(port) {
+                case 0xf1: dbg_printf(" (YM2413 data register)"); break;
+                case 0xfd:
+                    dbg_con::write_data(val);
+                    std::printf("wrote %02x to port %02x (routed to console data)\n", val, port);
+                    break;
+                default:
+                    dbg_printf(" (Joystick port #1");
+                    break;
+            }
     }
-    /*
-    switch(port) {
-        case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06:
-            dbg_printf(" (Game Gear registers)");
-            break;
-        case 0xde: case 0xdf: dbg_printf(" (keyboard control)"); break;
-        case 0xf0: dbg_printf(" (YM2413 address register)"); break;
-        case 0xf1: dbg_printf(" (YM2413 data register)"); break;
-        case 0xf2: dbg_printf(" (YM2413 control register)"); break;
-    }
-    */
+	dbg_printf("\n");
 }
 
 void memmapZ80Console::sendEvent(ioEvent e) {

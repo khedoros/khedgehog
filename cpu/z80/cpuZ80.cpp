@@ -4,6 +4,9 @@
 #include<cassert>
 #include "../../util.h"
 
+#undef dbg_printf
+#define dbg_printf dummy
+
 uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
 
     cycles_remaining += cycles_to_run;

@@ -635,7 +635,7 @@ void vdpMS::writeAddress(uint8_t val) {
                         break;
                     case 0x08:
                         bg_x_scroll = (address & 0x00ff);
-                        std::printf("scroll bg to %d\n", bg_x_scroll);
+                        //std::printf("scroll bg to %d\n", bg_x_scroll);
                         break;
                     case 0x09:
                         bg_y_scroll = (address & 0x00ff);
