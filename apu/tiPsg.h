@@ -1,5 +1,6 @@
 #pragma once
 #include<cstdint>
+#include<array>
 #include "apu.h"
 
 // 3579545Hz for NTSC systems and 3546893Hz
@@ -11,6 +12,7 @@ public:
     void mute(bool) override;
     void writeRegister(uint8_t val) override;
     void setStereo(uint8_t) override;
+    std::array<int16_t, 735 * 2>& getSamples() override;
 private:
     unsigned latchedChannel:2;
     bool latchedType:1; // 0 = data, 1 = volume
@@ -32,4 +34,6 @@ private:
     // Port 6 on the Game Gear, bits 0-3 are channels 0-3 on the right, bits 4-7 are channels 0-3 on the left.
     bool stereoLeft[4];
     bool stereoRight[4];
+
+    std::array<int16_t, 735 * 2> buffer;
 };

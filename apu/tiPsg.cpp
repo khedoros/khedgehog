@@ -8,6 +8,15 @@ TiPsg::TiPsg(): noiseLfsr(1) {
         toneCountReset[i] = 0;
         currentOutput[i] = true;
     }
+
+    for(int i=0;i*40<735*2;i++) {
+        for(int j = 0; j < 20 && i*40+j < 735*2;j++) {
+            buffer[i*40+j] = 10000;
+        }
+        for(int j = 20; j < 40 && i*40+j < 735*2;j++) {
+            buffer[i*40+j] = -10000;
+        }
+    }
 }
 
 void TiPsg::mute(bool) {}
@@ -79,3 +88,8 @@ void TiPsg::setStereo(uint8_t val) {
         val>>=1;
     }
 }
+
+std::array<int16_t, 735 * 2>& TiPsg::getSamples() {
+    return buffer;
+}
+

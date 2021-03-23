@@ -111,7 +111,25 @@ ioMgr::ioMgr(std::shared_ptr<config> cfg) {
     auto res = cfg->getResolution();
 
     createWindow(res.first, res.second, "Khedgehog Main Window");
+
+    SDL_AudioSpec want;
+    SDL_memset(&want, 0, sizeof(want)); /* or SDL_zero(want) */
+    want.freq = 44100;
+    want.format = AUDIO_S16LSB;
+    want.channels = 2;
+    want.samples = 1024;
+//    want.callback = nMyAudioCallback; /* you wrote this function elsewhere -- see SDL_AudioSpec for details */
+
+    audioDev = SDL_OpenAudioDevice(nullptr, 0, &want, &audioSpec, 0);
+
+    if (audioDev == 0) {
+        SDL_Log("Failed to open audio: %s", SDL_GetError());
+    }
+    else {
+        //SDL_PauseAudioDevice(audioDev, 0);
+    }
 }
+
 
 unsigned int ioMgr::createWindow(unsigned int xres, unsigned int yres, std::string title) {
     windowList.emplace_back(xres, yres, title);
@@ -184,4 +202,8 @@ ioEvent ioMgr::getEvent() {
 bool ioMgr::resizeWindow(unsigned int winIndex, unsigned int xres, unsigned int yres) {
     windowList[winIndex].resize(xres, yres);
     return true;
+}
+
+void ioMgr::pushAudio(std::array<int16_t, 735 * 2>& samples) {
+    SDL_QueueAudio(audioDev, samples.data(), 735 * 2 * sizeof(int16_t));
 }

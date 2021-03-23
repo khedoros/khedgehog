@@ -90,6 +90,7 @@ int emulator::run() {
         }
         else if(line == cfg->getFrameLines()) {
             line = 0;
+            io -> pushAudio(apu_dev->getSamples());
         }
         //run APU
         //pause for effect
