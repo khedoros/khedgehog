@@ -36,15 +36,32 @@ uint8_t& memmapZ80Console::readByte(uint32_t addr) {
 uint8_t memmapZ80Console::readPortByte(uint8_t port, uint64_t cycle) {
     // TODO: Implement :-D
     dbg_printf(" read port %02x ", port);
-    if(port == 0 && cfg->getSystemType() == systemType::gameGear) {
-        return 0x7f | (!(gg_port_0.start))<<7;
-    }
     switch(port & 0b11000001) {
         case 0x00:
-            dbg_printf(" (memory control register)\n");
+            switch(port) {
+                case 0:
+                    dbg_printf(" (Game Gear registers)\n");
+                    if(cfg->getSystemType() == systemType::gameGear) {
+                        return 0x7f | (!(gg_port_0.start))<<7;
+                    }
+                    break;
+                case 2: dbg_printf(" (Game Gear registers)\n"); break;
+                case 4: dbg_printf(" (Game Gear registers)\n"); break;
+                case 6: dbg_printf(" (Game Gear registers)\n"); break;
+                default:
+                    dbg_printf(" (memory control register)\n");
+                    return 0xff;
+            }
             return 0xff;
         case 0x01:
-            dbg_printf(" (i/o control register)\n");
+           switch(port) {
+                case 1: dbg_printf(" (Game Gear registers)\n"); break;
+                case 3: dbg_printf(" (Game Gear registers)\n"); break;
+                case 5: dbg_printf(" (Game Gear registers)\n"); break;
+                default:
+                    dbg_printf(" (i/o control register)\n");
+                    return 0xff;
+            }
             return 0xff;
         case 0x40:
             dbg_printf(" (V counter)\n");
