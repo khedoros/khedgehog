@@ -89,6 +89,16 @@ void TiPsg::setStereo(uint8_t val) {
     }
 }
 
+// NTSC:
+// 3579545Hz clock, 16x divisor, 60 FPS, 735 samples per frame
+// 59659 cycles per frame, 3728.69 max half-waves per frame
+// Each 5.07 divided-clock-ticks makes an output sample.
+//
+// PAL:
+// 3546893Hz clock, 16x divisor, 50 FPS, 882 samples per frame
+// 70938 cycles per frame, 4433.62 max half-waves per frame
+// Each 5.03 divided-clock-ticks makes an output sample.
+// TODO: Fix the audio code to expect something besides 60 FPS
 std::array<int16_t, 735 * 2>& TiPsg::getSamples() {
     return buffer;
 }
