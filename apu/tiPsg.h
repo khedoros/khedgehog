@@ -8,12 +8,13 @@
 //
 class TiPsg: public apu {
 public:
-    TiPsg();
+    TiPsg(std::shared_ptr<config>& conf);
     void mute(bool) override;
     void writeRegister(uint8_t val) override;
     void setStereo(uint8_t) override;
-    std::array<int16_t, 735 * 2>& getSamples() override;
+    std::array<int16_t, 882 * 2>& getSamples() override;
 private:
+	std::shared_ptr<config> cfg;
     unsigned latchedChannel:2;
     bool latchedType:1; // 0 = data, 1 = volume
     uint16_t toneCountReset[4]; // 0 and 1 just give a constant "1" output. First audible signal on a real SMS2 was at Reset value 6, at 18643Hz
@@ -35,5 +36,8 @@ private:
     bool stereoLeft[4];
     bool stereoRight[4];
 
-    std::array<int16_t, 735 * 2> buffer;
+    std::array<int16_t, 882 * 2> buffer;
+
+	int channels; // channel count to render
+	int sampleCnt; // number of samples to render per request
 };

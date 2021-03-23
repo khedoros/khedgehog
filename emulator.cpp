@@ -35,7 +35,7 @@ genesisEmulator::genesisEmulator(std::shared_ptr<config> config) {
     io = std::make_shared<ioMgr>(cfg);
     cpu_map = std::make_shared<memmapM68k>(config);
     cpu_dev = std::make_shared<cpuM68k>(std::dynamic_pointer_cast<memmapM68k>(cpu_map));
-    apu_dev = std::make_shared<apuGenesis>();
+    apu_dev = std::make_shared<apuGenesis>(cfg);
     vdp_dev = std::make_shared<vdpGenesis>(cfg->getSystemType(), cfg->getSystemRegion());
 }
 
@@ -109,7 +109,7 @@ int genesisEmulator::run() {
 smsEmulator::smsEmulator(std::shared_ptr<config> config) {
     cfg = config;
     io = std::make_shared<ioMgr>(cfg);
-    apu_dev = std::make_shared<TiPsg>();
+    apu_dev = std::make_shared<TiPsg>(cfg);
     vdp_dev = std::make_shared<vdpMS>(cfg->getSystemType(), cfg->getSystemRegion());
     cpu_map = std::make_shared<memmapZ80Console>(config, vdp_dev, std::dynamic_pointer_cast<TiPsg>(apu_dev));
     cpu_dev = std::make_shared<cpuZ80>(std::dynamic_pointer_cast<memmapZ80Console>(cpu_map));

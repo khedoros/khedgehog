@@ -1,6 +1,6 @@
 #include "tiPsg.h"
 
-TiPsg::TiPsg(): noiseLfsr(1) {
+TiPsg::TiPsg(std::shared_ptr<config>& conf): noiseLfsr(1), cfg(conf), apu(conf) {
     for(int i=0;i<4;i++) {
         stereoLeft[i] = true;
         stereoRight[i] = true;
@@ -9,13 +9,14 @@ TiPsg::TiPsg(): noiseLfsr(1) {
         currentOutput[i] = true;
     }
 
-    for(int i=0;i*40<735*2;i++) {
-        for(int j = 0; j < 20 && i*40+j < 735*2;j++) {
-            buffer[i*40+j] = 10000;
-        }
-        for(int j = 20; j < 40 && i*40+j < 735*2;j++) {
-            buffer[i*40+j] = -10000;
-        }
+    channels = 1;
+	sampleCnt = 882;
+    if(cfg->getSystemType() == systemType::gameGear) {
+        channels = 2;
+        sampleCnt = 735;
+    }
+    else if(cfg->getSystemRegion() != systemRegion::pal) {
+        sampleCnt = 735;
     }
 }
 
@@ -99,7 +100,13 @@ void TiPsg::setStereo(uint8_t val) {
 // 70938 cycles per frame, 4433.62 max half-waves per frame
 // Each 5.03 divided-clock-ticks makes an output sample.
 // TODO: Fix the audio code to expect something besides 60 FPS
-std::array<int16_t, 735 * 2>& TiPsg::getSamples() {
+std::array<int16_t, 882 * 2>& TiPsg::getSamples() {
+	for(int i=0;i<sampleCnt*channels;i+=channels) {
+		buffer[i] = 0;
+		if(channels == 2) {
+			buffer[i+1] = 0;
+		}
+	}
     return buffer;
 }
 

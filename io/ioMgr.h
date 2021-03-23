@@ -34,11 +34,13 @@ public:
     bool updateWindow(unsigned int winIndex, int startx, int starty, int stride, const std::vector<uint8_t>& image); // need to decide how I want to represent the image. Maybe std::vector<std::vector<uint8_t>>?
     bool closeWindow(unsigned int winIndex);
     ioEvent getEvent();
-    void pushAudio(std::array<int16_t, 735 * 2>& samples);
+    void pushAudio(std::array<int16_t, 882 * 2>& samples);
 
 private:
+	std::shared_ptr<config> cfg;
     std::vector<sdlWindow> windowList;
 
     SDL_AudioDeviceID audioDev;
     SDL_AudioSpec audioSpec;
+	size_t sampleCnt;
 };

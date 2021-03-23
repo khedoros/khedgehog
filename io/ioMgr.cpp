@@ -100,7 +100,7 @@ void sdlWindow::updateWindow(int startx, int starty, int stride, const std::vect
 
 }
 
-ioMgr::ioMgr(std::shared_ptr<config> cfg) {
+ioMgr::ioMgr(std::shared_ptr<config> conf) : cfg(conf) {
     windowList.reserve(4);
     Uint32 sdl_init_flags = SDL_INIT_EVERYTHING|SDL_INIT_JOYSTICK|SDL_INIT_GAMECONTROLLER;
     //if(headless) sdl_init_flags &= (~SDL_INIT_VIDEO);
@@ -112,11 +112,22 @@ ioMgr::ioMgr(std::shared_ptr<config> cfg) {
 
     createWindow(res.first, res.second, "Khedgehog Main Window");
 
+	int channels = 1;
+	if(cfg->getSystemType() == systemType::gameGear) {
+		channels = 2;
+		sampleCnt = 735;
+	}
+	else if(cfg->getSystemRegion() != systemRegion::pal) {
+		sampleCnt = 735;
+	}
+	else {
+		sampleCnt = 882;
+	}
     SDL_AudioSpec want;
     SDL_memset(&want, 0, sizeof(want)); /* or SDL_zero(want) */
     want.freq = 44100;
     want.format = AUDIO_S16LSB;
-    want.channels = 2;
+    want.channels = channels;
     want.samples = 1024;
 //    want.callback = nMyAudioCallback; /* you wrote this function elsewhere -- see SDL_AudioSpec for details */
 
@@ -126,7 +137,7 @@ ioMgr::ioMgr(std::shared_ptr<config> cfg) {
         SDL_Log("Failed to open audio: %s", SDL_GetError());
     }
     else {
-        //SDL_PauseAudioDevice(audioDev, 0);
+        SDL_PauseAudioDevice(audioDev, 0);
     }
 }
 
@@ -204,6 +215,6 @@ bool ioMgr::resizeWindow(unsigned int winIndex, unsigned int xres, unsigned int 
     return true;
 }
 
-void ioMgr::pushAudio(std::array<int16_t, 735 * 2>& samples) {
-    SDL_QueueAudio(audioDev, samples.data(), 735 * 2 * sizeof(int16_t));
+void ioMgr::pushAudio(std::array<int16_t, 882 * 2>& samples) {
+    SDL_QueueAudio(audioDev, samples.data(), sampleCnt * audioSpec.channels * sizeof(int16_t));
 }
