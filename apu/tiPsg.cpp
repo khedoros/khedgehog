@@ -1,6 +1,7 @@
 #include "tiPsg.h"
 #include<iostream>
 #include<cassert>
+#include<fstream>
 
 TiPsg::TiPsg(std::shared_ptr<config>& conf): noiseLfsr(1), cfg(conf), apu(conf), latchedChannel(0) {
     for(int i=0;i<4;i++) {
@@ -28,12 +29,12 @@ TiPsg::TiPsg(std::shared_ptr<config>& conf): noiseLfsr(1), cfg(conf), apu(conf),
         sampleCnt = 735;
         ticksPerSample = 5.07;
     }
+    //output.open("audio.raw");
 }
 
 void TiPsg::mute(bool) {}
 
 void TiPsg::writeRegister(uint8_t val) {
-    std::cout<<"PSG: Write\n";
     if(val & 0x80) { //register
         //        %1cctdddd
         //        cc = channel
@@ -45,6 +46,7 @@ void TiPsg::writeRegister(uint8_t val) {
         latchedType = ((val>>4)&0x01);
         if(latchedType) { // volume
             attenuation[latchedChannel] = (val & 0x0f);
+            std::cout<<"PSG: Ch#"<<latchedChannel<<" set attenuation: "<<int(attenuation[latchedChannel]);
         }
         else { // wavelength data
             if(latchedChannel < 3) { // Square waves
@@ -53,6 +55,7 @@ void TiPsg::writeRegister(uint8_t val) {
                 if(latchedChannel == 2 && noiseShiftRate == 3) {
                     toneCountReset[3] = toneCountReset[2];
                 }
+                std::cout<<"PSG: Ch#"<<latchedChannel<<" set wavelength: "<<toneCountReset[latchedChannel];
             }
             else { // Noise channel
                 noiseMode = ((val>>2) & 1);
@@ -66,7 +69,6 @@ void TiPsg::writeRegister(uint8_t val) {
                 }
             }
         }
-        std::cout<<"PSG: Latched ch#"<<latchedChannel<<" type "<<latchedType<<"\n";
     }
     else { //data
         // %0_dddddd
@@ -89,7 +91,7 @@ void TiPsg::writeRegister(uint8_t val) {
                 case 3: toneCountReset[3] = toneCountReset[2]; break;
             }
         }
-        std::cout<<"PSG: Ch#"<<latchedChannel<<" reset: "<<toneCountReset[latchedChannel]<<"\n";
+        std::cout<<"PSG: Ch#"<<latchedChannel<<" set wavelength: "<<toneCountReset[latchedChannel];
     }
 }
 
@@ -118,11 +120,12 @@ std::array<int16_t, 882 * 2>& TiPsg::getSamples() {
     buffer.fill(0);
 	for(int i=0;i<sampleCnt*stereoChannels;i+=stereoChannels) {
         for(int channel = 0; channel < 3; channel++) {
-            toneCount[channel] -= ticksPerSample;
-            if(toneCount[channel] <= 0) {
-                toneCount[channel] = toneCountReset[channel];
-                currentOutput[channel] = !currentOutput[channel];
-                if(toneCount[channel] < 2) currentOutput[channel] = 1;
+            if(toneCountReset[channel] >= 2) {
+                toneCount[channel] -= ticksPerSample;
+                if(toneCount[channel] <= 0) {
+                    toneCount[channel] += toneCountReset[channel];
+                    currentOutput[channel] = !currentOutput[channel];
+                }
             }
             int16_t sampleVal = volume_table[attenuation[channel]] / 4;
             if(currentOutput[channel]) sampleVal *= -1;
@@ -142,6 +145,7 @@ std::array<int16_t, 882 * 2>& TiPsg::getSamples() {
         }
         //std::cout<<"\n";
 	}
+    //output.write(reinterpret_cast<char*>(buffer.data()), sampleCnt * stereoChannels * 2);
     return buffer;
 }
 

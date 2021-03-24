@@ -2,6 +2,7 @@
 #include<cstdint>
 #include<array>
 #include "apu.h"
+#include<fstream>
 
 // 3579545Hz for NTSC systems and 3546893Hz
 // 16x divisor for internal clock
@@ -42,4 +43,5 @@ private:
 	int stereoChannels; // channel count to render
 	int sampleCnt; // number of samples to render per request
     double ticksPerSample; // How many ticks in a sample
+    std::ofstream output;
 };
