@@ -1,27 +1,39 @@
 #include "tiPsg.h"
+#include<iostream>
+#include<cassert>
 
-TiPsg::TiPsg(std::shared_ptr<config>& conf): noiseLfsr(1), cfg(conf), apu(conf) {
+TiPsg::TiPsg(std::shared_ptr<config>& conf): noiseLfsr(1), cfg(conf), apu(conf), latchedChannel(0) {
     for(int i=0;i<4;i++) {
         stereoLeft[i] = true;
         stereoRight[i] = true;
         attenuation[i] = 15;
         toneCountReset[i] = 0;
         currentOutput[i] = true;
+        toneCount[i] = 0;
     }
 
-    channels = 1;
+    for(int i=0;i<882*2;i++) {
+        buffer[i] = 0;
+    }
+    stereoChannels = 1;
 	sampleCnt = 882;
+    ticksPerSample = 5.03;
+
     if(cfg->getSystemType() == systemType::gameGear) {
-        channels = 2;
+        stereoChannels = 2;
         sampleCnt = 735;
+        ticksPerSample = 5.07;
     }
     else if(cfg->getSystemRegion() != systemRegion::pal) {
         sampleCnt = 735;
+        ticksPerSample = 5.07;
     }
 }
 
 void TiPsg::mute(bool) {}
+
 void TiPsg::writeRegister(uint8_t val) {
+    std::cout<<"PSG: Write\n";
     if(val & 0x80) { //register
         //        %1cctdddd
         //        cc = channel
@@ -54,6 +66,7 @@ void TiPsg::writeRegister(uint8_t val) {
                 }
             }
         }
+        std::cout<<"PSG: Latched ch#"<<latchedChannel<<" type "<<latchedType<<"\n";
     }
     else { //data
         // %0_dddddd
@@ -76,6 +89,7 @@ void TiPsg::writeRegister(uint8_t val) {
                 case 3: toneCountReset[3] = toneCountReset[2]; break;
             }
         }
+        std::cout<<"PSG: Ch#"<<latchedChannel<<" reset: "<<toneCountReset[latchedChannel]<<"\n";
     }
 }
 
@@ -101,11 +115,30 @@ void TiPsg::setStereo(uint8_t val) {
 // Each 5.03 divided-clock-ticks makes an output sample.
 // TODO: Fix the audio code to expect something besides 60 FPS
 std::array<int16_t, 882 * 2>& TiPsg::getSamples() {
-	for(int i=0;i<sampleCnt*channels;i+=channels) {
-		buffer[i] = 0;
-		if(channels == 2) {
-			buffer[i+1] = 0;
-		}
+	for(int i=0;i<sampleCnt*stereoChannels;i+=stereoChannels) {
+        for(int channel = 0; channel < 3; channel++) {
+            toneCount[channel] -= ticksPerSample;
+            if(toneCount[channel] <= 0) {
+                toneCount[channel] = toneCountReset[channel];
+                currentOutput[channel] = !currentOutput[channel];
+            }
+            int16_t sampleVal = volume_table[attenuation[channel]] / 4;
+            if(currentOutput[channel]) sampleVal *= -1;
+
+            if(stereoChannels == 1) {
+                buffer[i] += sampleVal;
+            }
+            if(stereoChannels == 2) {
+                if(stereoLeft[channel]) {
+                    buffer[i] += sampleVal;
+                }
+                if(stereoRight[channel]) {
+                    buffer[i+1] += sampleVal;
+                }
+            }
+            //std::cout<<"Ch#"<<channel<<": "<<buffer[i]<<"\t";
+        }
+        //std::cout<<"\n";
 	}
     return buffer;
 }

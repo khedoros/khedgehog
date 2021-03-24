@@ -128,7 +128,7 @@ ioMgr::ioMgr(std::shared_ptr<config> conf) : cfg(conf) {
     want.freq = 44100;
     want.format = AUDIO_S16LSB;
     want.channels = channels;
-    want.samples = 1024;
+    want.samples = 4096;
 //    want.callback = nMyAudioCallback; /* you wrote this function elsewhere -- see SDL_AudioSpec for details */
 
     audioDev = SDL_OpenAudioDevice(nullptr, 0, &want, &audioSpec, 0);
@@ -216,5 +216,6 @@ bool ioMgr::resizeWindow(unsigned int winIndex, unsigned int xres, unsigned int 
 }
 
 void ioMgr::pushAudio(std::array<int16_t, 882 * 2>& samples) {
+    //std::cout<<"Pushing "<<sampleCnt<<" samples, "<<int(audioSpec.channels)<<" channels, with data size "<<sizeof(int16_t)<<"\n";
     SDL_QueueAudio(audioDev, samples.data(), sampleCnt * audioSpec.channels * sizeof(int16_t));
 }

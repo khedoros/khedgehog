@@ -34,7 +34,6 @@ uint8_t& memmapZ80Console::readByte(uint32_t addr) {
 }
 
 uint8_t memmapZ80Console::readPortByte(uint8_t port, uint64_t cycle) {
-    // TODO: Implement :-D
     dbg_printf(" read port %02x ", port);
     switch(port & 0b11000001) {
         case 0x00:

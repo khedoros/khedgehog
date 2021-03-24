@@ -19,8 +19,9 @@ private:
     bool latchedType:1; // 0 = data, 1 = volume
     uint16_t toneCountReset[4]; // 0 and 1 just give a constant "1" output. First audible signal on a real SMS2 was at Reset value 6, at 18643Hz
                                    // Noise channel resets: b00 = 0x10, b01 = 0x20, b02 = 0x40, b03 = value of Tone2's reset(?)
+    double toneCount[4];        // Current count for wavelength. Resets when it hits 0.
     uint8_t attenuation[4]; // Attenuation values would output volumes like this:
-    //  int volume_table[16]={ 32767, 26028, 20675, 16422, 13045, 10362,  8231,  6568, 5193,  4125,  3277,  2603,  2067,  1642,  1304,     0};
+    int volume_table[16]={ 32767, 26028, 20675, 16422, 13045, 10362,  8231,  6568, 5193,  4125,  3277,  2603,  2067,  1642,  1304,     0};
     bool currentOutput[4]; // Currently outputting low or high voltage
     unsigned noiseShiftRate:2;
     bool noiseMode; // 0 = periodic, 1 = white
@@ -38,6 +39,7 @@ private:
 
     std::array<int16_t, 882 * 2> buffer;
 
-	int channels; // channel count to render
+	int stereoChannels; // channel count to render
 	int sampleCnt; // number of samples to render per request
+    double ticksPerSample; // How many ticks in a sample
 };
