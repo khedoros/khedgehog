@@ -354,7 +354,7 @@ void vdpMS::renderMode4(unsigned int line, std::vector<uint8_t>& buffer) {
         int color_index = (((mask & byte0) + 2*(mask & byte1) + 4*(mask & byte2) + 8*(mask&byte3)) >> indexShift) + 16 * tile_info.fields.palnum;
 
         //
-        if(lineBuffer[scrX] && !tile_info.fields.priority) color_index = lineBuffer[scrX];
+        if(lineBuffer[scrX] && (!tile_info.fields.priority || color_index == 0)) color_index = lineBuffer[scrX];
         if(!color_index) color_index = 16 + bg_fg_col.fields.background;
 
         if(vdpMode == systemType::masterSystem) {

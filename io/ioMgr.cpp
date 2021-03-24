@@ -112,24 +112,23 @@ ioMgr::ioMgr(std::shared_ptr<config> conf) : cfg(conf) {
 
     createWindow(res.first, res.second, "Khedgehog Main Window");
 
-	int channels = 1;
-	if(cfg->getSystemType() == systemType::gameGear) {
-		channels = 2;
-		sampleCnt = 735;
-	}
-	else if(cfg->getSystemRegion() != systemRegion::pal) {
-		sampleCnt = 735;
-	}
-	else {
-		sampleCnt = 882;
-	}
+    int channels = 1;
+    if(cfg->getSystemType() == systemType::gameGear) {
+        channels = 2;
+        sampleCnt = 735;
+    }
+    else if(cfg->getSystemRegion() != systemRegion::pal) {
+        sampleCnt = 735;
+    }
+    else {
+        sampleCnt = 882;
+    }
     SDL_AudioSpec want;
-    SDL_memset(&want, 0, sizeof(want)); /* or SDL_zero(want) */
+    SDL_memset(&want, 0, sizeof(want));
     want.freq = 44100;
     want.format = AUDIO_S16LSB;
     want.channels = channels;
-    want.samples = 4096;
-//    want.callback = nMyAudioCallback; /* you wrote this function elsewhere -- see SDL_AudioSpec for details */
+    want.samples = 1024;
 
     audioDev = SDL_OpenAudioDevice(nullptr, 0, &want, &audioSpec, 0);
 

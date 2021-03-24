@@ -17,7 +17,7 @@ TiPsg::TiPsg(std::shared_ptr<config>& conf): noiseLfsr(1), cfg(conf), apu(conf),
         buffer[i] = 0;
     }
     stereoChannels = 1;
-	sampleCnt = 882;
+    sampleCnt = 882;
     ticksPerSample = 5.03;
 
     if(cfg->getSystemType() == systemType::gameGear) {
@@ -35,8 +35,8 @@ TiPsg::TiPsg(std::shared_ptr<config>& conf): noiseLfsr(1), cfg(conf), apu(conf),
 void TiPsg::mute(bool) {}
 
 void TiPsg::writeRegister(uint8_t val) {
-	writes[writeCount] = val;
-	writeCount++;
+    writes[writeCount] = val;
+    writeCount++;
 }
 
 void TiPsg::applyRegister(uint8_t val) {
@@ -121,21 +121,23 @@ void TiPsg::setStereo(uint8_t val) {
 // 70938 cycles per frame, 4433.62 max half-waves per frame
 // Each 5.03 divided-clock-ticks makes an output sample.
 std::array<int16_t, 882 * 2>& TiPsg::getSamples() {
-	//std::cout<<"Write Count this frame: "<<std::dec<<writeCount<<"\n";
+    //std::cout<<"Write Count this frame: "<<std::dec<<writeCount<<"\n";
     buffer.fill(0);
-	int writeIndex = 0;
-	for(int i=0;i<sampleCnt*stereoChannels;i+=stereoChannels) {
+    int writeIndex = 0;
+    for(int i=0;i<sampleCnt*stereoChannels;i+=stereoChannels) {
 
 
-		// TODO: Man...this is super-hacky. Basically, handle the writes in pairs because that's what Sonic 1+2 GG do
-		// And spread register writes evenly through the frame besides that.
-		// Fixing it properly would require the CPU to send the write cycle to the memmap, so that writes could be
-		// timed properly in the frame. But...this works, so far. Easy way out.
-		/**/ float percent = float(i) / float(sampleCnt * stereoChannels);
-		/**/ if(int(percent * writeCount) >= writeIndex) {
-		/**/	applyRegister(writes[writeIndex++]);
-		/**/	applyRegister(writes[writeIndex++]);
-		/**/}
+        // TODO: Man...this is super-hacky. Basically, handle the writes in pairs because that's what Sonic 1+2 GG do
+        // And spread register writes evenly through the frame besides that.
+        // Fixing it properly would require the CPU to send the write cycle to the memmap, so that writes could be
+        // timed properly in the frame. But...this works, so far. Easy way out.
+        /**/ float percent = float(i) / float(sampleCnt * stereoChannels);
+        /**/ if(int(percent * writeCount) >= writeIndex) {
+        /**/    applyRegister(writes[writeIndex++]);
+        /**/    if(writeIndex < writeCount) {
+        /**/        applyRegister(writes[writeIndex++]);
+        /**/    }
+        /**/}
 
 
         for(int channel = 0; channel < 3; channel++) {
@@ -163,8 +165,8 @@ std::array<int16_t, 882 * 2>& TiPsg::getSamples() {
             //std::cout<<"Ch#"<<channel<<": "<<buffer[i]<<"\t";
         }
         //std::cout<<"\n";
-	}
-	writeCount = 0;
+    }
+    writeCount = 0;
     //output.write(reinterpret_cast<char*>(buffer.data()), sampleCnt * stereoChannels * 2);
     return buffer;
 }
