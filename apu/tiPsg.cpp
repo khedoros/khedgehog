@@ -3,7 +3,7 @@
 #include<cassert>
 #include<fstream>
 
-TiPsg::TiPsg(std::shared_ptr<config>& conf): noiseLfsr(1), cfg(conf), apu(conf), latchedChannel(0) {
+TiPsg::TiPsg(std::shared_ptr<config>& conf): noiseLfsr(1), cfg(conf), apu(conf), latchedChannel(0), writeCount(0) {
     for(int i=0;i<4;i++) {
         stereoLeft[i] = true;
         stereoRight[i] = true;
@@ -35,6 +35,11 @@ TiPsg::TiPsg(std::shared_ptr<config>& conf): noiseLfsr(1), cfg(conf), apu(conf),
 void TiPsg::mute(bool) {}
 
 void TiPsg::writeRegister(uint8_t val) {
+	writes[writeCount] = val;
+	writeCount++;
+}
+
+void TiPsg::applyRegister(uint8_t val) {
     if(val & 0x80) { //register
         //        %1cctdddd
         //        cc = channel
@@ -46,7 +51,7 @@ void TiPsg::writeRegister(uint8_t val) {
         latchedType = ((val>>4)&0x01);
         if(latchedType) { // volume
             attenuation[latchedChannel] = (val & 0x0f);
-            std::cout<<"PSG: Ch#"<<latchedChannel<<" set attenuation: "<<int(attenuation[latchedChannel]);
+            std::cout<<"PSG: Ch#"<<latchedChannel<<" set attenuation: "<<int(attenuation[latchedChannel])<<"\n";
         }
         else { // wavelength data
             if(latchedChannel < 3) { // Square waves
@@ -55,7 +60,7 @@ void TiPsg::writeRegister(uint8_t val) {
                 if(latchedChannel == 2 && noiseShiftRate == 3) {
                     toneCountReset[3] = toneCountReset[2];
                 }
-                std::cout<<"PSG: Ch#"<<latchedChannel<<" set wavelength: "<<toneCountReset[latchedChannel];
+                std::cout<<"PSG: Ch#"<<latchedChannel<<" set wavelength: "<<toneCountReset[latchedChannel]<<"\n";
             }
             else { // Noise channel
                 noiseMode = ((val>>2) & 1);
@@ -91,7 +96,7 @@ void TiPsg::writeRegister(uint8_t val) {
                 case 3: toneCountReset[3] = toneCountReset[2]; break;
             }
         }
-        std::cout<<"PSG: Ch#"<<latchedChannel<<" set wavelength: "<<toneCountReset[latchedChannel];
+        std::cout<<"PSG: Ch#"<<latchedChannel<<" set wavelength: "<<toneCountReset[latchedChannel]<<"\n";
     }
 }
 
@@ -115,10 +120,24 @@ void TiPsg::setStereo(uint8_t val) {
 // 3546893Hz clock, 16x divisor, 50 FPS, 882 samples per frame
 // 70938 cycles per frame, 4433.62 max half-waves per frame
 // Each 5.03 divided-clock-ticks makes an output sample.
-// TODO: Fix the audio code to expect something besides 60 FPS
 std::array<int16_t, 882 * 2>& TiPsg::getSamples() {
+	//std::cout<<"Write Count this frame: "<<std::dec<<writeCount<<"\n";
     buffer.fill(0);
+	int writeIndex = 0;
 	for(int i=0;i<sampleCnt*stereoChannels;i+=stereoChannels) {
+
+
+		// TODO: Man...this is super-hacky. Basically, handle the writes in pairs because that's what Sonic 1+2 GG do
+		// And spread register writes evenly through the frame besides that.
+		// Fixing it properly would require the CPU to send the write cycle to the memmap, so that writes could be
+		// timed properly in the frame. But...this works, so far. Easy way out.
+		/**/ float percent = float(i) / float(sampleCnt * stereoChannels);
+		/**/ if(int(percent * writeCount) >= writeIndex) {
+		/**/	applyRegister(writes[writeIndex++]);
+		/**/	applyRegister(writes[writeIndex++]);
+		/**/}
+
+
         for(int channel = 0; channel < 3; channel++) {
             if(toneCountReset[channel] >= 2) {
                 toneCount[channel] -= ticksPerSample;
@@ -145,6 +164,7 @@ std::array<int16_t, 882 * 2>& TiPsg::getSamples() {
         }
         //std::cout<<"\n";
 	}
+	writeCount = 0;
     //output.write(reinterpret_cast<char*>(buffer.data()), sampleCnt * stereoChannels * 2);
     return buffer;
 }
