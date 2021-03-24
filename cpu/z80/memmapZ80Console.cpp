@@ -169,7 +169,7 @@ void memmapZ80Console::writePortByte(uint8_t port, uint8_t val, uint64_t cycle) 
             }
             break;
         case 0x40: case 0x41:
-            dbg_printf(" (PSG SN76489 output control)"); break;
+            dbg_printf(" (PSG SN76489 output control)");
             apu_dev->writeRegister(val);
             break;
         case 0x80:

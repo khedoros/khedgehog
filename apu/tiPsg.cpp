@@ -115,12 +115,14 @@ void TiPsg::setStereo(uint8_t val) {
 // Each 5.03 divided-clock-ticks makes an output sample.
 // TODO: Fix the audio code to expect something besides 60 FPS
 std::array<int16_t, 882 * 2>& TiPsg::getSamples() {
+    buffer.fill(0);
 	for(int i=0;i<sampleCnt*stereoChannels;i+=stereoChannels) {
         for(int channel = 0; channel < 3; channel++) {
             toneCount[channel] -= ticksPerSample;
             if(toneCount[channel] <= 0) {
                 toneCount[channel] = toneCountReset[channel];
                 currentOutput[channel] = !currentOutput[channel];
+                if(toneCount[channel] < 2) currentOutput[channel] = 1;
             }
             int16_t sampleVal = volume_table[attenuation[channel]] / 4;
             if(currentOutput[channel]) sampleVal *= -1;
