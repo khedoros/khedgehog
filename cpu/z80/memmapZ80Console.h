@@ -70,14 +70,14 @@ private:
 
     // Port 3F: I/O Port control
     struct io_port_ctrl_t {
-        io_dir_t port_a_tr_dir;
-        io_dir_t port_a_th_dir;
-        io_dir_t port_b_tr_dir;
-        io_dir_t port_b_th_dir;
-        io_level_t port_a_tr_lev;
-        io_level_t port_a_th_lev;
-        io_level_t port_b_tr_lev;
-        io_level_t port_b_th_lev;
+        bool port_a_tr_input;
+        bool port_a_th_input;
+        bool port_b_tr_input;
+        bool port_b_th_input;
+        bool port_a_tr_lev;
+        bool port_a_th_lev;
+        bool port_b_tr_lev;
+        bool port_b_th_lev;
     } io_port_ctrl;
 
     enum joya_buttons {

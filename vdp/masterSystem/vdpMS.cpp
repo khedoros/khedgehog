@@ -7,7 +7,7 @@
 #include "../font.h"
 
 
-vdpMS::vdpMS(systemType t, systemRegion r):addr_latch(false), vdpMode(t), vdpRegion(r) {
+vdpMS::vdpMS(systemType t, systemRegion r):addr_latch(false), vdpMode(t), vdpRegion(r), latchedPixel(0) {
     if(vdpMode == systemType::gameGear) pal_ram.resize(0x40, 0);
     else                                pal_ram.resize(0x20, 0);
 
@@ -574,7 +574,7 @@ void vdpMS::writeByte(uint8_t port, uint8_t val, uint64_t cycle) {
 uint8_t vdpMS::readByte(uint8_t port, uint64_t cycle) {
     switch(port & 0b11000001) {
         case 0x40: return readVCounter(cycle);
-        case 0x41: return readHCounter(cycle);
+        case 0x41: return readHCounter();
         case 0x80: addr_latch = false; return readData();
         case 0x81: addr_latch = false; return readStatus(cycle);
         default: std::cerr<<"Shouldn't have reached the VDP\n";
@@ -703,13 +703,18 @@ uint8_t vdpMS::readVCounter(uint64_t cycle) {
         // NTSC, 256x224 00-EA, E5-FF
         // NTSC, 256x240 00-FF, 00-06
         switch(getMode()) {
-            case graphicsMode_t::graphics1:
-            case graphicsMode_t::text:
-            case graphicsMode_t::graphics2:
-            case graphicsMode_t::multicolor:
-            case graphicsMode_t::mode4: break;
-            case graphicsMode_t::mode4_224: break;
-            case graphicsMode_t::mode4_240: break;
+            case graphicsMode_t::graphics1: [[fallthrough]];
+            case graphicsMode_t::text:      [[fallthrough]];
+            case graphicsMode_t::graphics2: [[fallthrough]];
+            case graphicsMode_t::multicolor:[[fallthrough]];
+            case graphicsMode_t::mode4: 
+				if(curLine <= 0xda) return curLine;
+				else                return curLine - 6;
+            case graphicsMode_t::mode4_224: 
+				if(curLine <= 0xea) return curLine;
+				else                return curLine - 6;
+            case graphicsMode_t::mode4_240: 
+				return curLine % 0x100;
         }
     }
     else { //systemRegion == pal
@@ -717,19 +722,32 @@ uint8_t vdpMS::readVCounter(uint64_t cycle) {
         // PAL,  256x224 00-FF, 00-02, CA-FF
         // PAL,  256x240 00-FF, 00-0A, D2-FF
         switch(getMode()) {
-            case graphicsMode_t::graphics1:
-            case graphicsMode_t::text:
-            case graphicsMode_t::graphics2:
-            case graphicsMode_t::multicolor:
-            case graphicsMode_t::mode4: break;
-            case graphicsMode_t::mode4_224: break;
-            case graphicsMode_t::mode4_240: break;
+            case graphicsMode_t::graphics1:  [[fallthrough]];
+            case graphicsMode_t::text:       [[fallthrough]];
+            case graphicsMode_t::graphics2:  [[fallthrough]];
+            case graphicsMode_t::multicolor: [[fallthrough]];
+            case graphicsMode_t::mode4:
+				if(curLine <= 0xf2) return curLine;
+				else                return curLine - 0x39;
+            case graphicsMode_t::mode4_224:
+				if(curLine <= 0x102) return curLine % 0x100;
+				else                 return curLine - 0x39;
+            case graphicsMode_t::mode4_240:
+				if(curLine <= 0x10a) return curLine % 0x100;
+				else                return curLine - 0x39;
         }
-    }
-    return curLine;
+    
+	}
+    return curLine; //emergency catch-all
 }
 
-uint8_t vdpMS::readHCounter(uint64_t cycle) {
+uint8_t vdpMS::readHCounter() {
+	return latchedPixel;
     //std::printf("h: %ld\n", (cycle / 262) % 342);
-    return (cycle / 262) % 342;
+    //return (cycle / 262) % 342;
+}
+
+void vdpMS::latchHCounter(uint64_t cycle) {
+	latchedPixel = ((cycle * 3) / 2) % 342;
+	std::cout<<"Latched hCounter to "<<std::dec<<int(latchedPixel)<<" at cycle "<<cycle<<"\n";
 }

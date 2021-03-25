@@ -33,19 +33,39 @@ uint8_t& memmapZ80Console::readByte(uint32_t addr) {
     return map(addr);
 }
 
+/*
+ 
+           switch(port) {//     https://www.smspower.org/Development/GearToGearCable#StatusPort05
+                case 0: dbg_printf(" (Game Gear registers, start button)"); break;
+                case 2: dbg_printf(" (Game Gear registers, EXT direction)"); break; //There are seven parallel bits which can be configured in either direction. Write to port $02 to configure the direction: 0 = output, 1 = input. 
+                case 4: dbg_printf(" (Game Gear registers)"); break;
+                case 6: dbg_printf(" (Game Gear registers)"); break;
+                default:
+                    dbg_printf(" (memory control)");
+                    break;
+            }
+            break;
+        case 0x01:
+            switch(port) {
+                case 1: dbg_printf(" (Game Gear registers)"); break;
+                case 3: dbg_printf(" (Game Gear registers, EXT transmit)"); break; // Read or write port $03 to receive or transmit. 
+                case 5: dbg_printf(" (Game Gear registers, EXT status)"); break; // bit0: 1 if send buffer occupied. bit1: 1 if recv buffer occupied. bit2: 1 if remote console on. bit 3-5: must be 1 to enable communication.
+
+
+*/
 uint8_t memmapZ80Console::readPortByte(uint8_t port, uint64_t cycle) {
     dbg_printf(" read port %02x ", port);
     switch(port & 0b11000001) {
         case 0x00:
             switch(port) {
                 case 0:
-                    dbg_printf(" (Game Gear registers)\n");
+                    dbg_printf(" (Game Gear registers, start button)\n"); //start button is on top bit
                     if(cfg->getSystemType() == systemType::gameGear) {
                         return 0x7f | (!(gg_port_0.start))<<7;
                     }
                     break;
-                case 2: dbg_printf(" (Game Gear registers)\n"); break;
-                case 4: dbg_printf(" (Game Gear registers)\n"); break;
+                case 2: dbg_printf(" (Game Gear registers, EXT direction)\n"); break; //notes on "writePortByte"
+                case 4: dbg_printf(" (Game Gear registers, EXT regular read)\n"); break; // read port 4 to get EXT byte (in regular mode)
                 case 6: dbg_printf(" (Game Gear registers)\n"); break;
                 default:
                     dbg_printf(" (memory control register)\n");
@@ -54,8 +74,8 @@ uint8_t memmapZ80Console::readPortByte(uint8_t port, uint64_t cycle) {
             return 0xff;
         case 0x01:
            switch(port) {
-                case 1: dbg_printf(" (Game Gear registers)\n"); break;
-                case 3: dbg_printf(" (Game Gear registers)\n"); break;
+                case 1: dbg_printf(" (Game Gear registers, EXT raw read)\n"); break; //read port 3 to get EXT byte (in raw mode)
+                case 3: dbg_printf(" (Game Gear registers, EXT status)\n"); break; // bit0: 1 if send buffer occupied. bit1: 1 if recv buffer occupied. bit2: 1 if remote console on. bit 3-5: must be 1 to enable communication.
                 case 5: dbg_printf(" (Game Gear registers)\n"); break;
                 default:
                     dbg_printf(" (i/o control register)\n");
@@ -148,9 +168,9 @@ void memmapZ80Console::writePortByte(uint8_t port, uint8_t val, uint64_t cycle) 
     dbg_printf(" wrote %02x to port %02x", val, port);
     switch(port & 0b11000001) {
         case 0x00:
-            switch(port) {
-                case 0: dbg_printf(" (Game Gear registers)"); break;
-                case 2: dbg_printf(" (Game Gear registers)"); break;
+            switch(port) {//     https://www.smspower.org/Development/GearToGearCable#StatusPort05
+                case 0: dbg_printf(" (Game Gear registers, start button)"); break;
+                case 2: dbg_printf(" (Game Gear registers, EXT direction)"); break; //There are seven parallel bits which can be configured in either direction. Write to port $02 to configure the direction: 0 = output, 1 = input. 
                 case 4: dbg_printf(" (Game Gear registers)"); break;
                 case 6: dbg_printf(" (Game Gear registers)"); break;
                 default:
@@ -161,11 +181,25 @@ void memmapZ80Console::writePortByte(uint8_t port, uint8_t val, uint64_t cycle) 
         case 0x01:
             switch(port) {
                 case 1: dbg_printf(" (Game Gear registers)"); break;
-                case 3: dbg_printf(" (Game Gear registers)"); break;
-                case 5: dbg_printf(" (Game Gear registers)"); break;
-                default:
-                    dbg_printf(" (I/O control + automatic nationalization)"); break;
-                    std::cerr<<"Really not implemented. Got port "<<std::hex<<int(port)<<" = "<<int(val)<<"\n";
+                case 3: dbg_printf(" (Game Gear registers, EXT transmit)"); break; // write port $03 to transmit. 
+				case 5: dbg_printf(" (Game Gear registers, EXT status)"); break; // likely read-only
+				default:
+                    dbg_printf(" (I/O control + automatic nationalization)");
+					// If port a TR is strobed, latch the H Counter in the VDP
+					if(!io_port_ctrl.port_a_th_lev && (val & (1<<5))) {
+						std::cout<<"Latched Hcounter (TH went 0->1)\n";
+						std::dynamic_pointer_cast<vdpMS>(vdp_dev)->latchHCounter(cycle);
+					}
+					io_port_ctrl.port_a_tr_input = (val & (1<<0));
+					io_port_ctrl.port_a_th_input = (val & (1<<1));
+					io_port_ctrl.port_b_tr_input = (val & (1<<2));
+					io_port_ctrl.port_b_th_input = (val & (1<<3));
+					io_port_ctrl.port_a_tr_lev = (val & (1<<4));
+					io_port_ctrl.port_a_th_lev = (val & (1<<5));
+					io_port_ctrl.port_b_tr_lev = (val & (1<<6));
+					io_port_ctrl.port_b_th_lev = (val & (1<<7));
+                    //std::cerr<<"Really not implemented. Got port "<<std::hex<<int(port)<<" = "<<int(val)<<"\n";
+					break;
             }
             break;
         case 0x40: case 0x41:

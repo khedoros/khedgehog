@@ -25,6 +25,7 @@ public:
     bool frameInterrupt() override;
     void endLine(uint64_t lineNum) override;
     unsigned int getFrameLines();
+	void latchHCounter(uint64_t cycle);
 
 private:
     void writeAddress(uint8_t val);
@@ -32,7 +33,7 @@ private:
     uint8_t readData();
     uint8_t readStatus(uint64_t cycle);
     uint8_t readVCounter(uint64_t cycle);
-    uint8_t readHCounter(uint64_t cycle);
+    uint8_t readHCounter();
 
     enum class graphicsMode_t {text, graphics1, graphics2, multicolor, mode4, mode4_224, mode4_240, unknown};
     graphicsMode_t curMode;

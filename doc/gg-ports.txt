@@ -1,0 +1,42 @@
+port 00 (RO):
+bit 7: start button. 0=pressed, 1=open
+bit 6: region. 0=domestic (JP), 1=overseas
+bit 5: pal/ntsc. 0=ntsc, 1=pal.
+
+port 01(RW):
+bits 0-6: Read/write when EXT used as 7-bit IO port. These are called the "PC" registers.
+
+port 02(RW):
+bit 7: 0=NMI generated when PC6 is input and falls, 1=no NMI
+Bit 0-6: 0=output, 1=input. Configures port $01 directions.
+
+port 03(RW):
+bit 0-7: used to send data during serial communications.
+
+port 04(RO):
+bit 0-7: used to receive data during serial communications.
+
+port 05(RW):
+bit 6-7: RW. baud rating. 00 = 4800bps, 01=2400bps, 10=1200bps, 11=300bps
+bit 5: RW. 0=receive disable. 1=receive enable (PC5 is made an input)
+bit 4: RW. 0=send disable. 1=send enable (PC4 is made an output) 
+bit 3: RW. 0=no nmi when data is received. 1=nmi when data is received (makes port 2 bit 7 redundant)
+bit 2: RO. 0=no framing error. 1=framing error detected.
+bit 1: RO. 0=no received data in buffer. 1=received data in buffer.
+bit 0: RO. 0=send buffer is empty/ready. 1=send buffer is full.
+
+port 6(WO):
+7: audio chan 3 left enable
+6: audio chan 2 left enable
+5: audio chan 1 left enable
+4: audio chan 0 left enabled
+3: audio chan 3 right enable
+2: audio chan 2 right enable
+1: audio chan 1 right enable
+0: audio chan 0 right enabled
+
+port 30(RO):
+development board loader access
+
+port 31(RO):
+printer status, bottom 3 bits
