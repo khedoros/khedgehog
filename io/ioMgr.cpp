@@ -58,8 +58,8 @@ void sdlWindow::resize(unsigned int width, unsigned int height) {
 
     SDL_SetWindowMinimumSize(window, width, height);
 
-    //renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED/*|SDL_RENDERER_PRESENTVSYNC*/);
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED/*|SDL_RENDERER_PRESENTVSYNC*/);
+    //renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
     //renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE|SDL_RENDERER_PRESENTVSYNC);
     //renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE/*|SDL_RENDERER_PRESENTVSYNC*/);
     SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
@@ -215,6 +215,10 @@ bool ioMgr::resizeWindow(unsigned int winIndex, unsigned int xres, unsigned int 
 }
 
 void ioMgr::pushAudio(std::array<int16_t, 882 * 2>& samples) {
-    //std::cout<<"Pushing "<<sampleCnt<<" samples, "<<int(audioSpec.channels)<<" channels, with data size "<<sizeof(int16_t)<<"\n";
+    uint32_t enqueuedBytes = SDL_GetQueuedAudioSize(audioDev);
+    std::cout<<"audio: "<<enqueuedBytes<<" bytes of queued audio.\n";
+    while(SDL_GetQueuedAudioSize(audioDev) > sampleCnt * audioSpec.channels * sizeof(int16_t)) {
+        SDL_Delay(1);
+    }
     SDL_QueueAudio(audioDev, samples.data(), sampleCnt * audioSpec.channels * sizeof(int16_t));
 }
