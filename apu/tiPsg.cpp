@@ -3,7 +3,9 @@
 #include<cassert>
 #include<fstream>
 
-TiPsg::TiPsg(std::shared_ptr<config>& conf): noiseLfsr(1), cfg(conf), apu(conf), latchedChannel(0), writeCount(0) {
+TiPsg::TiPsg(std::shared_ptr<config>& conf): noiseLfsr(1<<15), cfg(conf), apu(conf), latchedChannel(0), writeCount(0) {
+    toneCountReset[3] = 0x10;
+
     for(int i=0;i<4;i++) {
         stereoLeft[i] = true;
         stereoRight[i] = true;
@@ -51,7 +53,7 @@ void TiPsg::applyRegister(uint8_t val) {
         latchedType = ((val>>4)&0x01);
         if(latchedType) { // volume
             attenuation[latchedChannel] = (val & 0x0f);
-            std::cout<<"PSG: Ch#"<<latchedChannel<<" set attenuation: "<<int(attenuation[latchedChannel])<<"\n";
+            //std::cout<<"PSG: Ch#"<<latchedChannel<<" set attenuation: "<<int(attenuation[latchedChannel])<<"\n";
         }
         else { // wavelength data
             if(latchedChannel < 3) { // Square waves
@@ -60,18 +62,19 @@ void TiPsg::applyRegister(uint8_t val) {
                 if(latchedChannel == 2 && noiseShiftRate == 3) {
                     toneCountReset[3] = toneCountReset[2];
                 }
-                std::cout<<"PSG: Ch#"<<latchedChannel<<" set wavelength: "<<toneCountReset[latchedChannel]<<"\n";
+                //std::cout<<"PSG: Ch#"<<latchedChannel<<" set wavelength: "<<toneCountReset[latchedChannel]<<"\n";
             }
             else { // Noise channel
                 noiseMode = ((val>>2) & 1);
                 noiseShiftRate = (val & 0x03);
-                noiseLfsr = 1;
+                noiseLfsr = (1<<15);
                 switch(noiseShiftRate) {
-                    case 0: toneCountReset[3] = 0x10; break;
-                    case 1: toneCountReset[3] = 0x20; break;
-                    case 2: toneCountReset[3] = 0x40; break;
-                    case 3: toneCountReset[3] = toneCountReset[2]; break;
+                    case 0: toneCountReset[3] = 0x20; break;
+                    case 1: toneCountReset[3] = 0x40; break;
+                    case 2: toneCountReset[3] = 0x80; break;
+                    case 3: toneCountReset[3] =  2 * toneCountReset[2]; break;
                 }
+                //std::cout<<"PSG: Ch#"<<latchedChannel<<" noise mode: "<<noiseMode<<" shift rate: "<<noiseShiftRate<<" ("<<toneCountReset[3]<<"\n";
             }
         }
     }
@@ -84,19 +87,20 @@ void TiPsg::applyRegister(uint8_t val) {
             if(latchedChannel == 2 && noiseShiftRate == 3) {
                 toneCountReset[3] = toneCountReset[2];
             }
+            //std::cout<<"PSG: Ch#"<<latchedChannel<<" set wavelength: "<<toneCountReset[latchedChannel]<<"\n";
         }
         else {
             noiseMode = ((val>>2) & 1);
             noiseShiftRate = (val & 0x03);
-            noiseLfsr = 1;
+            noiseLfsr = (1<<15);
             switch(noiseShiftRate) {
                 case 0: toneCountReset[3] = 0x10; break;
                 case 1: toneCountReset[3] = 0x20; break;
                 case 2: toneCountReset[3] = 0x40; break;
                 case 3: toneCountReset[3] = toneCountReset[2]; break;
             }
+            //std::cout<<"PSG: Ch#"<<latchedChannel<<" noise mode: "<<noiseMode<<" shift rate: "<<noiseShiftRate<<" ("<<toneCountReset[3]<<"\n";
         }
-        std::cout<<"PSG: Ch#"<<latchedChannel<<" set wavelength: "<<toneCountReset[latchedChannel]<<"\n";
     }
 }
 
@@ -139,15 +143,32 @@ std::array<int16_t, 882 * 2>& TiPsg::getSamples() {
         /**/    }
         /**/}
 
-
-        for(int channel = 0; channel < 3; channel++) {
+        for(int channel = 0; channel < 4; channel++) {
             if(toneCountReset[channel] >= 2) {
                 toneCount[channel] -= ticksPerSample;
                 if(toneCount[channel] <= 0) {
                     toneCount[channel] += toneCountReset[channel];
-                    currentOutput[channel] = !currentOutput[channel];
-                }
+                    if(channel < 3) { //square channels
+                        currentOutput[channel] = !currentOutput[channel];
+                    }
+                    else { // noise channel
+                        currentOutput[channel] = (noiseLfsr & 0x01);
+                        int newVal = 0;
+                        if(noiseMode == 0) {
+                            newVal = ((noiseLfsr & 0x01)<<15);
+                        }
+                        else {
+                            newVal = ((((noiseLfsr & 0x08) >> 3) ^ (noiseLfsr & 0x01))<<15);
+                        }
+                        //std::cout<<"PSG: Ch#3 NoiseLFSR "<<std::hex<<noiseLfsr;
+                        noiseLfsr >>= 1;
+                        noiseLfsr |= newVal;
+                        //std::cout<<"->"<<noiseLfsr<<"\n";
+
+                    }
+                }// else std::cout<<"PSG: Ch#"<<channel<<" toneCount: "<<toneCount[channel]<<"\n";
             }
+            //else std::cout<<"PSG: Ch#"<<channel<<" reset value: "<<toneCountReset[channel]<<"\n";
             int16_t sampleVal = volume_table[attenuation[channel]] / 4;
             if(currentOutput[channel]) sampleVal *= -1;
 
