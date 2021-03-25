@@ -1,0 +1,125 @@
+Pixel clock (5,369,317.5 Hz) clocks horizontal counter, which clocks vertical counter.
+
+
+Horizontal active: 256 cycles
+Right border: 15     \
+Right blanking: 8    |----49 cycles
+Horizontal sync: 26  /
+Left Blank1: 2       \
+Color burst: 14      |\
+Left Blank2: 8       |/---37 cycles
+Left Border: 13      /
+
+Example of NTSC192 timing:
+Vertical active display: 192 lines
+bottom border: 24   \
+bottom blanking: 3  |------30 lines
+vertical sync: 3    /
+Top blanking: 13    \
+Top border: 27      /------40 lines
+
+                  NTSC192    NTSC224    NTSC240    PAL192    PAL224    PAL240
+Active display      192        224        cont       192       224       240
+Bottom border        24          8        inu         48        32        24
+Bottom blanking       3          3        ous          3         3         3
+Vertical blanking     3          3                     3         3         3
+Top blanking         13         13        roll        13        13        13
+Top border           27         11        ing         54        38        30
+
+
+The values are the HClock (-47 -> 294) divided by 2 or the MClock (0 -> 683)-94 divided by 4.
+
+H counter values
+ Pixels H.Cnt   Description
+  256 : 00-7F : Active display
+   15 : 80-87 : Right border
+    8 : 87-8B : Right blanking
+   26 : 8B-ED : Horizontal sync
+    2 : ED-EE : Left blanking
+   14 : EE-F5 : Color burst
+    8 : F5-F9 : Left blanking
+   13 : F9-FF : Left border
+
+V counter values
+NTSC192: 00-DA, D5-FF
+NTSC224: 00-EA, E5-FF
+NTSC240: 00-FF, 00-06
+PAL192 : 00-F2, BA-FF
+PAL224 : 00-FF, 00-02, CA-FF
+PAL240 : 00-FF, 00-0A, D2-FF
+
+ The VDP can generate an interrupt relating to two conditions; when the
+ vertical blanking period has started (frame interrupt), and when the line
+ interrupt counter has expired (line interrupt).
+
+ Frame interrupts
+
+ Depending on the height of the display, the VDP will attempt to generate a
+ frame interrupt on the following lines:
+
+ Height  Line
+ ------  ----
+ 192     $C1
+ 224     $E1
+ 240     $F1
+
+ The VDP can generate an interrupt relating to two conditions; when the
+ vertical blanking period has started (frame interrupt), and when the line
+ interrupt counter has expired (line interrupt).
+
+ Frame interrupts
+
+ Depending on the height of the display, the VDP will attempt to generate a
+ frame interrupt on the following lines:
+
+ Height  Line
+ ------  ----
+ 192     $C1
+ 224     $E1
+ 240     $F1
+ 
+  Line interrupts
+
+ The VDP has a counter that is loaded with the contents of register $0A on
+ every line outside of the active display period excluding the line after
+ the last line of the active display period. It is decremented on every
+ line within the active display period including the line after the last
+ line of the active display period.
+
+ I'll admit that's a bad description, though I couldn't think of any other
+ way to say it. To help you understand how this works, here is an example
+ for a 192-line display on an NTSC machine that has 262 scanlines per frame:
+
+ Out of lines 0-261:
+ - The counter is decremented on lines 0-191 and 192.
+ - The counter is reloaded on lines 193-261.
+
+ When the counter underflows from $00 to $FF, it is reloaded with the last
+ value written to register $0A. Writing to register $0A will not immediately
+ change the contents of the counter, this only occurs when the counter is
+ reloaded (meaning outside of the active display period as described above,
+ or when the counter has underflows).
+
+ When the counter underflows, the VDP sets an internal flag which I will
+ call the line interrupt pending flag. This flag remains set until the
+ control port is read.
+
+ Bit 4 of register $00 acts like a on/off switch for the VDP's IRQ line.
+ As long as the line interrupt pending flag is set, the VDP will assert the
+ IRQ line if bit 4 of register $00 is set, and it will de-assert the IRQ line
+ if the same bit is cleared.
+
+VINT occur at HClock -18 (HCount 0xF3), -14 (Hcount 0xF6) on MD.
+HINT occur at HClock -17 (HCount 0xF3), -13 (Hcount 0xF6) on MD.
+NMI occur at HClock -16 (HCount 0xF4).
+VCount change at HClock -16 (HCount 0xF4), -13 (HCount 0xF6) on MD.
+VINT flag is set at HClock -15 (HCount 0xF5). -13 (HCount 0xF6) on MD.
+OVR flag is set at HClock -15 (HCount 0xF5). -13 (HCount 0xF6) on MD.
+COL flag is set at the pixel it occurs. -13 (HCount 0xFF) on MD.
+XScroll is latched between HClock -18 & -17 (HCount 0xF3), HClock -15 & -14 (HCount 0xF5 & 0xF6) on MD.
+YScroll is latched between HClock ? & ? (HCount ?) on line ?
+    HClock ? & ? (HCount ? & ?) on MD.
+
+NameTable base is not latched, it's updated through out the scanline.
+
+
