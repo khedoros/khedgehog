@@ -127,4 +127,6 @@ private:
     struct gg_port_0_t {
         bool start;
     } gg_port_0;
+
+    uint8_t gg_port_1, gg_port_2, gg_port_3, gg_port_4, gg_port_5, gg_port_6;
 };

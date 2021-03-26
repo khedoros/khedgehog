@@ -64,9 +64,12 @@ uint8_t memmapZ80Console::readPortByte(uint8_t port, uint64_t cycle) {
                         return 0x7f | (!(gg_port_0.start))<<7;
                     }
                     break;
-                case 2: dbg_printf(" (Game Gear registers, EXT direction)\n"); break; //notes on "writePortByte"
-                case 4: dbg_printf(" (Game Gear registers, EXT regular read)\n"); break; // read port 4 to get EXT byte (in regular mode)
-                case 6: dbg_printf(" (Game Gear registers)\n"); break;
+                case 2: dbg_printf(" (Game Gear registers, EXT direction)\n"); 
+                        return gg_port_2; //notes on "writePortByte"
+                case 4: dbg_printf(" (Game Gear registers, EXT regular read)\n");
+                        return gg_port_4; // read port 4 to get EXT byte (in regular mode)
+                case 6: dbg_printf(" (Game Gear registers)\n");
+                        return gg_port_6;
                 default:
                     dbg_printf(" (memory control register)\n");
                     return 0xff;
@@ -74,10 +77,12 @@ uint8_t memmapZ80Console::readPortByte(uint8_t port, uint64_t cycle) {
             return 0xff;
         case 0x01:
            switch(port) {
-                case 1: dbg_printf(" (Game Gear registers, EXT i/o R/W)\n"); break; // "Read/write when EXT used as 7-bit IO port. These are called the "PC" registers."
-                case 3: dbg_printf(" (Game Gear registers, EXT raw read)\n"); break; //read port 3 to get EXT byte (in raw mode)
+                case 1: dbg_printf(" (Game Gear registers, EXT i/o R/W)\n");
+                    return gg_port_1; // "Read/write when EXT used as 7-bit IO port. These are called the "PC" registers."
+                case 3: dbg_printf(" (Game Gear registers, EXT raw read)\n");
+                        return gg_port_3; //read port 3 to get EXT byte (in raw mode)
                 case 5: dbg_printf(" (Game Gear registers, EXT status)\n");  // bit0: 1 if send buffer occupied. bit1: 1 if recv buffer occupied. bit2: 1 if remote console on. bit 3-5: must be 1 to enable communication.
-                        return 0;
+                        return gg_port_5;
                 default:
                     dbg_printf(" (i/o control register)\n");
                     return 0xff;
@@ -179,9 +184,15 @@ void memmapZ80Console::writePortByte(uint8_t port, uint8_t val, uint64_t cycle) 
         case 0x00:
             switch(port) {//     https://www.smspower.org/Development/GearToGearCable#StatusPort05
                 case 0: dbg_printf(" (Game Gear registers, start button)"); break;
-                case 2: dbg_printf(" (Game Gear registers, EXT direction)"); break; //There are seven parallel bits which can be configured in either direction. Write to port $02 to configure the direction: 0 = output, 1 = input. 
-                case 4: dbg_printf(" (Game Gear registers)"); break;
-                case 6: dbg_printf(" (Game Gear registers)"); break;
+                case 2: dbg_printf(" (Game Gear registers, EXT direction)");
+                    gg_port_2 = val; //There are seven parallel bits which can be configured in either direction. Write to port $02 to configure the direction: 0 = output, 1 = input. 
+                    break;
+                case 4: dbg_printf(" (Game Gear registers)");
+                    gg_port_4 = val;
+                    break;
+                case 6: dbg_printf(" (Game Gear registers)");
+                    gg_port_6 = val;
+                    break;
                 default:
                     dbg_printf(" (memory control)");
                     break;
@@ -189,10 +200,16 @@ void memmapZ80Console::writePortByte(uint8_t port, uint8_t val, uint64_t cycle) 
             break;
         case 0x01:
             switch(port) {
-                case 1: dbg_printf(" (Game Gear registers)"); break;
-                case 3: dbg_printf(" (Game Gear registers, EXT transmit)"); break; // write port $03 to transmit. 
-				case 5: dbg_printf(" (Game Gear registers, EXT status)"); break; // likely read-only
-				default:
+                case 1: dbg_printf(" (Game Gear registers)");
+                    gg_port_1 = val;
+                    break;
+                case 3: dbg_printf(" (Game Gear registers, EXT transmit)");
+                    gg_port_3 = val; // write port $03 to transmit. 
+                    break;
+                case 5: dbg_printf(" (Game Gear registers, EXT status)");
+                    gg_port_5 = val;
+                    break; // likely read-only
+                default:
                     dbg_printf(" (I/O control + automatic nationalization)");
 					// If port a TR is strobed, latch the H Counter in the VDP
 					if(!io_port_ctrl.port_a_th_lev && (val & (1<<5))) {
