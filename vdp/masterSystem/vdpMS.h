@@ -26,6 +26,7 @@ public:
     void endLine(uint64_t lineNum) override;
     unsigned int getFrameLines();
 	void latchHCounter(uint64_t cycle);
+    void setGlasses(uint8_t val);
 
 private:
     void writeAddress(uint8_t val);
@@ -72,6 +73,9 @@ private:
     uint8_t data_buffer;
     unsigned int address:14;
     enum class addr_mode_t {vram_read, vram_write, reg_write, cram_write} addr_mode;
+
+    bool glassesInUse;
+    bool glassesEye; //0 for right (blue), 1 for left (red)
 
     // Reference: https://www.smspower.org/Development/VDPRegisters
     // Control Registers

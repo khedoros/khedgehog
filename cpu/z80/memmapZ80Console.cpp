@@ -137,6 +137,13 @@ void memmapZ80Console::writeByte(uint32_t addr, uint8_t val) {
         ram[addr & 0x1fff] = val;
     }
     switch(addr) {
+    case 0xfff8:
+    case 0xfff9:
+    case 0xfffa:
+    case 0xfffb:
+        std::cout<<"GLASSES: "<<int(val)<<"\n";
+        std::dynamic_pointer_cast<vdpMS>(vdp_dev)->setGlasses(val);
+        break;
     case 0xfffc:
         slot2RamActive = (val & 0b00001000)? true: false;
         slot2RamPage = (val & 0b00000100)? 1: 0;

@@ -7,7 +7,7 @@
 #include "../font.h"
 
 
-vdpMS::vdpMS(systemType t, systemRegion r):addr_latch(false), vdpMode(t), vdpRegion(r), latchedPixel(0) {
+vdpMS::vdpMS(systemType t, systemRegion r):addr_latch(false), vdpMode(t), vdpRegion(r), latchedPixel(0), glassesInUse(false) {
     if(vdpMode == systemType::gameGear) pal_ram.resize(0x40, 0);
     else                                pal_ram.resize(0x20, 0);
 
@@ -472,9 +472,25 @@ void vdpMS::setPixelSMS(std::vector<uint8_t>& buffer, int x, int y, int index) {
     if(index == 0) index = bg_fg_col.fields.background;
     else index %= pal_ram.size();
     sms_color_t color{.val = pal_ram.at(index)};
-    buffer[y * 256 * 3 + 3 * x + 0] = sms_pal_component[color.component.blue];
-    buffer[y * 256 * 3 + 3 * x + 1] = sms_pal_component[color.component.green];
-    buffer[y * 256 * 3 + 3 * x + 2] = sms_pal_component[color.component.red];
+
+    if(glassesInUse) { // Saw memory accesses that looked like shutter glasses
+        float mono = (0.1 * sms_pal_component[color.component.blue]);
+                   + (0.6 * sms_pal_component[color.component.green]);
+                   + (0.3 * sms_pal_component[color.component.red]);
+        if(glassesEye) {
+            buffer[y * 256 * 3 + 3 * x + 1] = 0;    // green component
+            buffer[y * 256 * 3 + 3 * x + 2] = mono; // red component for left eye
+        }
+        else {
+            buffer[y * 256 * 3 + 3 * x + 0] = mono; // blue component for right eye
+            buffer[y * 256 * 3 + 3 * x + 1] = 0;    // green component
+        }
+    }
+    else { // standard pixel rendering
+        buffer[y * 256 * 3 + 3 * x + 0] = sms_pal_component[color.component.blue];
+        buffer[y * 256 * 3 + 3 * x + 1] = sms_pal_component[color.component.green];
+        buffer[y * 256 * 3 + 3 * x + 2] = sms_pal_component[color.component.red];
+    }
 }
 
 
@@ -768,4 +784,9 @@ void vdpMS::latchHCounter(uint64_t cycle) {
     else if(hCounter - preSyncCycles < hSyncCycles) { latchedPixel = ((hCounter - preSyncCycles) * 15 / 4) + 0x8b; }
     else { latchedPixel = (hCounter - preAndSyncCycles) / 2 + 0xed; }
 	std::cout<<"Latched hCounter to "<<std::dec<<int(latchedPixel)<<" at cycle "<<cycle<<"\n";
+}
+
+void vdpMS::setGlasses(uint8_t val) {
+    glassesInUse = true;
+    glassesEye = val;
 }
