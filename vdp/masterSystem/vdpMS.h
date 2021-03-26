@@ -129,7 +129,7 @@ private:
     uint8_t line_int_cur; // Current value of line interrupt counter
     bool line_int_active;
     bool scr_int_active;
-    uint8_t curLine; //vcounter
+    unsigned int curLine; //vcounter
     uint8_t latchedPixel; //hcounter
     uint8_t fifthSprite; //fifth sprite found in SG-1000 mode
     bool sprOverflow;    //5 sprites found in SG-1000, 8 sprites found in SMS

@@ -74,9 +74,10 @@ uint8_t memmapZ80Console::readPortByte(uint8_t port, uint64_t cycle) {
             return 0xff;
         case 0x01:
            switch(port) {
-                case 1: dbg_printf(" (Game Gear registers, EXT raw read)\n"); break; //read port 3 to get EXT byte (in raw mode)
-                case 3: dbg_printf(" (Game Gear registers, EXT status)\n"); break; // bit0: 1 if send buffer occupied. bit1: 1 if recv buffer occupied. bit2: 1 if remote console on. bit 3-5: must be 1 to enable communication.
-                case 5: dbg_printf(" (Game Gear registers)\n"); break;
+                case 1: dbg_printf(" (Game Gear registers, EXT i/o R/W)\n"); break; // "Read/write when EXT used as 7-bit IO port. These are called the "PC" registers."
+                case 3: dbg_printf(" (Game Gear registers, EXT raw read)\n"); break; //read port 3 to get EXT byte (in raw mode)
+                case 5: dbg_printf(" (Game Gear registers, EXT status)\n");  // bit0: 1 if send buffer occupied. bit1: 1 if recv buffer occupied. bit2: 1 if remote console on. bit 3-5: must be 1 to enable communication.
+                        return 0;
                 default:
                     dbg_printf(" (i/o control register)\n");
                     return 0xff;
@@ -84,6 +85,7 @@ uint8_t memmapZ80Console::readPortByte(uint8_t port, uint64_t cycle) {
             return 0xff;
         case 0x40:
             dbg_printf(" (V counter)\n");
+            //std::cout<<"VC: "<<int(vdp_dev->readByte(port,cycle));
             return vdp_dev->readByte(port, cycle);
         case 0x41:
             dbg_printf(" (H counter)\n");

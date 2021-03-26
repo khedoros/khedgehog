@@ -217,7 +217,7 @@ bool ioMgr::resizeWindow(unsigned int winIndex, unsigned int xres, unsigned int 
 void ioMgr::pushAudio(std::array<int16_t, 882 * 2>& samples) {
     uint32_t enqueuedBytes = SDL_GetQueuedAudioSize(audioDev);
     std::cout<<"audio: "<<enqueuedBytes<<" bytes of queued audio.\n";
-    while(SDL_GetQueuedAudioSize(audioDev) > sampleCnt * audioSpec.channels * sizeof(int16_t)) {
+    while(SDL_GetQueuedAudioSize(audioDev) > 2 * sampleCnt * audioSpec.channels * sizeof(int16_t)) {
         SDL_Delay(1);
     }
     SDL_QueueAudio(audioDev, samples.data(), sampleCnt * audioSpec.channels * sizeof(int16_t));

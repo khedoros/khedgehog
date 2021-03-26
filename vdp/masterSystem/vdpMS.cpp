@@ -586,12 +586,15 @@ uint8_t vdpMS::readByte(uint8_t port, uint64_t cycle) {
 void vdpMS::writeAddress(uint8_t val) {
     if(!addr_latch) {
         addr_latch = true;
-        addr_buffer = val;
+        address &= 0xff00;
+        address |= val;
+        //addr_buffer = val;
         //std::printf("low byte of address\n");
     }
     else {
         addr_latch = false;
-        address = 0x100 * val + addr_buffer;
+        address &= 0x00ff;
+        address |= 0x100 * val;
 
         switch(val & 0b11000000) {
             case 0x00: // VRAM read mode
@@ -738,7 +741,7 @@ uint8_t vdpMS::readVCounter(uint64_t cycle) {
         }
     
 	}
-    return curLine; //emergency catch-all
+    return 255; //emergency catch-all
 }
 
 uint8_t vdpMS::readHCounter() {
@@ -748,6 +751,21 @@ uint8_t vdpMS::readHCounter() {
 }
 
 void vdpMS::latchHCounter(uint64_t cycle) {
-	latchedPixel = ((cycle * 3) / 2) % 342;
+    const int activeCycles = 256;
+    const int rBorderCycles = 15;
+    const int rBlankCycles = 8;
+    const int preSyncCycles = activeCycles + rBorderCycles + rBlankCycles;
+    const int hSyncCycles = 26;
+    const int preAndSyncCycles = preSyncCycles + hSyncCycles;
+    const int lBlank1Cycles = 2;
+    const int colorBurstCycles = 14;
+    const int lBlank2Cycles = 8;
+    const int lBorderCycles = 13;
+    const int postSyncCycles = lBlank1Cycles + colorBurstCycles + lBlank2Cycles + lBorderCycles;
+    const int lineCycles = preAndSyncCycles + postSyncCycles;
+    uint64_t hCounter = ((cycle * 3) / 2) % lineCycles; // Convert from CPU cycles to pixel cycles, and find where in the line we've reached
+    if(hCounter < preSyncCycles) latchedPixel = hCounter / 2; // Active display (256), Right border (15), Right blank (8)
+    else if(hCounter - preSyncCycles < hSyncCycles) { latchedPixel = ((hCounter - preSyncCycles) * 15 / 4) + 0x8b; }
+    else { latchedPixel = (hCounter - preAndSyncCycles) / 2 + 0xed; }
 	std::cout<<"Latched hCounter to "<<std::dec<<int(latchedPixel)<<" at cycle "<<cycle<<"\n";
 }
