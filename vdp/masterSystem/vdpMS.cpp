@@ -30,7 +30,7 @@ vdpMS::vdpMS(systemType t, systemRegion r):addr_latch(false), vdpMode(t), vdpReg
 void vdpMS::resizeBuffer(unsigned int x, unsigned int y) {
     curXRes = x;
     curYRes = y;
-    buffer.resize(curYRes * curXRes * 3, 0);
+    buffer.resize(curYRes * getStride(), 0xff);
 }
 
 vdpMS::graphicsMode_t vdpMS::getMode() {
@@ -51,7 +51,7 @@ vdpMS::graphicsMode_t vdpMS::getMode() {
 }
 
 int vdpMS::getStride() {
-    return curXRes * 3;
+    return curXRes * 4;
 }
 
 std::vector<uint8_t>& vdpMS::getFrameBuffer() {
@@ -63,9 +63,9 @@ void vdpMS::renderLine(unsigned int line, std::vector<uint8_t>& renderBuffer) {
     if(!ctrl_2.fields.enable_display) {
                if(vdpMode == systemType::gameGear && line >= 3 * 24) line -= 3 * 24;
         for(int x=0;x<curXRes;x++) {
-            renderBuffer[curXRes * 3 * line + x * 3 + 0] = 0;
-            renderBuffer[curXRes * 3 * line + x * 3 + 1] = 0;
-            renderBuffer[curXRes * 3 * line + x * 3 + 2] = 0;
+            renderBuffer[curXRes * 4 * line + x * 4 + 0] = 0;
+            renderBuffer[curXRes * 4 * line + x * 4 + 1] = 0;
+            renderBuffer[curXRes * 4 * line + x * 4 + 2] = 0;
         }
         return;
     }
@@ -117,7 +117,7 @@ void vdpMS::renderLine(unsigned int line, std::vector<uint8_t>& renderBuffer) {
 }
 
 std::vector<uint8_t> vdpMS::getPartialRender() {
-    std::vector<uint8_t> buffer(192 * 256 * 3, 0);
+    std::vector<uint8_t> buffer(192 * 256 * 4, 0);
     if(!ctrl_2.fields.enable_display) return buffer;
     for(int i=0;i<192;i++) renderLine(i, buffer);
     return buffer;
@@ -445,9 +445,9 @@ std::array<uint8_t, 8> vdpMS::getM4TileLine(uint16_t tileAddr, uint8_t row) {
 void vdpMS::setPixelSG(std::vector<uint8_t>& buffer, int x, int y, int index) {
     if(x < 0 || x >= curXRes || y < 0 || y >= curYRes) return;
     //std::cout<<"y: "<<y<<" x: "<<x<<"\n";
-    buffer[y * 256 * 3 + 3 * x + 0] = tms_palette[index * 3 + 2];
-    buffer[y * 256 * 3 + 3 * x + 1] = tms_palette[index * 3 + 1];
-    buffer[y * 256 * 3 + 3 * x + 2] = tms_palette[index * 3 + 0];
+    buffer[256 * 4 * y + 4 * x + 0] = tms_palette[index * 3 + 2];
+    buffer[256 * 4 * y + 4 * x + 1] = tms_palette[index * 3 + 1];
+    buffer[256 * 4 * y + 4 * x + 2] = tms_palette[index * 3 + 0];
 }
 
 void vdpMS::setPixelGG(std::vector<uint8_t>& buffer, int x, int y, int index) {
@@ -462,9 +462,9 @@ void vdpMS::setPixelGG(std::vector<uint8_t>& buffer, int x, int y, int index) {
     else index %= pal_ram.size();
     color.val[0] = pal_ram.at(index * 2);
     color.val[1] = pal_ram.at(index * 2 + 1);
-    buffer[y * 160 * 3 + 3 * x + 0] = gg_pal_component[color.component.blue];
-    buffer[y * 160 * 3 + 3 * x + 1] = gg_pal_component[color.component.green];
-    buffer[y * 160 * 3 + 3 * x + 2] = gg_pal_component[color.component.red];
+    buffer[160 * 4 * y + 4 * x + 0] = gg_pal_component[color.component.blue];
+    buffer[160 * 4 * y + 4 * x + 1] = gg_pal_component[color.component.green];
+    buffer[160 * 4 * y + 4 * x + 2] = gg_pal_component[color.component.red];
 }
 
 void vdpMS::setPixelSMS(std::vector<uint8_t>& buffer, int x, int y, int index) {
@@ -478,18 +478,18 @@ void vdpMS::setPixelSMS(std::vector<uint8_t>& buffer, int x, int y, int index) {
                    + (0.6 * sms_pal_component[color.component.green]);
                    + (0.3 * sms_pal_component[color.component.red]);
         if(glassesEye) {
-            buffer[y * 256 * 3 + 3 * x + 1] = 0;    // green component
-            buffer[y * 256 * 3 + 3 * x + 2] = mono; // red component for left eye
+            buffer[256 * 4 * y + 4 * x + 1] = 0;    // green component
+            buffer[256 * 4 * y + 4 * x + 2] = mono; // red component for left eye
         }
         else {
-            buffer[y * 256 * 3 + 3 * x + 0] = mono; // blue component for right eye
-            buffer[y * 256 * 3 + 3 * x + 1] = 0;    // green component
+            buffer[256 * 4 * y + 4 * x + 0] = mono; // blue component for right eye
+            buffer[256 * 4 * y + 4 * x + 1] = 0;    // green component
         }
     }
     else { // standard pixel rendering
-        buffer[y * 256 * 3 + 3 * x + 0] = sms_pal_component[color.component.blue];
-        buffer[y * 256 * 3 + 3 * x + 1] = sms_pal_component[color.component.green];
-        buffer[y * 256 * 3 + 3 * x + 2] = sms_pal_component[color.component.red];
+        buffer[256 * 4 * y + 4 * x + 0] = sms_pal_component[color.component.blue];
+        buffer[256 * 4 * y + 4 * x + 1] = sms_pal_component[color.component.green];
+        buffer[256 * 4 * y + 4 * x + 2] = sms_pal_component[color.component.red];
     }
 }
 
