@@ -8,6 +8,14 @@
 
 
 vdpMS::vdpMS(systemType t, systemRegion r):addr_latch(false), vdpMode(t), vdpRegion(r), latchedPixel(0), glassesInUse(false) {
+
+    ctrl_1.val = 0;
+    ctrl_2.val = 0;
+    bg_fg_col.val = 0;
+    bg_x_scroll = 0;
+    bg_y_scroll = 0;
+    line_interrupt = 1;
+    line_int_cur = 1;
     if(vdpMode == systemType::gameGear) pal_ram.resize(0x40, 0);
     else                                pal_ram.resize(0x20, 0);
 
@@ -293,6 +301,7 @@ void vdpMS::renderMode4(unsigned int line, std::vector<uint8_t>& buffer) {
         int y = vram.at(sprite_attr_tab_base() + sprSearch[spr]) + 1;
         int x = vram.at(sprite_attr_tab_base() + 128 + sprSearch[spr] * 2);
         int tile = vram.at(sprite_attr_tab_base() + 128 + sprSearch[spr] * 2 + 1);
+        if(sprHeight == 16) tile &= 0xfe;
         int fineY = scrY - y;
         //std::cout<<"Sprite#: "<<spr<<" Line: "<<scrY<<" Spr_y: "<<y
         assert(fineY >= 0);
@@ -332,7 +341,7 @@ void vdpMS::renderMode4(unsigned int line, std::vector<uint8_t>& buffer) {
         tile_info_t tile_info;
         tile_info.bytes.byte1 = vram.at(tile_info_addr);
         tile_info.bytes.byte2 = vram.at(tile_info_addr + 1);
-        uint16_t tile_addr = (bg_tile_base() + 32 * tile_info.fields.tile_num) & 0x3fff;
+        uint16_t tile_addr = (32 * tile_info.fields.tile_num) & 0x3fff;
         int tileLine = yFine;
         if(tile_info.fields.vflip) {
             tileLine = 7 - yFine;
@@ -524,10 +533,7 @@ uint16_t vdpMS::sprite_tile_base() { // Register 6, starting address for the Spr
     if(vdpMode == systemType::sg_1000) {
         return 0x800 * spr_tile_base;
     }
-    if(spr_tile_base & 0x04) return 0x2000;
-    else return 0;
-    //std::printf("%04x\n", spr_tile_base);
-    //return 0x0000;
+    return (0x800 * (spr_tile_base & 0x04));
 }
 
 uint64_t vdpMS::calc(uint64_t) {
@@ -561,18 +567,18 @@ unsigned int vdpMS::getFrameLines() {
 void vdpMS::endLine(uint64_t lineNum) {
     uint64_t line = lineNum % getFrameLines();
     curLine = line; //VCounter
-    if(line == 191) {
+    if(line == 192) {
         scr_int_active = true;
         status.fields.vblank_flag = 1;
     }
-    if(line < 192 && line_int_cur) {
+    if(line < 193 && line_int_cur) {
         line_int_cur--;
     }
-    if(line < 192 && !line_int_cur) {
+    if(line < 193 && !line_int_cur) { // interrupt should be generated when H-counter == 0xF4
         line_int_active = true;
         line_int_cur = line_interrupt;
     }
-    else if(line >= 192) {
+    else if(line >= 193) {
         line_int_cur = line_interrupt;
     }
     renderLine(line, buffer);
