@@ -481,10 +481,9 @@ void vdpMS::setPixelSMS(std::vector<uint8_t>& buffer, int x, int y, int index) {
     if(index == 0) index = bg_fg_col.fields.background;
     else index %= pal_ram.size();
     sms_color_t color{.val = pal_ram.at(index)};
-
     if(glassesInUse) { // Saw memory accesses that looked like shutter glasses
-        float mono = (0.1 * sms_pal_component[color.component.blue]);
-                   + (0.6 * sms_pal_component[color.component.green]);
+        float mono = (0.1 * sms_pal_component[color.component.blue])
+                   + (0.6 * sms_pal_component[color.component.green])
                    + (0.3 * sms_pal_component[color.component.red]);
         if(glassesEye) {
             buffer[256 * 4 * y + 4 * x + 1] = 0;    // green component
