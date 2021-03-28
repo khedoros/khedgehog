@@ -181,18 +181,20 @@ void vdpMS::renderSgSprites(unsigned int line, std::vector<uint8_t>& buffer) {
     std::array<uint8_t, 4> sprSearch;
     int sprCount = 0;
 
+    //std::cout<<"line: "<<line<<"\n";
     // Find sprites on this line, and handle overflow
-    for(int spr = 0; spr < 32 && sprCount != 5; spr++) {
+    for(int spr = 0; spr < 32; spr++) {
         int sprY = vram.at(sprAttrTabAddr + spr * 4);
         if(line >= sprY && line - sprY < sprHeight) {
             if(sprCount == 4) {
                 status.fields.sprite_num = spr;
                 status.fields.overflow_flag = true;
+                break;
             }
             else {
-                sprSearch[sprCount] = spr;
+                //std::cout<<"sprite["<<sprCount<<"] = "<<spr<<" at y="<<sprY<<"\n";
+                sprSearch[sprCount++] = spr;
             }
-            sprCount++;
         }
     }
 
@@ -222,17 +224,12 @@ void vdpMS::renderSgSprites(unsigned int line, std::vector<uint8_t>& buffer) {
         int tile = vram.at(sprAttrTabAddr + sprSearch[spr] * 4 + 2);
         int info = vram.at(sprAttrTabAddr + sprSearch[spr] * 4 + 3);
 
+        //std::cout<<"render sprite["<<spr<<"], starting at y="<<sprY<<"\n";
         if(info & 0x80) sprX -= 32;
         int color = (info & 0x0f);
 
         int sprLine = line - sprY;
-        if(ctrl_2.fields.doubled_sprites) {
-            sprLine /= 2;
-        }
-        if(ctrl_2.fields.large_sprites && sprLine > 7) {
-            tile++; // vertical tile increment
-            sprLine -= 8;
-        }
+        sprLine /= pixelRepeat;
         for(int t = 0; t < tileRepeat; t++) {
             auto tileData = getG2TileLine(sprite_tile_base() + tile * 8, sprLine);
             for(int x = 0; x < 8; x++) {
@@ -304,8 +301,6 @@ void vdpMS::renderMode4(unsigned int line, std::vector<uint8_t>& buffer) {
         if(sprHeight == 16) tile &= 0xfe;
         int fineY = scrY - y;
         //std::cout<<"Sprite#: "<<spr<<" Line: "<<scrY<<" Spr_y: "<<y
-        assert(fineY >= 0);
-        assert(fineY < sprHeight);
 
         uint16_t tile_addr = (sprite_tile_base() + 32 * tile) & 0x3fff;
         auto line = getM4TileLine(tile_addr, fineY);
