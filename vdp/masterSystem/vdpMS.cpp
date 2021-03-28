@@ -216,7 +216,7 @@ void vdpMS::renderSgSprites(unsigned int line, std::vector<uint8_t>& buffer) {
 
     // Draw the sprites
     int tileRepeat = ctrl_2.fields.large_sprites + 1; // 4 tiles drawn in a square
-    int pixelRepeat = ctrl_2.fields.doubled_sprites + 1; // tile pixels are doubled
+    int pixelSize = ctrl_2.fields.doubled_sprites + 1; // tile pixels are doubled
 
     for(int spr = 0; spr < sprCount; spr++) {
         int sprY = vram.at(sprAttrTabAddr + sprSearch[spr] * 4 + 0);
@@ -229,13 +229,14 @@ void vdpMS::renderSgSprites(unsigned int line, std::vector<uint8_t>& buffer) {
         int color = (info & 0x0f);
 
         int sprLine = line - sprY;
-        sprLine /= pixelRepeat;
-        for(int t = 0; t < tileRepeat; t++) {
+        sprLine /= pixelSize;
+        int tileWidth = 8 * pixelSize;
+        for(int xTile = 0; xTile < tileRepeat; xTile++) {
             auto tileData = getG2TileLine(sprite_tile_base() + tile * 8, sprLine);
-            for(int x = 0; x < 8; x++) {
-                for(int r = 0; r < pixelRepeat; r++) {
-                    if(tileData[x])
-                        setPixelSG(buffer, sprX + pixelRepeat * x + r, line, color);    
+            for(int xPix = 0; xPix < 8; xPix++) {
+                for(int rep = 0; rep < pixelSize; rep++) {
+                    if(tileData[xPix])
+                        setPixelSG(buffer, sprX + tileWidth * xTile + pixelSize * xPix + rep, line, color);
                 }
             }
             tile += 2; // horizontal tile increment
