@@ -679,15 +679,25 @@ void vdpMS::writeData(uint8_t val) {
     if(addr_mode == addr_mode_t::vram_write || addr_mode == addr_mode_t::vram_read || addr_mode == addr_mode_t::reg_write) {
         //dbg_printf(" wrote %02x to address %04x\n", val, address);
         //std::printf(" wrote %02x to address %04x\n", val, address);
-        vram[address++] = val;
-        data_buffer = val;
+        vram[address] = val;
     }
     else if(addr_mode == addr_mode_t::cram_write) {
-        pal_ram[address % pal_ram.size()] = val;
         //std::printf(" wrote %02x to palette address %04x\n", val, address);
-        data_buffer = val;
-        address++;
+        if(vdpMode == systemType::gameGear) {
+            if(address % 2 == 0) {
+                ggPalBuffer = val;
+            }
+            else {
+                pal_ram[(address - 1) & 0x3f] = ggPalBuffer;
+                pal_ram[address & 0x3f] = val;
+            }
+        }
+        else {
+            pal_ram[address & 0x1f] = val;
+        }
     }
+    data_buffer = val;
+    address++;
 }
 
 uint8_t vdpMS::readData() {

@@ -61,6 +61,8 @@ private:
     std::array<uint8_t, 0x4000> vram;
     std::vector<uint8_t> pal_ram;
 
+    uint8_t ggPalBuffer;
+
     systemType vdpMode;
     systemRegion vdpRegion;
     uint8_t count = 0;
