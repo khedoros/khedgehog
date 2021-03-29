@@ -80,20 +80,14 @@ void sdlWindow::resize(unsigned int width, unsigned int height) {
 }
 
 void sdlWindow::updateWindow(int startx, int starty, int stride, const std::vector<uint8_t>& image) {
-    std::vector<uint8_t> out_buf((image.size() * 4) / 3, 0xff);
-    int width = stride / 3;
+    int width = stride / 4;
     int height = image.size() / stride;
-    for(int pixel = 0; pixel < image.size() / 3; pixel++) {
-        out_buf[4 * pixel + 0] = image[pixel * 3 + 0];
-        out_buf[4 * pixel + 1] = image[pixel * 3 + 1];
-        out_buf[4 * pixel + 2] = image[pixel * 3 + 2];
-    }
     if(width != xres || height != yres) {
         resize(width, height);
     }
 
     if(texture) {
-        SDL_UpdateTexture(texture, nullptr, out_buf.data(), width * 4);
+        SDL_UpdateTexture(texture, nullptr, image.data(), stride);
         SDL_RenderCopy(renderer, texture, nullptr, nullptr);
         SDL_RenderPresent(renderer);
     }
@@ -217,7 +211,7 @@ bool ioMgr::resizeWindow(unsigned int winIndex, unsigned int xres, unsigned int 
 void ioMgr::pushAudio(std::array<int16_t, 882 * 2>& samples) {
     uint32_t enqueuedBytes = SDL_GetQueuedAudioSize(audioDev);
     std::cout<<"audio: "<<enqueuedBytes<<" bytes of queued audio.\n";
-    while(SDL_GetQueuedAudioSize(audioDev) > sampleCnt * audioSpec.channels * sizeof(int16_t)) {
+    while(SDL_GetQueuedAudioSize(audioDev) > 2 * sampleCnt * audioSpec.channels * sizeof(int16_t)) {
         SDL_Delay(1);
     }
     SDL_QueueAudio(audioDev, samples.data(), sampleCnt * audioSpec.channels * sizeof(int16_t));

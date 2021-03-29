@@ -7,7 +7,15 @@
 #include "../font.h"
 
 
-vdpMS::vdpMS(systemType t, systemRegion r):addr_latch(false), vdpMode(t), vdpRegion(r) {
+vdpMS::vdpMS(systemType t, systemRegion r):addr_latch(false), vdpMode(t), vdpRegion(r), latchedPixel(0), glassesInUse(false) {
+
+    ctrl_1.val = 0;
+    ctrl_2.val = 0;
+    bg_fg_col.val = 0;
+    bg_x_scroll = 0;
+    bg_y_scroll = 0;
+    line_interrupt = 1;
+    line_int_cur = 1;
     if(vdpMode == systemType::gameGear) pal_ram.resize(0x40, 0);
     else                                pal_ram.resize(0x20, 0);
 
@@ -30,7 +38,7 @@ vdpMS::vdpMS(systemType t, systemRegion r):addr_latch(false), vdpMode(t), vdpReg
 void vdpMS::resizeBuffer(unsigned int x, unsigned int y) {
     curXRes = x;
     curYRes = y;
-    buffer.resize(curYRes * curXRes * 3, 0);
+    buffer.resize(curYRes * getStride(), 0xff);
 }
 
 vdpMS::graphicsMode_t vdpMS::getMode() {
@@ -51,7 +59,7 @@ vdpMS::graphicsMode_t vdpMS::getMode() {
 }
 
 int vdpMS::getStride() {
-    return curXRes * 3;
+    return curXRes * 4;
 }
 
 std::vector<uint8_t>& vdpMS::getFrameBuffer() {
@@ -63,9 +71,9 @@ void vdpMS::renderLine(unsigned int line, std::vector<uint8_t>& renderBuffer) {
     if(!ctrl_2.fields.enable_display) {
                if(vdpMode == systemType::gameGear && line >= 3 * 24) line -= 3 * 24;
         for(int x=0;x<curXRes;x++) {
-            renderBuffer[curXRes * 3 * line + x * 3 + 0] = 0;
-            renderBuffer[curXRes * 3 * line + x * 3 + 1] = 0;
-            renderBuffer[curXRes * 3 * line + x * 3 + 2] = 0;
+            renderBuffer[curXRes * 4 * line + x * 4 + 0] = 0;
+            renderBuffer[curXRes * 4 * line + x * 4 + 1] = 0;
+            renderBuffer[curXRes * 4 * line + x * 4 + 2] = 0;
         }
         return;
     }
@@ -117,7 +125,7 @@ void vdpMS::renderLine(unsigned int line, std::vector<uint8_t>& renderBuffer) {
 }
 
 std::vector<uint8_t> vdpMS::getPartialRender() {
-    std::vector<uint8_t> buffer(192 * 256 * 3, 0);
+    std::vector<uint8_t> buffer(192 * 256 * 4, 0);
     if(!ctrl_2.fields.enable_display) return buffer;
     for(int i=0;i<192;i++) renderLine(i, buffer);
     return buffer;
@@ -173,18 +181,20 @@ void vdpMS::renderSgSprites(unsigned int line, std::vector<uint8_t>& buffer) {
     std::array<uint8_t, 4> sprSearch;
     int sprCount = 0;
 
+    //std::cout<<"line: "<<line<<"\n";
     // Find sprites on this line, and handle overflow
-    for(int spr = 0; spr < 32 && sprCount != 5; spr++) {
+    for(int spr = 0; spr < 32; spr++) {
         int sprY = vram.at(sprAttrTabAddr + spr * 4);
         if(line >= sprY && line - sprY < sprHeight) {
             if(sprCount == 4) {
                 status.fields.sprite_num = spr;
                 status.fields.overflow_flag = true;
+                break;
             }
             else {
-                sprSearch[sprCount] = spr;
+                //std::cout<<"sprite["<<sprCount<<"] = "<<spr<<" at y="<<sprY<<"\n";
+                sprSearch[sprCount++] = spr;
             }
-            sprCount++;
         }
     }
 
@@ -206,7 +216,7 @@ void vdpMS::renderSgSprites(unsigned int line, std::vector<uint8_t>& buffer) {
 
     // Draw the sprites
     int tileRepeat = ctrl_2.fields.large_sprites + 1; // 4 tiles drawn in a square
-    int pixelRepeat = ctrl_2.fields.doubled_sprites + 1; // tile pixels are doubled
+    int pixelSize = ctrl_2.fields.doubled_sprites + 1; // tile pixels are doubled
 
     for(int spr = 0; spr < sprCount; spr++) {
         int sprY = vram.at(sprAttrTabAddr + sprSearch[spr] * 4 + 0);
@@ -214,23 +224,19 @@ void vdpMS::renderSgSprites(unsigned int line, std::vector<uint8_t>& buffer) {
         int tile = vram.at(sprAttrTabAddr + sprSearch[spr] * 4 + 2);
         int info = vram.at(sprAttrTabAddr + sprSearch[spr] * 4 + 3);
 
+        //std::cout<<"render sprite["<<spr<<"], starting at y="<<sprY<<"\n";
         if(info & 0x80) sprX -= 32;
         int color = (info & 0x0f);
 
         int sprLine = line - sprY;
-        if(ctrl_2.fields.doubled_sprites) {
-            sprLine /= 2;
-        }
-        if(ctrl_2.fields.large_sprites && sprLine > 7) {
-            tile++; // vertical tile increment
-            sprLine -= 8;
-        }
-        for(int t = 0; t < tileRepeat; t++) {
+        sprLine /= pixelSize;
+        int tileWidth = 8 * pixelSize;
+        for(int xTile = 0; xTile < tileRepeat; xTile++) {
             auto tileData = getG2TileLine(sprite_tile_base() + tile * 8, sprLine);
-            for(int x = 0; x < 8; x++) {
-                for(int r = 0; r < pixelRepeat; r++) {
-                    if(tileData[x])
-                        setPixelSG(buffer, sprX + pixelRepeat * x + r, line, color);    
+            for(int xPix = 0; xPix < 8; xPix++) {
+                for(int rep = 0; rep < pixelSize; rep++) {
+                    if(tileData[xPix])
+                        setPixelSG(buffer, sprX + tileWidth * xTile + pixelSize * xPix + rep, line, color);
                 }
             }
             tile += 2; // horizontal tile increment
@@ -293,10 +299,9 @@ void vdpMS::renderMode4(unsigned int line, std::vector<uint8_t>& buffer) {
         int y = vram.at(sprite_attr_tab_base() + sprSearch[spr]) + 1;
         int x = vram.at(sprite_attr_tab_base() + 128 + sprSearch[spr] * 2);
         int tile = vram.at(sprite_attr_tab_base() + 128 + sprSearch[spr] * 2 + 1);
+        if(sprHeight == 16) tile &= 0xfe;
         int fineY = scrY - y;
         //std::cout<<"Sprite#: "<<spr<<" Line: "<<scrY<<" Spr_y: "<<y
-        assert(fineY >= 0);
-        assert(fineY < sprHeight);
 
         uint16_t tile_addr = (sprite_tile_base() + 32 * tile) & 0x3fff;
         auto line = getM4TileLine(tile_addr, fineY);
@@ -332,7 +337,7 @@ void vdpMS::renderMode4(unsigned int line, std::vector<uint8_t>& buffer) {
         tile_info_t tile_info;
         tile_info.bytes.byte1 = vram.at(tile_info_addr);
         tile_info.bytes.byte2 = vram.at(tile_info_addr + 1);
-        uint16_t tile_addr = (bg_tile_base() + 32 * tile_info.fields.tile_num) & 0x3fff;
+        uint16_t tile_addr = (32 * tile_info.fields.tile_num) & 0x3fff;
         int tileLine = yFine;
         if(tile_info.fields.vflip) {
             tileLine = 7 - yFine;
@@ -445,9 +450,9 @@ std::array<uint8_t, 8> vdpMS::getM4TileLine(uint16_t tileAddr, uint8_t row) {
 void vdpMS::setPixelSG(std::vector<uint8_t>& buffer, int x, int y, int index) {
     if(x < 0 || x >= curXRes || y < 0 || y >= curYRes) return;
     //std::cout<<"y: "<<y<<" x: "<<x<<"\n";
-    buffer[y * 256 * 3 + 3 * x + 0] = tms_palette[index * 3 + 2];
-    buffer[y * 256 * 3 + 3 * x + 1] = tms_palette[index * 3 + 1];
-    buffer[y * 256 * 3 + 3 * x + 2] = tms_palette[index * 3 + 0];
+    buffer[256 * 4 * y + 4 * x + 0] = tms_palette[index * 3 + 2];
+    buffer[256 * 4 * y + 4 * x + 1] = tms_palette[index * 3 + 1];
+    buffer[256 * 4 * y + 4 * x + 2] = tms_palette[index * 3 + 0];
 }
 
 void vdpMS::setPixelGG(std::vector<uint8_t>& buffer, int x, int y, int index) {
@@ -462,9 +467,9 @@ void vdpMS::setPixelGG(std::vector<uint8_t>& buffer, int x, int y, int index) {
     else index %= pal_ram.size();
     color.val[0] = pal_ram.at(index * 2);
     color.val[1] = pal_ram.at(index * 2 + 1);
-    buffer[y * 160 * 3 + 3 * x + 0] = gg_pal_component[color.component.blue];
-    buffer[y * 160 * 3 + 3 * x + 1] = gg_pal_component[color.component.green];
-    buffer[y * 160 * 3 + 3 * x + 2] = gg_pal_component[color.component.red];
+    buffer[160 * 4 * y + 4 * x + 0] = gg_pal_component[color.component.blue];
+    buffer[160 * 4 * y + 4 * x + 1] = gg_pal_component[color.component.green];
+    buffer[160 * 4 * y + 4 * x + 2] = gg_pal_component[color.component.red];
 }
 
 void vdpMS::setPixelSMS(std::vector<uint8_t>& buffer, int x, int y, int index) {
@@ -472,9 +477,24 @@ void vdpMS::setPixelSMS(std::vector<uint8_t>& buffer, int x, int y, int index) {
     if(index == 0) index = bg_fg_col.fields.background;
     else index %= pal_ram.size();
     sms_color_t color{.val = pal_ram.at(index)};
-    buffer[y * 256 * 3 + 3 * x + 0] = sms_pal_component[color.component.blue];
-    buffer[y * 256 * 3 + 3 * x + 1] = sms_pal_component[color.component.green];
-    buffer[y * 256 * 3 + 3 * x + 2] = sms_pal_component[color.component.red];
+    if(glassesInUse) { // Saw memory accesses that looked like shutter glasses
+        float mono = (0.1 * sms_pal_component[color.component.blue])
+                   + (0.6 * sms_pal_component[color.component.green])
+                   + (0.3 * sms_pal_component[color.component.red]);
+        if(glassesEye) {
+            buffer[256 * 4 * y + 4 * x + 1] = 0;    // green component
+            buffer[256 * 4 * y + 4 * x + 2] = mono; // red component for left eye
+        }
+        else {
+            buffer[256 * 4 * y + 4 * x + 0] = mono; // blue component for right eye
+            buffer[256 * 4 * y + 4 * x + 1] = 0;    // green component
+        }
+    }
+    else { // standard pixel rendering
+        buffer[256 * 4 * y + 4 * x + 0] = sms_pal_component[color.component.blue];
+        buffer[256 * 4 * y + 4 * x + 1] = sms_pal_component[color.component.green];
+        buffer[256 * 4 * y + 4 * x + 2] = sms_pal_component[color.component.red];
+    }
 }
 
 
@@ -508,10 +528,7 @@ uint16_t vdpMS::sprite_tile_base() { // Register 6, starting address for the Spr
     if(vdpMode == systemType::sg_1000) {
         return 0x800 * spr_tile_base;
     }
-    if(spr_tile_base & 0x04) return 0x2000;
-    else return 0;
-    //std::printf("%04x\n", spr_tile_base);
-    //return 0x0000;
+    return (0x800 * (spr_tile_base & 0x04));
 }
 
 uint64_t vdpMS::calc(uint64_t) {
@@ -545,18 +562,18 @@ unsigned int vdpMS::getFrameLines() {
 void vdpMS::endLine(uint64_t lineNum) {
     uint64_t line = lineNum % getFrameLines();
     curLine = line; //VCounter
-    if(line == 191) {
+    if(line == 192) {
         scr_int_active = true;
         status.fields.vblank_flag = 1;
     }
-    if(line < 192 && line_int_cur) {
+    if(line < 193 && line_int_cur) {
         line_int_cur--;
     }
-    if(line < 192 && !line_int_cur) {
+    if(line < 193 && !line_int_cur) { // interrupt should be generated when H-counter == 0xF4
         line_int_active = true;
         line_int_cur = line_interrupt;
     }
-    else if(line >= 192) {
+    else if(line >= 193) {
         line_int_cur = line_interrupt;
     }
     renderLine(line, buffer);
@@ -574,7 +591,7 @@ void vdpMS::writeByte(uint8_t port, uint8_t val, uint64_t cycle) {
 uint8_t vdpMS::readByte(uint8_t port, uint64_t cycle) {
     switch(port & 0b11000001) {
         case 0x40: return readVCounter(cycle);
-        case 0x41: return readHCounter(cycle);
+        case 0x41: return readHCounter();
         case 0x80: addr_latch = false; return readData();
         case 0x81: addr_latch = false; return readStatus(cycle);
         default: std::cerr<<"Shouldn't have reached the VDP\n";
@@ -586,12 +603,15 @@ uint8_t vdpMS::readByte(uint8_t port, uint64_t cycle) {
 void vdpMS::writeAddress(uint8_t val) {
     if(!addr_latch) {
         addr_latch = true;
-        addr_buffer = val;
+        address &= 0xff00;
+        address |= val;
+        //addr_buffer = val;
         //std::printf("low byte of address\n");
     }
     else {
         addr_latch = false;
-        address = 0x100 * val + addr_buffer;
+        address &= 0x00ff;
+        address |= 0x100 * val;
 
         switch(val & 0b11000000) {
             case 0x00: // VRAM read mode
@@ -660,15 +680,25 @@ void vdpMS::writeData(uint8_t val) {
     if(addr_mode == addr_mode_t::vram_write || addr_mode == addr_mode_t::vram_read || addr_mode == addr_mode_t::reg_write) {
         //dbg_printf(" wrote %02x to address %04x\n", val, address);
         //std::printf(" wrote %02x to address %04x\n", val, address);
-        vram[address++] = val;
-        data_buffer = val;
+        vram[address] = val;
     }
     else if(addr_mode == addr_mode_t::cram_write) {
-        pal_ram[address % pal_ram.size()] = val;
         //std::printf(" wrote %02x to palette address %04x\n", val, address);
-        data_buffer = val;
-        address++;
+        if(vdpMode == systemType::gameGear) {
+            if(address % 2 == 0) {
+                ggPalBuffer = val;
+            }
+            else {
+                pal_ram[(address - 1) & 0x3f] = ggPalBuffer;
+                pal_ram[address & 0x3f] = val;
+            }
+        }
+        else {
+            pal_ram[address & 0x1f] = val;
+        }
     }
+    data_buffer = val;
+    address++;
 }
 
 uint8_t vdpMS::readData() {
@@ -703,13 +733,18 @@ uint8_t vdpMS::readVCounter(uint64_t cycle) {
         // NTSC, 256x224 00-EA, E5-FF
         // NTSC, 256x240 00-FF, 00-06
         switch(getMode()) {
-            case graphicsMode_t::graphics1:
-            case graphicsMode_t::text:
-            case graphicsMode_t::graphics2:
-            case graphicsMode_t::multicolor:
-            case graphicsMode_t::mode4: break;
-            case graphicsMode_t::mode4_224: break;
-            case graphicsMode_t::mode4_240: break;
+            case graphicsMode_t::graphics1: [[fallthrough]];
+            case graphicsMode_t::text:      [[fallthrough]];
+            case graphicsMode_t::graphics2: [[fallthrough]];
+            case graphicsMode_t::multicolor:[[fallthrough]];
+            case graphicsMode_t::mode4: 
+				if(curLine <= 0xda) return curLine;
+				else                return curLine - 6;
+            case graphicsMode_t::mode4_224: 
+				if(curLine <= 0xea) return curLine;
+				else                return curLine - 6;
+            case graphicsMode_t::mode4_240: 
+				return curLine % 0x100;
         }
     }
     else { //systemRegion == pal
@@ -717,19 +752,52 @@ uint8_t vdpMS::readVCounter(uint64_t cycle) {
         // PAL,  256x224 00-FF, 00-02, CA-FF
         // PAL,  256x240 00-FF, 00-0A, D2-FF
         switch(getMode()) {
-            case graphicsMode_t::graphics1:
-            case graphicsMode_t::text:
-            case graphicsMode_t::graphics2:
-            case graphicsMode_t::multicolor:
-            case graphicsMode_t::mode4: break;
-            case graphicsMode_t::mode4_224: break;
-            case graphicsMode_t::mode4_240: break;
+            case graphicsMode_t::graphics1:  [[fallthrough]];
+            case graphicsMode_t::text:       [[fallthrough]];
+            case graphicsMode_t::graphics2:  [[fallthrough]];
+            case graphicsMode_t::multicolor: [[fallthrough]];
+            case graphicsMode_t::mode4:
+				if(curLine <= 0xf2) return curLine;
+				else                return curLine - 0x39;
+            case graphicsMode_t::mode4_224:
+				if(curLine <= 0x102) return curLine % 0x100;
+				else                 return curLine - 0x39;
+            case graphicsMode_t::mode4_240:
+				if(curLine <= 0x10a) return curLine % 0x100;
+				else                return curLine - 0x39;
         }
-    }
-    return curLine;
+    
+	}
+    return 255; //emergency catch-all
 }
 
-uint8_t vdpMS::readHCounter(uint64_t cycle) {
+uint8_t vdpMS::readHCounter() {
+	return latchedPixel;
     //std::printf("h: %ld\n", (cycle / 262) % 342);
-    return (cycle / 262) % 342;
+    //return (cycle / 262) % 342;
+}
+
+void vdpMS::latchHCounter(uint64_t cycle) {
+    const int activeCycles = 256;
+    const int rBorderCycles = 15;
+    const int rBlankCycles = 8;
+    const int preSyncCycles = activeCycles + rBorderCycles + rBlankCycles;
+    const int hSyncCycles = 26;
+    const int preAndSyncCycles = preSyncCycles + hSyncCycles;
+    const int lBlank1Cycles = 2;
+    const int colorBurstCycles = 14;
+    const int lBlank2Cycles = 8;
+    const int lBorderCycles = 13;
+    const int postSyncCycles = lBlank1Cycles + colorBurstCycles + lBlank2Cycles + lBorderCycles;
+    const int lineCycles = preAndSyncCycles + postSyncCycles;
+    uint64_t hCounter = ((cycle * 3) / 2) % lineCycles; // Convert from CPU cycles to pixel cycles, and find where in the line we've reached
+    if(hCounter < preSyncCycles) latchedPixel = hCounter / 2; // Active display (256), Right border (15), Right blank (8)
+    else if(hCounter - preSyncCycles < hSyncCycles) { latchedPixel = ((hCounter - preSyncCycles) * 15 / 4) + 0x8b; }
+    else { latchedPixel = (hCounter - preAndSyncCycles) / 2 + 0xed; }
+	std::cout<<"Latched hCounter to "<<std::dec<<int(latchedPixel)<<" at cycle "<<cycle<<"\n";
+}
+
+void vdpMS::setGlasses(uint8_t val) {
+    glassesInUse = true;
+    glassesEye = val;
 }

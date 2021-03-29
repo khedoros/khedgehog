@@ -25,6 +25,8 @@ public:
     bool frameInterrupt() override;
     void endLine(uint64_t lineNum) override;
     unsigned int getFrameLines();
+	void latchHCounter(uint64_t cycle);
+    void setGlasses(uint8_t val);
 
 private:
     void writeAddress(uint8_t val);
@@ -32,7 +34,7 @@ private:
     uint8_t readData();
     uint8_t readStatus(uint64_t cycle);
     uint8_t readVCounter(uint64_t cycle);
-    uint8_t readHCounter(uint64_t cycle);
+    uint8_t readHCounter();
 
     enum class graphicsMode_t {text, graphics1, graphics2, multicolor, mode4, mode4_224, mode4_240, unknown};
     graphicsMode_t curMode;
@@ -59,6 +61,8 @@ private:
     std::array<uint8_t, 0x4000> vram;
     std::vector<uint8_t> pal_ram;
 
+    uint8_t ggPalBuffer;
+
     systemType vdpMode;
     systemRegion vdpRegion;
     uint8_t count = 0;
@@ -71,6 +75,9 @@ private:
     uint8_t data_buffer;
     unsigned int address:14;
     enum class addr_mode_t {vram_read, vram_write, reg_write, cram_write} addr_mode;
+
+    bool glassesInUse;
+    bool glassesEye; //0 for right (blue), 1 for left (red)
 
     // Reference: https://www.smspower.org/Development/VDPRegisters
     // Control Registers
@@ -128,7 +135,7 @@ private:
     uint8_t line_int_cur; // Current value of line interrupt counter
     bool line_int_active;
     bool scr_int_active;
-    uint8_t curLine; //vcounter
+    unsigned int curLine; //vcounter
     uint8_t latchedPixel; //hcounter
     uint8_t fifthSprite; //fifth sprite found in SG-1000 mode
     bool sprOverflow;    //5 sprites found in SG-1000, 8 sprites found in SMS
