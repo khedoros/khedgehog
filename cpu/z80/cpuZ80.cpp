@@ -714,30 +714,28 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_unimpl(uint8_t opcode) {
 template <uint32_t OPCODE> uint64_t cpuZ80::op_adc16(uint8_t opcode) { // ADC HL, ss 4
     uint16_t* const regset[] {&(bc.pair), &(de.pair), &(hl.pair), &(sp)};
     int reg = ((OPCODE>>4) & 0x3);
-    int32_t temp = hl.pair + *regset[reg] + carry();
+    uint32_t temp = hl.pair + *regset[reg] + carry();
 
     clear(SUB_FLAG);
 
-    if((hl.pair & 0xfff) + ((*regset[reg] + carry()) & 0xfff) >= 4096) set(HALF_CARRY_FLAG);
+    if((hl.pair & 0xfff) + ((*regset[reg] + carry()) & 0xfff) >= 0x1000) set(HALF_CARRY_FLAG);
     else clear(HALF_CARRY_FLAG);
  
-    if(uint32_t(temp) > 0xffff) set(CARRY_FLAG);
+    if(temp > 0xffff) set(CARRY_FLAG);
     else              clear(CARRY_FLAG);
 
-   if(temp > 32767 || temp < -32768) set(OVERFLOW_FLAG);
+    if (((hl.pair ^ 0x8000) == ((*regset[reg] + carry()) ^ 0x8000)) && ((hl.pair ^ 0x8000) != (temp ^ 0x8000))) set(OVERFLOW_FLAG);
     else clear(OVERFLOW_FLAG);
 
     if(!temp) set(ZERO_FLAG);
     else clear(ZERO_FLAG);
 
-    if(uint16_t(temp) > 32767) set(SIGN_FLAG);
-    else                     clear(SIGN_FLAG);
+    if((temp & 0xffff) > 32767) set(SIGN_FLAG);
+    else                        clear(SIGN_FLAG);
 
-    // TODO: Fix flags
+    hl.pair = temp;
 
-    hl.pair = temp & 0xffff;
-
-    return 4;
+    return 15;
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_add16(uint8_t opcode) { // 16-bit r-r adds 11
@@ -2109,16 +2107,16 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_scf(uint8_t opcode) { // SCF 4
 template <uint32_t OPCODE> uint64_t cpuZ80::op_sbc16(uint8_t opcode) { // SBC HL, ss 4
     uint16_t* const regset[] {&(bc.pair), &(de.pair), &(hl.pair), &(sp)};
     int reg = ((OPCODE>>4) & 0x3);
-    int32_t temp = hl.pair - (*regset[reg] + carry());
+    uint32_t temp = hl.pair - (*regset[reg] + carry());
 
     set(SUB_FLAG);
     if((((*regset[reg]) + carry()) & 0xfff) > (hl.pair & 0xfff)) set(HALF_CARRY_FLAG);
     else clear(HALF_CARRY_FLAG);
 
-    if(temp < 0) set(CARRY_FLAG);
-    else         clear(CARRY_FLAG);
+    if(*regset[reg] + carry() > hl.pair) set(CARRY_FLAG);
+    else                                 clear(CARRY_FLAG);
 
-    if(temp < -32768 || temp > 32767) set(OVERFLOW_FLAG);
+    if (((hl.pair ^ 0x8000) != ((*regset[reg] + carry()) ^ 0x8000)) && ((hl.pair ^ 0x8000) != (temp ^ 0x8000))) set(OVERFLOW_FLAG);
     else clear(OVERFLOW_FLAG);
 
     if(!temp) set(ZERO_FLAG);
@@ -2129,7 +2127,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_sbc16(uint8_t opcode) { // SBC HL
     if(hl.pair > 32767) set(SIGN_FLAG);
     else clear(SIGN_FLAG);
 
-    return 4;
+    return 15;
 }
 
 uint64_t cpuZ80::op_wtf(uint8_t opcode) {
