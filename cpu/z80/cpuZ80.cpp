@@ -826,7 +826,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
     case 0x02: // sub
     case 0x03: // sbc
     case 0x07: // cp
-		if(operation == 3) car = carry();
+        if(operation == 3) car = carry();
         temp_a -= (*regset[reg] + car);
         set(SUB_FLAG);
 
@@ -841,16 +841,16 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
 
         // TODO: Fix flags
 
-		if(operation != 7) {
-	        af.hi = temp_a;
-		}
-		else {
-			if(!temp_a) set(ZERO_FLAG);
-			else clear(ZERO_FLAG);
+        if(operation != 7) {
+            af.hi = temp_a;
+        }
+        else {
+            if(temp_a & 0xff) clear(ZERO_FLAG);
+            else              set(ZERO_FLAG);
 
-			if((temp_a & 0x80) > 0) set(SIGN_FLAG);
-			else clear(SIGN_FLAG);
-		}
+            if(temp_a & 0x80) set(SIGN_FLAG);
+            else              clear(SIGN_FLAG);
+        }
         break;
     case 0x04: // and
         af.hi &= *regset[reg];
@@ -879,10 +879,10 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
     }
 
     if(operation != 0x07) { //if op isn't a compare
-        if((af.hi & 0x80) > 0) set(SIGN_FLAG);
-        else                   clear(SIGN_FLAG);
-        if(!af.hi) set(ZERO_FLAG);
-        else       clear(ZERO_FLAG);
+        if(af.hi & 0x80) set(SIGN_FLAG);
+        else             clear(SIGN_FLAG);
+        if(af.hi) clear(ZERO_FLAG);
+        else      set(ZERO_FLAG);
     }
 
     return cycles;
@@ -923,7 +923,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_call_cc(uint8_t opcode) { // CALL
 template <uint32_t OPCODE> uint64_t cpuZ80::op_cbrot(uint8_t opcode) { // CB00 -> CB3F, DDCB00->DDCB3F, FDCB00->FDCB3F
     constexpr uint8_t op = ((OPCODE>>3) & 0x7);
     constexpr uint8_t reg = (OPCODE & 0x07);
-    const int8_t offset = int8_t(opcode);
+    const int8_t offset = int8_t(opcode); // offset only used for the DDCB and FDCB groups
     uint8_t c = carry();
     uint64_t cycles = 8;
     if(reg == 0x06) {
@@ -940,6 +940,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_cbrot(uint8_t opcode) { // CB00 -
             cycles = 23;
         }
     }
+    
     uint8_t* const regset[] = {&(bc.hi), &(bc.low), &(de.hi), &(de.low),
                                &(hl.hi), &(hl.low),  &dummy8, &(af.hi)};
     uint8_t high = (*regset[reg] & 0x80)>>7;
