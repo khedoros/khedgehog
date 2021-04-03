@@ -103,21 +103,39 @@ uint8_t memmapZ80Console::readPortByte(uint8_t port, uint64_t cycle) {
             return vdp_dev->readByte(port, cycle);
         // Note: Probably need to be implemented as an io controller device
         case 0xc0:
-            dbg_printf(" (joystick port 1)\n");
-            return (
-                    ((io_port_ab.port_a_up) ? 0 : p1_up) |
-                    ((io_port_ab.port_a_down) ? 0 : p1_down) |
-                    ((io_port_ab.port_a_left) ? 0 : p1_left) |
-                    ((io_port_ab.port_a_right) ? 0 : p1_right) |
-                    ((io_port_ab.port_a_tl) ? 0 : p1_b1) |
-                    ((io_port_ab.port_a_tr) ? 0 : p1_b2) |
-                    ((io_port_ab.port_b_up) ? 0 : p2_up) |
-                    ((io_port_ab.port_b_down) ? 0 : p2_down) 
+            switch(port) {
+                case 0xf0: dbg_printf(" (YM2413 data port register latch, not implemented)"); break;
+                case 0xf2: dbg_printf(" (YM2413 control register + status port, not implemented)"); break; // bit 0 can be read and written if IO chip is disabled by bit 2 of port 3E
+                default:
+                    dbg_printf(" (joystick port 1)\n");
+                    return (
+                        ((io_port_ab.port_a_up) ? 0 : p1_up) |
+                        ((io_port_ab.port_a_down) ? 0 : p1_down) |
+                        ((io_port_ab.port_a_left) ? 0 : p1_left) |
+                        ((io_port_ab.port_a_right) ? 0 : p1_right) |
+                        ((io_port_ab.port_a_tl) ? 0 : p1_b1) |
+                        ((io_port_ab.port_a_tr) ? 0 : p1_b2) |
+                        ((io_port_ab.port_b_up) ? 0 : p2_up) |
+                        ((io_port_ab.port_b_down) ? 0 : p2_down) 
                    );
+            }
         case 0xc1:
-            dbg_printf(" (joystick port 2 + nationalization)\n");
-            break;
-        //case 0xf2: dbg_printf(" (YM2413 status register)"); break;
+            switch(port) {
+                case 0xf1: dbg_printf(" (YM2413 data port register data, not implemented)"); break;
+                default:
+                    dbg_printf(" (joystick port 2 + nationalization)\n");
+                    return (
+                        ((io_port_ab.port_b_up) ? 0 : p2_up) |
+                        ((io_port_ab.port_b_down) ? 0 : p2_down) |
+                        ((io_port_b_misc.port_b_left) ? 0 : p2_left) |
+                        ((io_port_b_misc.port_b_right) ? 0 : p2_right) |
+                        ((io_port_b_misc.port_b_tl) ? 0 : p2_b1) |
+                        ((io_port_b_misc.port_b_tr) ? 0 : p2_b2) |
+                        ((io_port_b_misc.reset ) ? 0 : reset) |
+                        ((io_port_b_misc.port_a_th) ? 0 : p1_b3) |
+                        ((io_port_b_misc.port_b_th) ? 0 : p2_b3)
+                    );
+            }
         default: dbg_printf(" (no info on port)\n"); break;
     }
     return 0xff;
@@ -243,8 +261,8 @@ void memmapZ80Console::writePortByte(uint8_t port, uint8_t val, uint64_t cycle) 
         case 0xc0:
             switch(port) {
                 case 0xde: case 0xdf: dbg_printf(" (keyboard control, not implemented)"); break;
-                case 0xf0: dbg_printf(" (YM2413 address register, not implemented)"); break;
-                case 0xf2: dbg_printf(" (YM2413 control register, not implemented)"); break;
+                case 0xf0: dbg_printf(" (YM2413 data port register latch, not implemented)"); break;
+                case 0xf2: dbg_printf(" (YM2413 control register + status port, not implemented)"); break; // bit 0 can be read and written if IO chip is disabled by bit 2 of port 3E
                 case 0xfc:
                     std::printf("wrote %02x to port %02x (routed to console control)\n", val, port); 
                     dbg_con::write_control(val);
@@ -256,7 +274,7 @@ void memmapZ80Console::writePortByte(uint8_t port, uint8_t val, uint64_t cycle) 
             break;
         case 0xc1:
             switch(port) {
-                case 0xf1: dbg_printf(" (YM2413 data register)"); break;
+                case 0xf1: dbg_printf(" (YM2413 data port register data, not implemented)"); break;
                 case 0xfd:
                     dbg_con::write_data(val);
                     std::printf("wrote %02x to port %02x (routed to console data)\n", val, port);
