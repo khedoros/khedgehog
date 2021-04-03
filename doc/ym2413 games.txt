@@ -1,45 +1,45 @@
-After Burner 	
-Alex Kidd: The Lost Stars 	
-Alien Syndrome 	
-Altered Beast 	
-Aztec Adventure 	
-Blade Eagle 3-D 	
-BMX Trial Alex Kidd 	
-Bomber Raid 	
-California Games 	
-Captain Silver 	
-Casino Games 	
-Cloud Master 	
-Cyborg Hunter 	
-Double Dragon 	
-Fantasy Zone II 	
-Fantasy Zone: The Maze 	
-Galactic Protector 	
-Galaxy Force 	
-Game Box Série Esportes Radicais 	
-Global Defense 	
-Golfamania 	
-Golvellius - Valley of Doom 	
-Great Golf * 	
-Hoshi wo Sagashite... 	
-Kenseiden 	
-Lord of the Sword 	
-Maze Hunter 3-D 	
-Megumi Rescue 	
-Miracle Warriors 	
-Mônica no Castelo do Dragão 	
-Nekkyuu Koushien 	
-Out Run 	
-Out Run 3-D 	
-Parlour Games 	
-Penguin Land 	
-Phantasy Star ** 	
-Poseidon Wars 3-D 	
-Power Strike 	
-Rampage 	
-Rastan 	Zillion II: The Tri Formation
-Rescue Mission 	
-R-Type 	
+After Burner
+Alex Kidd: The Lost Stars
+Alien Syndrome
+Altered Beast
+Aztec Adventure
+Blade Eagle 3-D
+BMX Trial Alex Kidd
+Bomber Raid
+California Games
+Captain Silver
+Casino Games
+Cloud Master
+Cyborg Hunter
+Double Dragon
+Fantasy Zone II
+Fantasy Zone: The Maze
+Galactic Protector
+Galaxy Force
+Game Box Série Esportes Radicais
+Global Defense
+Golfamania
+Golvellius - Valley of Doom
+Great Golf *
+Hoshi wo Sagashite...
+Kenseiden
+Lord of the Sword
+Maze Hunter 3-D
+Megumi Rescue
+Miracle Warriors
+Mônica no Castelo do Dragão
+Nekkyuu Koushien
+Out Run
+Out Run 3-D
+Parlour Games
+Penguin Land
+Phantasy Star **
+Poseidon Wars 3-D
+Power Strike
+Rampage
+Rastan
+Rescue Mission
+R-Type
 Scramble Spirits
 Shanghai
 Shinobi
@@ -58,6 +58,7 @@ Wonder Boy III: The Dragon's Trap ++
 Wonder Boy in Monster Land
 Y's: The Vanished Omens **
 Zaxxon 3-D *
+Zillion II: The Tri Formation
 
 Game            Pro Action Replay code
 Battle Out Run+ 00DE00:01
@@ -71,3 +72,4 @@ Key
 ** Only the Japanese version supports FM sound. It was removed from other language versions.
 + Support FM sound, but only with a patch, per https://www.smspower.org/forums/12380-VGMPackSuperBasketballFM
 ++ This game requires the region switch set to Japan to play FM sound.
+
