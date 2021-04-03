@@ -149,6 +149,7 @@ void vdpMS::renderGraphic1(unsigned int line, std::vector<uint8_t>& buffer) {
             setPixelSG(buffer, x_tile * 8 + x, y_tile * 8 + y_line, color_index);
         }
     }
+    renderSgSprites(line, buffer);
 }
 
 void vdpMS::renderGraphic2(unsigned int line, std::vector<uint8_t>& buffer) {

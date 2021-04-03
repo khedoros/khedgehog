@@ -15,9 +15,7 @@ TiPsg::TiPsg(std::shared_ptr<config>& conf): noiseLfsr(1<<15), cfg(conf), apu(co
         toneCount[i] = 0;
     }
 
-    for(int i=0;i<882*2;i++) {
-        buffer[i] = 0;
-    }
+    buffer.fill(0);
     stereoChannels = 1;
     sampleCnt = 882;
     ticksPerSample = 5.03;
