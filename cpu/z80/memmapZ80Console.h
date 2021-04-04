@@ -6,12 +6,12 @@
 #include<memory>
 
 class vdpMS;
-class TiPsg;
+class apuMS;
 //class apuMS;
 
 class memmapZ80Console: public memmap {
 public:
-    memmapZ80Console(std::shared_ptr<config> conf, std::shared_ptr<vdp> v, std::shared_ptr<TiPsg> a);
+    memmapZ80Console(std::shared_ptr<config> conf, std::shared_ptr<vdp> v, std::shared_ptr<apuMS> a);
     void writeByte(uint32_t addr, uint8_t val) override;
     void writeWord(uint32_t addr, uint16_t val) override;
     void writeLong(uint32_t addr, uint32_t val) override;
@@ -26,7 +26,7 @@ public:
 private:
     uint8_t& map(uint32_t addr) override;
     std::shared_ptr<vdp> vdp_dev;
-    std::shared_ptr<TiPsg> apu_dev;
+    std::shared_ptr<apuMS> apu_dev;
     std::shared_ptr<config> cfg;
 
     uint8_t dummyByte;

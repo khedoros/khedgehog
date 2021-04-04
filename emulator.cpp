@@ -11,8 +11,8 @@
 #include "cpu/m68k/cpuM68k.h"
 #include "cpu/z80/cpuZ80.h"
 #include "apu/genesis/apuGenesis.h"
-//#include "apu/masterSystem/apuMS.h"
-#include "apu/tiPsg.h"
+#include "apu/masterSystem/apuMS.h"
+//#include "apu/tiPsg.h"
 #include "vdp/genesis/vdpGenesis.h"
 #include "vdp/masterSystem/vdpMS.h"
 
@@ -109,9 +109,9 @@ int genesisEmulator::run() {
 smsEmulator::smsEmulator(std::shared_ptr<config> config) {
     cfg = config;
     io = std::make_shared<ioMgr>(cfg);
-    apu_dev = std::make_shared<TiPsg>(cfg);
+    apu_dev = std::make_shared<apuMS>(cfg);
     vdp_dev = std::make_shared<vdpMS>(cfg->getSystemType(), cfg->getSystemRegion());
-    cpu_map = std::make_shared<memmapZ80Console>(config, vdp_dev, std::dynamic_pointer_cast<TiPsg>(apu_dev));
+    cpu_map = std::make_shared<memmapZ80Console>(config, vdp_dev, std::dynamic_pointer_cast<apuMS>(apu_dev));
     cpu_dev = std::make_shared<cpuZ80>(std::dynamic_pointer_cast<memmapZ80Console>(cpu_map));
 }
 

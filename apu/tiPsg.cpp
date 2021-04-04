@@ -39,6 +39,8 @@ void TiPsg::writeRegister(uint8_t val) {
     writeCount++;
 }
 
+void TiPsg::writeRegister(uint8_t port, uint8_t val) { }
+
 uint8_t TiPsg::readRegister(uint8_t reg) { return 0; }
 
 void TiPsg::applyRegister(uint8_t val) {

@@ -1,4 +1,4 @@
-objects:=config.o cpu/m68k/memmapM68k.o emulator.o main.o cpu/m68k/cpuM68k.o util.o cpu/z80/cpuZ80.o cpu/z80/memmapZ80Console.o vdp/masterSystem/vdpMS.o debug_console.o io/ioMgr.o vdp/genesis/vdpGenesis.o apu/tiPsg.o apu/genesis/apuGenesis.o apu/apu.o
+objects:=config.o cpu/m68k/memmapM68k.o emulator.o main.o cpu/m68k/cpuM68k.o util.o cpu/z80/cpuZ80.o cpu/z80/memmapZ80Console.o vdp/masterSystem/vdpMS.o debug_console.o io/ioMgr.o vdp/genesis/vdpGenesis.o apu/tiPsg.o apu/yamahaYm2413.o apu/masterSystem/apuMS.o apu/genesis/apuGenesis.o apu/apu.o
 target:=khedgehog
 
 SDLCFLAGS:=$(shell sdl2-config --cflags)
