@@ -12,4 +12,6 @@ public:
     std::array<int16_t, 882 * 2>& getSamples() override;
 private:
     std::array<int16_t, 882 * 2> buffer;
+    uint8_t curReg;
+    uint8_t statusVal;
 };
