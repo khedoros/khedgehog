@@ -1,5 +1,6 @@
 #pragma once
 #include "apu.h"
+#include<utility>
 
 class YamahaYm2413: public apu {
 public:
@@ -14,4 +15,9 @@ private:
     std::array<int16_t, 882 * 2> buffer;
     uint8_t curReg;
     uint8_t statusVal;
+
+    uint8_t reg[0x39] = {0};
+
+    unsigned int writeIndex;
+    std::array<std::pair<uint8_t, uint8_t>, 100> regWrites;
 };

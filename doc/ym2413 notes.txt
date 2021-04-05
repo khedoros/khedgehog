@@ -1,0 +1,91 @@
+9-bit D-A
+9x 2-op instruments or 6x 2-op instruments and 5 rhythm instruments
+Melody and rhythm on separate outputs
+Clocked at the ~3.5MHz speed of the CPU. Divide-by-72 for 
+3579545Hz (NTSC) 49716Hz clock
+3546893Hz (PAL)  49262Hz clock
+
+ 1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 Slot number
+ 1  2  3  1  2  3  4  5  6  4  5  6  7  8  9  7  8  9 Channel number
+ 1  1  1  2  2  2  1  1  1  2  2  2  1  1  1  2  2  2 Slot no. when channel is seen
+20 21 22 20 21 22 23 24 25 23 24 25 26 27 28 26 27 28 Relationship between the data of each
+                                                      channel and the register
+Register Address Bits   Description
+            0     7     Amplitude Modulation on/off switch (Modulator)
+                  6     Vibrato on/off switch (Modulator)
+                  5     Sustained/decaying sound. 0=decaying/percussive, 1=sustained (Modulator)
+                  4     RATE key scale (Modulator)
+                 3-0    Controls MULTI sample wave - harmonics relationship (Modulator)
+            1     7     Amplitude Modulation on/off switch (Carrier)
+                  6     Vibrato on/off switch (Carrier)
+                  5     Sustained/decaying sound. 0=decaying/percussive, 1=sustained (Carrier)
+                  4     RATE key scale (Carrier)
+                 3-0    Controls MULTI sample wave - harmonics relationship (Carrier)
+2           2    7-6    LEVEL key scale (modulator)
+            3    7-6    LEVEL key scale (carrier)
+3           2    5-0    Modulated wave total level. Modulation index control
+4           3     3     Modulator wave distortion waveform (flat wave rectification) (DM)
+                  4     Carrier wave distortion waveform (flat wave rectification) (DC)
+                 2-0    FM feedback constant (modulator)
+5           4    7-4    Attack envelope change rate control (modulator)
+                 3-0    Decay envelope change rate control (modulator
+            5    7-4    Attack envelope change rate control (carrier)
+                 3-0    Decay envelope change rate control (carrier)
+6           6    7-4    Indication of decay-sustain level (modulator)
+                 3-0    Release envelop change rate control (modulator)
+6           7    7-4    Indication of decay-sustain level (carrier)
+                 3-0    Release envelop change rate control (carrier)
+7           e     5     Rhythm sound mode selection
+                 4-0    Rhythm instruments on/off switch
+x           f    7-0    test register, 0 for normal operation
+8         10-18  7-0    F-Number LSB 8 bits
+9         20-28   5     Sustain on/off switch
+                  4     Key on/off
+                 3-1    Octave setting
+                  0     F-Number MSB
+10        30-38  7-4    Instruments selection
+                 3-0    Volume data
+
+Rhythm mode:
+           36    3-0    BD VOL (Bass Drum)
+           37    7-4    HH VOL (High Hat)
+                 3-0    SD VOL (Snare Drum)
+           38    7-4    TOM VOL (Tom-tom)
+                 3-0    T CY VOL (Top Cymbal)
+
+Envelope: 48db range, 0 is max, -48 is lowest
+Key hit: DP=decay of previous note? 10ms to drop from 0 to 48
+AR: Attack Rate (rate from 48 to 0)
+DR: Decay from attack to SL (sustain level) (doesn't decay for sustained sounds)
+RR: Decay after release. 310ms from 0 to 48
+RS: Sustain after release. 1.2s from 0 to 48
+
+MULTI: Multiple to apply to wave's f-number. The 16 possible multipliers:
+1/2, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 12, 12, 15, 15
+
+KSR: Key Scale of RATE. Something about changing the ADSR based on octave.
+I think it means that ADSR rates go faster at higher half-octaves.
+If RATE=4*R+Rks, R is the set ADSR value, Rks is the key-scale offset value, when R=0, rate=0
+
+Octave      0 | 1 | 2 | 3 | 4 |  5  |   6 |  7
+BLOCK       0 | 1 | 2 | 3 | 4 |  5  |   6 |  7
+F-Num MSB  0 1|0 1|0 1|0 1|0 1| 0  1| 0  1| 0  1
+0 keyscale 0 0|0 0|1 1|1 1|2 2| 2  2| 3  3| 3  3
+1 offset   0 1|2 3|4 5|6 7|8 9|10 11|12 13|14 15
+
+VIB: Applies a 6.4Hz vibrato to the slot, when input is about 3.6MHz
+AM: Applies a 3.7Hz amplitude modulation to the slot, when input is about 3.6MHz
+
+Total level: Attenuation of audio. 64 levels in 0.75dB steps.
+KSL: Key Scale of Level. Volume's equivalent of KSR. 16 levels in 1.5dB/OCT steps.
+
+DM/DC: Wave is rectified to half-wave
+
+Feedback modulation index:
+                  0   1     2    3    4   5  6   7
+                  0 pi/16 pi/8 pi/4 pi/2 pi 2pi 4pi
+
+Sustain level: Specified in 3dB increments
+
+Bookmark: Page 15 of https://raw.githubusercontent.com/andete/ym2413/master/doc/YM2413am.pdf
+Some info here is also useful: https://moddingwiki.shikadi.net/wiki/OPL_chip
