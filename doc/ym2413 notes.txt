@@ -88,4 +88,24 @@ Feedback modulation index:
 Sustain level: Specified in 3dB increments
 
 Bookmark: Page 15 of https://raw.githubusercontent.com/andete/ym2413/master/doc/YM2413am.pdf
+
+
+Exponential table:
+
+ x = 0..255, y = round((power(2, x/256)-1)*1024)
+
+When such a table is used for calculation of the exponential, the table is read at the position given by the 8 LSB's of the input. The value + 1024 (the hidden bit) is then the significand of the floating point output and the yet unused MSB's of the input are the exponent of the floating point output. Indeed, YM3812 sends the audio to the YM3014B DAC in floating point, so it is quite possible that summing of voices is done in floating point also.
+
+Log-sin table:
+
+ x = 0..255, y = round(-log(sin((x+0.5)*pi/256/2))/log(2)*256)
+
+This is the first (rising) quarter of sine wave. The rest can be constructed by flipping all the bits of x and/or by changing the sign of the samples.
+
+
+
+
+
 Some info here is also useful: https://moddingwiki.shikadi.net/wiki/OPL_chip
+Exponential and log-sin table info taken from: https://docs.google.com/document/d/18IGx18NQY_Q1PJVZ-bHywao9bhsDoAqoIn1rIm42nwo/edit
+(linked from here: http://yehar.com/blog/?p=665)
