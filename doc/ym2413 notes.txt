@@ -1,9 +1,26 @@
 9-bit D-A
 9x 2-op instruments or 6x 2-op instruments and 5 rhythm instruments
 Melody and rhythm on separate outputs
-Clocked at the ~3.5MHz speed of the CPU. Divide-by-72 for 
+Clocked at the ~3.5MHz speed of the CPU. Divide-by-72 for the sampling rate in the hardware
 3579545Hz (NTSC) 49716Hz clock
 3546893Hz (PAL)  49262Hz clock
+
+f-num: range of 0-511
+BLOCK: range of 0-7
+MULT: range of 0.5-15
+262144 steps in the phase, apparently counter/256 gives position in the sine table?
+
+delta-p = fdes * 2^18 / sfreq
+sfreq = sample frequency = cpu clock / 72
+fdes = desired frequency of musical note
+
+delta-p = 2^BLOCK * f-num * MUL   (change in phase value for an iteration)
+
+f-num = (fdes * 2^18 / sfreq) / 2^(BLOCK-1)
+
+So: delta-p is calculated from block, f-num, and mult
+There's an 18-bit counter, and delta-p is added to that.
+Position in the sine table is probably counter / 256.
 
  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 Slot number
  1  2  3  1  2  3  4  5  6  4  5  6  7  8  9  7  8  9 Channel number
