@@ -23,6 +23,7 @@ private:
 
     unsigned int writeIndex;
     std::array<std::pair<uint8_t, uint8_t>, 100> regWrites;
+    double sine[512];
 
     bool rhythm;             //               rhythm f-nums
     bool bass_trigger;       //slot 13+16      addr 16  =  20
@@ -66,6 +67,7 @@ private:
         unsigned sustain_level:4;
         unsigned release:4;
 
+        unsigned phaseInc:18;
 		unsigned phaseCnt:18;
 		adsrPhase envPhase;
 		//TODO: Add something about an envelope counter
@@ -82,6 +84,8 @@ private:
         op_t mod_op;
 		op_t car_op;
     } chan[9];
+
+    static constexpr uint8_t multVal[16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 12, 12, 15, 15};
 
 	static constexpr uint8_t instruments[8*(1+15+3)] = {
 		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, // 0: User
