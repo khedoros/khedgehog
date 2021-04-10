@@ -25,6 +25,8 @@ private:
     std::array<std::pair<uint8_t, uint8_t>, 100> regWrites;
     double sine[512];
 
+    unsigned int envCounter; // Global counter for advancing envelope state
+
     bool rhythm;             //               rhythm f-nums
     bool bass_trigger;       //slot 13+16      addr 16  =  20
     bool snare_trigger;      //slot 17              17  =  50
@@ -39,6 +41,7 @@ private:
     unsigned top_cym_vol:4; //0x38-low
 
     enum adsrPhase {
+        silent,  //Note hit envelope==48dB
         dampen,  //End of previous note, behaves like a base decay rate of 12, adjusted by rate_key_scale
         attack,  //New note rising after key-on
         decay,   //Initial fade to sustain level after reaching max volume
@@ -48,13 +51,13 @@ private:
     };
 
     struct op_t {
-        unsigned instNum:4;
-        unsigned instVol:4;
-        unsigned phaseInc:19;
-        unsigned phaseCnt:19;
-        adsrPhase envPhase;
-        //TODO: Add something about an envelope counter
+        unsigned instNum:4; // index to the instrument being used.
+        unsigned instVol:4; // volume for the operator, 3dB steps (add volume * 0x80 to output value)
+        unsigned phaseInc:19; // Basically the frequency, generated from the instrument's mult, and the fNum and octave/block for the channel
+        unsigned phaseCnt:19; // Current place in the sine phase. 10.9 fixed-point number, where the whole selects the sine sample to use
 
+        adsrPhase envPhase;
+        unsigned int envLevel;
     };
 
     struct inst_t {
@@ -101,8 +104,7 @@ private:
         bool sustain; //1=key-off has release-rate at 5, 0=key-off has release-rate at 7 (both with KSR adjustment)
         bool trigger; //on-off state of the key
         unsigned octave:3; //3rd element that defines the frequency
-        unsigned instrument:4; //instrument choice 0=custom, 1-f=built-in instruments
-        unsigned volume:4; // volume for the channel
+        unsigned volume:4; // volume for the channel, 3dB steps (add volume * 0x80 to output value)
         op_t modOp;
         op_t carOp;
     } chan[9];

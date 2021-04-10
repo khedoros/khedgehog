@@ -2,7 +2,7 @@
 #include<cmath>
 #include "yamahaYm2413.h"
 
-YamahaYm2413::YamahaYm2413(std::shared_ptr<config>& conf) : apu(conf), curReg(0), statusVal(0), writeIndex(0), cfg(conf) {
+YamahaYm2413::YamahaYm2413(std::shared_ptr<config>& conf) : apu(conf), curReg(0), statusVal(0), writeIndex(0), cfg(conf), envCounter(0) {
     buffer.fill(0);
 
     if(cfg->getSystemRegion() == systemRegion::pal) {
@@ -17,6 +17,28 @@ YamahaYm2413::YamahaYm2413(std::shared_ptr<config>& conf) : apu(conf), curReg(0)
     for(double i=0.0;i<512.0;i+=1.0) {
         //std::cout<<"i: "<<i<<" sine: "<<sin((i+.5)*M_PI/512)<<"\n";
         sine[int(i)] = sin((i+.5)*M_PI/512);
+    }
+
+    for(int ch = 0; ch < 9; ch++) {
+        chan[ch].modOp.instNum = 0;
+        chan[ch].modOp.instVol = 0;
+        chan[ch].modOp.phaseInc = 0;
+        chan[ch].modOp.phaseCnt = 0;
+        chan[ch].modOp.envPhase = silent;
+        chan[ch].modOp.envLevel = 127 * 0x10;
+
+        chan[ch].carOp.instNum = 0;
+        chan[ch].carOp.instVol = 0;
+        chan[ch].carOp.phaseInc = 0;
+        chan[ch].carOp.phaseCnt = 0;
+        chan[ch].carOp.envPhase = silent;
+        chan[ch].carOp.envLevel = 127 * 0x10;
+
+        chan[ch].fNum = 0;
+        chan[ch].sustain = false;
+        chan[ch].trigger = false;
+        chan[ch].octave = 0;
+        chan[ch].volume = 15;
     }
 
     for(int instrument=0;instrument<16;instrument++) {
@@ -183,8 +205,7 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
                 chan[ch].modOp.phaseCnt += chan[ch].modOp.phaseInc;
                 chan[ch].carOp.phaseCnt += chan[ch].carOp.phaseInc;
                 int phase = chan[ch].carOp.phaseCnt / 512;
-                if(phase >= 512) buffer[i] -= (sine[phase - 512] * 2048);
-                else buffer[i] += (sine[phase] * 2048);
+                buffer[i]+=lookupExp(lookupSin(phase)) * 4;
             }
         }
         if(rhythm) { // TODO: handle the 5 rhythm instruments
@@ -218,3 +239,6 @@ int YamahaYm2413::lookupExp(int val) {
     if (sign) result = ~result;
     return result >> 4;
 }
+
+int YamahaYm2413::logsinTable[256];
+int YamahaYm2413::expTable[256];
