@@ -130,4 +130,11 @@ private:
         0x01,0x01,0x00,0x00,0xc8,0xd8,0xa7,0x68, // R: High-Hat(M) / Snare Drum(C) (from VRC7)
         0x05,0x01,0x00,0x00,0xf8,0xaa,0x59,0x55, // R: Tom-tom(M) / Top Cymbal(C) (from VRC7)
     };
+
+    static int logsinTable[256];
+    static int expTable[256];
+
+    void initTables();
+    int lookupSin(int val);
+    int lookupExp(int val);
 };

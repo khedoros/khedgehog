@@ -183,8 +183,8 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
                 chan[ch].modOp.phaseCnt += chan[ch].modOp.phaseInc;
                 chan[ch].carOp.phaseCnt += chan[ch].carOp.phaseInc;
                 int phase = chan[ch].carOp.phaseCnt / 512;
-                if(phase >= 512) buffer[i] -= (sine[phase - 512] * 512);
-                else buffer[i] += (sine[phase] * 512);
+                if(phase >= 512) buffer[i] -= (sine[phase - 512] * 2048);
+                else buffer[i] += (sine[phase] * 2048);
             }
         }
         if(rhythm) { // TODO: handle the 5 rhythm instruments
@@ -195,3 +195,26 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
     return buffer;
 }
 
+void YamahaYm2413::initTables() {
+    for (int i = 0; i < 256; ++i) {
+        logsinTable[i] = round(-log2(sin((i + 0.5) * M_PI_2 / 256.0)) * 256.0);
+        expTable[i] = round(exp2(i / 256.0) * 1024.0) - 1024;
+    }
+}
+
+int YamahaYm2413::lookupSin(int val) {
+    bool sign   = val & 512;
+    bool mirror = val & 256;
+    val &= 255;
+    int result = logsinTable[mirror ? val ^ 255 : val];
+    if (sign) result |= 0x8000;
+    return result;
+}
+
+int YamahaYm2413::lookupExp(int val) {
+    bool sign = val & 0x8000;
+    int t = (expTable[(val & 255) ^ 255] | 1024) << 1;
+    int result = t >> ((val & 0x7F00) >> 8);
+    if (sign) result = ~result;
+    return result >> 4;
+}
