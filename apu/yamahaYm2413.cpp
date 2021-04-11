@@ -20,15 +20,14 @@ YamahaYm2413::YamahaYm2413(std::shared_ptr<config>& conf) : apu(conf), curReg(0)
     }
 
     for(int ch = 0; ch < 9; ch++) {
-        chan[ch].modOp.instNum = 0;
-        chan[ch].modOp.instVol = 0;
+        chan[ch].modOp.inst = &inst[0];
+        chan[ch].modOp.totalLevel = 0;
         chan[ch].modOp.phaseInc = 0;
         chan[ch].modOp.phaseCnt = 0;
         chan[ch].modOp.envPhase = silent;
         chan[ch].modOp.envLevel = 127 * 0x10;
 
-        chan[ch].carOp.instNum = 0;
-        chan[ch].carOp.instVol = 0;
+        chan[ch].carOp.inst = &inst[0];
         chan[ch].carOp.phaseInc = 0;
         chan[ch].carOp.phaseCnt = 0;
         chan[ch].carOp.envPhase = silent;
@@ -36,7 +35,7 @@ YamahaYm2413::YamahaYm2413(std::shared_ptr<config>& conf) : apu(conf), curReg(0)
 
         chan[ch].fNum = 0;
         chan[ch].sustain = false;
-        chan[ch].trigger = false;
+        chan[ch].keyOn = false;
         chan[ch].octave = 0;
         chan[ch].volume = 15;
     }
@@ -110,6 +109,7 @@ uint8_t YamahaYm2413::readRegister(uint8_t port) {
 void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
     uint8_t reg = write.first;
     uint8_t val = write.second;
+    uint8_t chNum = reg & 0x0f;
     if(reg < 8) {
         switch(reg) {
             case 0:
@@ -156,28 +156,30 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
     }
     else if(reg == 0x0e) {
         rhythm = val & 0x20;
-        bass_trigger = val & 0x10;
-        snare_trigger = val & 0x8;
-        tom_trigger = val & 0x4;
-        top_cymbal_trigger = val & 0x2;
-        high_hat_trigger = val & 0x1;
+        bass_keyOn = val & 0x10;
+        snare_keyOn = val & 0x8;
+        tom_keyOn = val & 0x4;
+        top_cymbal_keyOn = val & 0x2;
+        high_hat_keyOn = val & 0x1;
     }
     else if(reg >= 0x10 && reg <= 0x18) {
-        int num = (reg & 0x0f);
-        chan[num].fNum &= 0x100;
-        chan[num].fNum |= val;
-        chan[num].modOp.phaseInc = ((chan[num].fNum * multVal[inst[chan[num].modOp.instNum].multMod]) << chan[num].octave) >> 1;
-        chan[num].carOp.phaseInc = ((chan[num].fNum * multVal[inst[chan[num].carOp.instNum].multCar]) << chan[num].octave) >> 1;
+        chan[chNum].fNum &= 0x100;
+        chan[chNum].fNum |= val;
+        chan[chNum].modOp.phaseInc = ((chan[chNum].fNum * multVal[chan[chNum].modOp.inst->multMod]) << chan[chNum].octave) >> 1;
+        chan[chNum].carOp.phaseInc = ((chan[chNum].fNum * multVal[chan[chNum].carOp.inst->multCar]) << chan[chNum].octave) >> 1;
     }
     else if(reg >= 0x20 && reg <= 0x28) {
-        int num = (reg & 0x0f);
-        chan[num].fNum &= 0xff;
-        chan[num].fNum |= ((val&0x01)<<8);
-        chan[num].octave = ((val>>1) & 0x07);
-        chan[num].sustain = ((val>>5) & 0x01);
-        chan[num].trigger = ((val>>4) & 0x01);
-        chan[num].modOp.phaseInc = ((chan[num].fNum * multVal[inst[chan[num].modOp.instNum].multMod]) << chan[num].octave) >> 1;
-        chan[num].carOp.phaseInc = ((chan[num].fNum * multVal[inst[chan[num].carOp.instNum].multCar]) << chan[num].octave) >> 1;
+        chan[chNum].fNum &= 0xff;
+        chan[chNum].fNum |= ((val&0x01)<<8);
+        chan[chNum].octave = ((val>>1) & 0x07);
+        chan[chNum].sustain = ((val>>5) & 0x01);
+        chan[chNum].keyOn = ((val>>4) & 0x01);
+        chan[chNum].modOp.phaseInc = ((chan[chNum].fNum * multVal[chan[chNum].modOp.inst->multMod]) << chan[chNum].octave) >> 1;
+        chan[chNum].carOp.phaseInc = ((chan[chNum].fNum * multVal[chan[chNum].carOp.inst->multCar]) << chan[chNum].octave) >> 1;
+    }
+    else if(reg >=0x30 && reg <= 0x38) {
+        chan[chNum].modOp.inst = &inst[val>>4];
+        chan[chNum].volume = val & 0x0f;
     }
 }
 
@@ -197,15 +199,33 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
     /**/ if(int(percent * writeIndex) >= curIndex) {
     /**/    applyRegister(regWrites[curIndex++]);
     /**/ }
+         
+        envCounter++;
+
         int chanMax = (rhythm)?6:9;
         for(int ch=0;ch<9;ch++) {
-            if(chan[ch].trigger) {
-                int modOp = (ch / 3) * 6;
-                int carOp = (ch / 3) * 6 + 3;
-                chan[ch].modOp.phaseCnt += chan[ch].modOp.phaseInc;
-                chan[ch].carOp.phaseCnt += chan[ch].carOp.phaseInc;
-                int phase = chan[ch].carOp.phaseCnt / 512;
-                buffer[i]+=lookupExp(lookupSin(phase)) * 4;
+            if(chan[ch].keyOn) {
+                op_t * modOp = &(chan[ch].modOp);
+                op_t * carOp = &(chan[ch].carOp);
+                modOp->phaseCnt += modOp->phaseInc;
+                carOp->phaseCnt += carOp->phaseInc;
+                int modSin = lookupSin((modOp->phaseCnt / 512) +                                 // phase
+                                       (modOp->fmMod) +                                          // modification for vibrato
+                                       (((modOp->modFB1 + modOp->modFB2) / 2) * ((modOp->inst->feedbackMod)))); // modification for feedback
+
+                int modOut = lookupExp((modSin) +                                                // sine input
+                                       (modOp->amVol * 0x10) +                                   // AM volume attenuation (tremolo)
+                                       (modOp->envLevel * 0x10) +                                // Envelope
+                                       (modOp->totalLevel * 0x20));                              // Modulator volume
+
+                int carSin = lookupSin((carOp->phaseCnt / 512) +                                 // phase
+                                       (modOut * 8) +                                            // fm modulation
+                                       (carOp->fmMod));                                          // modification for vibrato
+
+                buffer[i]+=lookupExp((carSin) +                                                  // sine input
+                                     (carOp->amVol * 0x10) +                                     // AM volume attenuation (tremolo)
+                                     (carOp->envLevel * 0x10) +                                  // Envelope
+                                     (chan[ch].volume * 0x80));                                  // Channel volume
             }
         }
         if(rhythm) { // TODO: handle the 5 rhythm instruments
@@ -237,7 +257,7 @@ int YamahaYm2413::lookupExp(int val) {
     int t = (expTable[(val & 255) ^ 255] | 1024) << 1;
     int result = t >> ((val & 0x7F00) >> 8);
     if (sign) result = ~result;
-    return result >> 4;
+    return result;
 }
 
 int YamahaYm2413::logsinTable[256];

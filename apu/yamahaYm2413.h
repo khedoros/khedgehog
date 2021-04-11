@@ -12,6 +12,7 @@ public:
     void setStereo(uint8_t) override;
     std::array<int16_t, 882 * 2>& getSamples() override;
 private:
+    class inst_t;
     void applyRegister(std::pair<uint8_t, uint8_t>& write);
     std::array<int16_t, 882 * 2> buffer;
     uint8_t curReg;
@@ -27,18 +28,18 @@ private:
 
     unsigned int envCounter; // Global counter for advancing envelope state
 
-    bool rhythm;             //               rhythm f-nums
-    bool bass_trigger;       //slot 13+16      addr 16  =  20
-    bool snare_trigger;      //slot 17              17  =  50
-    bool tom_trigger;        //slot 15              18  =  C0
-    bool top_cymbal_trigger; //slot 18              26  =  05
-    bool high_hat_trigger;   //slot 14              27  =  05
+    bool rhythm;           //               rhythm f-nums
+    bool bass_keyOn;       //slot 13+16      addr 16  =  20
+    bool snare_keyOn;      //slot 17              17  =  50
+    bool tom_keyOn;        //slot 15              18  =  C0
+    bool top_cymbal_keyOn; //slot 18              26  =  05
+    bool high_hat_keyOn;   //slot 14              27  =  05
                              //                     28  =  01
-    unsigned bass_vol:4;  //0x36-low
-    unsigned snare_vol:4; //0x37-low
-    unsigned tom_vol:4; //0x38-high
+    unsigned bass_vol:4;     //0x36-low
+    unsigned snare_vol:4;    //0x37-low
+    unsigned tom_vol:4;      //0x38-high
     unsigned high_hat_vol:4; //0x37-high
-    unsigned top_cym_vol:4; //0x38-low
+    unsigned top_cym_vol:4;  //0x38-low
 
     enum adsrPhase {
         silent,  //Note hit envelope==48dB
@@ -51,13 +52,24 @@ private:
     };
 
     struct op_t {
-        unsigned instNum:4; // index to the instrument being used.
-        unsigned instVol:4; // volume for the operator, 3dB steps (add volume * 0x80 to output value)
-        unsigned phaseInc:19; // Basically the frequency, generated from the instrument's mult, and the fNum and octave/block for the channel
-        unsigned phaseCnt:19; // Current place in the sine phase. 10.9 fixed-point number, where the whole selects the sine sample to use
+        bool modulator;          // true=modulator, false=carrier
+        inst_t* inst;            // pointer to the instrument being used.
+        unsigned totalLevel:6;   // level for the modulator, 0.75dB steps (add totalLevel * 0x20 to output value)
+        unsigned phaseInc:19;    // Basically the frequency, generated from the instrument's mult, and the fNum and octave/block for the channel
+        unsigned phaseCnt:19;    // Current place in the sine phase. 10.9 fixed-point number, where the whole selects the sine sample to use
+
+        // TODO: AM/tremolo state. amVol is a placeholder.
+        unsigned amVol:4;
+
+        // TODO: FM/vibrato state. fmMod is a placeholder.
+        unsigned fmMod:4;
+
+        // TODO: Modulator feedback state.
+        unsigned int modFB1;
+        unsigned int modFB2;
 
         adsrPhase envPhase;
-        unsigned int envLevel;
+        unsigned int envLevel; // 0 - 127. 0.375dB steps (add envLevel * 0x10)
     };
 
     struct inst_t {
@@ -102,7 +114,7 @@ private:
     struct chan_t {
         unsigned fNum:9; // 2nd of 3 elements that define the frequency
         bool sustain; //1=key-off has release-rate at 5, 0=key-off has release-rate at 7 (both with KSR adjustment)
-        bool trigger; //on-off state of the key
+        bool keyOn; //on-off state of the key
         unsigned octave:3; //3rd element that defines the frequency
         unsigned volume:4; // volume for the channel, 3dB steps (add volume * 0x80 to output value)
         op_t modOp;
