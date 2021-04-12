@@ -40,7 +40,7 @@ YamahaYm2413::YamahaYm2413(std::shared_ptr<config>& conf) : apu(conf), curReg(0)
         chan[ch].volume = 15;
     }
 
-    for(int instrument=0;instrument<16;instrument++) {
+    for(int instrument=0;instrument<19;instrument++) {
         int tableBase = instrument * 8;
         int reg0 = romInst[tableBase + 0];
         int reg1 = romInst[tableBase + 1];
@@ -91,8 +91,7 @@ void YamahaYm2413::writeRegister(uint8_t port, uint8_t val) {
             curReg = val;
             break;
         case 0xf1:
-            // TODO: enqueue reg write value
-            std::cout<<" Reg "<<std::hex<<int(curReg)<<" set to "<<int(val)<<"\n";
+            //std::cout<<" Reg "<<std::hex<<int(curReg)<<" set to "<<int(val)<<"\n";
             regWrites[writeIndex++] = std::make_pair(curReg, val);
             break;
         case 0xf2: // tricks the hardware detection. YM2413 docs make it sound like some kind of test register?
@@ -156,11 +155,37 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
     }
     else if(reg == 0x0e) {
         rhythm = val & 0x20;
-        bass_keyOn = val & 0x10;
-        snare_keyOn = val & 0x8;
-        tom_keyOn = val & 0x4;
-        top_cymbal_keyOn = val & 0x2;
-        high_hat_keyOn = val & 0x1;
+        rhythmInsts ins[] = {bassDrum, highHat, snareDrum, tomTom, topCymbal};
+        int key[] = { 0x10, 0x08, 0x04, 0x02, 0x01};
+        for(int i=0;i<5;i++) {
+            bool newKeyOn = (val & key[i]);
+            if(percChan[i].keyOn && !newKeyOn) { //keyoff event
+                if(percChan[i].modOp) {
+                    std::cout<<"perc chan "<<i<<" key-off\n";
+                    percChan[i].modOp->envPhase = release;
+                }
+                percChan[i].carOp->envPhase = release;
+            }
+            else if(!percChan[i].keyOn && newKeyOn) { //keyon event
+                if(percChan[i].modOp) {
+                    if(percChan[i].modOp->envPhase == silent) {
+                        percChan[i].modOp->envPhase = attack;
+                    }
+                    else {
+                        percChan[i].modOp->envPhase = dampen;
+                    }
+                }
+                if(percChan[i].carOp->envPhase != silent) {
+                    percChan[i].carOp->envPhase = dampen;
+                    std::cout<<"perc chan "<<i<<" dampen key-on\n";
+                }
+                else {
+                    percChan[i].carOp->envPhase = attack;
+                    std::cout<<"perc chan "<<i<<" attack key-on\n";
+                }
+            }
+            percChan[i].keyOn = newKeyOn;
+        }
     }
     else if(reg >= 0x10 && reg <= 0x18) {
         chan[chNum].fNum &= 0x100;
@@ -173,12 +198,36 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
         chan[chNum].fNum |= ((val&0x01)<<8);
         chan[chNum].octave = ((val>>1) & 0x07);
         chan[chNum].sustain = ((val>>5) & 0x01);
-        chan[chNum].keyOn = ((val>>4) & 0x01);
+        bool newKeyOn = ((val>>4) & 0x01);
+        if(chan[chNum].keyOn && !newKeyOn) { // keyOff event
+            std::cout<<"melody chan "<<int(chNum)<<" key-off\n";
+            chan[chNum].modOp.envPhase = release;
+            chan[chNum].carOp.envPhase = release;
+        }
+        else if(!chan[chNum].keyOn && newKeyOn) { // keyOn event
+            if(chan[chNum].modOp.envPhase == silent) {
+                chan[chNum].modOp.envPhase = attack;
+            }
+            else {
+                chan[chNum].modOp.envPhase = dampen;
+            }
+            if(chan[chNum].carOp.envPhase == silent) {
+                chan[chNum].carOp.envPhase = attack;
+                std::cout<<"melody chan "<<int(chNum)<<" attack key-on\n";
+            }
+            else {
+                chan[chNum].carOp.envPhase = dampen;
+                std::cout<<"melody chan "<<int(chNum)<<" dampen key-on\n";
+            }
+        }
+        chan[chNum].keyOn = newKeyOn;
+
         chan[chNum].modOp.phaseInc = ((chan[chNum].fNum * multVal[chan[chNum].modOp.inst->multMod]) << chan[chNum].octave) >> 1;
         chan[chNum].carOp.phaseInc = ((chan[chNum].fNum * multVal[chan[chNum].carOp.inst->multCar]) << chan[chNum].octave) >> 1;
     }
     else if(reg >=0x30 && reg <= 0x38) {
         chan[chNum].modOp.inst = &inst[val>>4];
+        chan[chNum].instNum = val>>4;
         chan[chNum].volume = val & 0x0f;
     }
 }
@@ -203,32 +252,60 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
         envCounter++;
 
         int chanMax = (rhythm)?6:9;
-        for(int ch=0;ch<9;ch++) {
-            if(chan[ch].keyOn) {
+        for(int ch=0;ch<chanMax;ch++) {
+            if(chan[ch].carOp.envPhase != silent) {
                 op_t * modOp = &(chan[ch].modOp);
                 op_t * carOp = &(chan[ch].carOp);
                 modOp->phaseCnt += modOp->phaseInc;
                 carOp->phaseCnt += carOp->phaseInc;
                 int modSin = lookupSin((modOp->phaseCnt / 512) +                                 // phase
-                                       (modOp->fmMod) +                                          // modification for vibrato
+                                       (modOp->vibPhase) +                                          // modification for vibrato
                                        (((modOp->modFB1 + modOp->modFB2) / 2) * ((modOp->inst->feedbackMod)))); // modification for feedback
 
                 int modOut = lookupExp((modSin) +                                                // sine input
-                                       (modOp->amVol * 0x10) +                                   // AM volume attenuation (tremolo)
+                                       (modOp->amPhase * 0x10) +                                   // AM volume attenuation (tremolo)
                                        (modOp->envLevel * 0x10) +                                // Envelope
                                        (modOp->totalLevel * 0x20));                              // Modulator volume
 
                 int carSin = lookupSin((carOp->phaseCnt / 512) +                                 // phase
                                        (modOut * 8) +                                            // fm modulation
-                                       (carOp->fmMod));                                          // modification for vibrato
+                                       (carOp->vibPhase));                                          // modification for vibrato
 
                 buffer[i]+=lookupExp((carSin) +                                                  // sine input
-                                     (carOp->amVol * 0x10) +                                     // AM volume attenuation (tremolo)
+                                     (carOp->amPhase * 0x10) +                                     // AM volume attenuation (tremolo)
                                      (carOp->envLevel * 0x10) +                                  // Envelope
                                      (chan[ch].volume * 0x80));                                  // Channel volume
             }
         }
         if(rhythm) { // TODO: handle the 5 rhythm instruments
+            for(int ch = 0; ch < 5; ch++) {
+                if(percChan[ch].carOp->envPhase != silent) {
+                    op_t * modOp = percChan[ch].modOp;
+                    op_t * carOp = percChan[ch].carOp;
+                    int modOut = 0;
+                    carOp->phaseCnt += carOp->phaseInc;
+                    if(modOp) {
+                        modOp->phaseCnt += modOp->phaseInc;
+                        int modSin = lookupSin((modOp->phaseCnt / 512) +                                 // phase
+                                               (modOp->vibPhase) +                                          // modification for vibrato
+                                               (((modOp->modFB1 + modOp->modFB2) / 2) * ((percChan[ch].instrument->feedbackMod)))); // modification for feedback
+
+                        modOut = lookupExp((modSin) +                                                    // sine input
+                                           (modOp->amPhase * 0x10) +                                       // AM volume attenuation (tremolo)
+                                           (modOp->envLevel * 0x10) +                                    // Envelope
+                                           (modOp->totalLevel * 0x20));                                  // Modulator volume
+
+                    }
+                    int carSin = lookupSin((carOp->phaseCnt / 512) +                                 // phase
+                                           (modOut * 8) +                                            // fm modulation
+                                           (carOp->vibPhase));                                          // modification for vibrato
+
+                    buffer[i]+=lookupExp((carSin) +                                                  // sine input
+                                         (carOp->amPhase * 0x10) +                                     // AM volume attenuation (tremolo)
+                                         (carOp->envLevel * 0x10) +                                  // Envelope
+                                         (*percChan[ch].volume * 0x80));                             // Channel volume
+                }
+            }
         }
     }
 

@@ -28,27 +28,14 @@ private:
 
     unsigned int envCounter; // Global counter for advancing envelope state
 
-    bool rhythm;           //               rhythm f-nums
-    bool bass_keyOn;       //slot 13+16      addr 16  =  20
-    bool snare_keyOn;      //slot 17              17  =  50
-    bool tom_keyOn;        //slot 15              18  =  C0
-    bool top_cymbal_keyOn; //slot 18              26  =  05
-    bool high_hat_keyOn;   //slot 14              27  =  05
-                             //                     28  =  01
-    unsigned bass_vol:4;     //0x36-low
-    unsigned snare_vol:4;    //0x37-low
-    unsigned tom_vol:4;      //0x38-high
-    unsigned high_hat_vol:4; //0x37-high
-    unsigned top_cym_vol:4;  //0x38-low
-
     enum adsrPhase {
-        silent,  //Note hit envelope==48dB
-        dampen,  //End of previous note, behaves like a base decay rate of 12, adjusted by rate_key_scale
-        attack,  //New note rising after key-on
-        decay,   //Initial fade to sustain level after reaching max volume
-        sustain, //Level to hold at until key-off, or level at which to transition from decay to release phase
-        release, //key-off for non-percussive notes, sustain for percussive
-        release2 //key-off for percussive notes
+        silent,         //Note hit envelope==48dB
+        dampen,         //End of previous note, behaves like a base decay rate of 12, adjusted by rate_key_scale
+        attack,         //New note rising after key-on
+        decay,          //Initial fade to sustain level after reaching max volume
+        sustain,        //Level to hold at until key-off, or level at which to transition from decay to sustainRelease phase
+        sustainRelease, //sustain for percussive notes
+        release         //key-off
     };
 
     struct op_t {
@@ -58,11 +45,11 @@ private:
         unsigned phaseInc:19;    // Basically the frequency, generated from the instrument's mult, and the fNum and octave/block for the channel
         unsigned phaseCnt:19;    // Current place in the sine phase. 10.9 fixed-point number, where the whole selects the sine sample to use
 
-        // TODO: AM/tremolo state. amVol is a placeholder.
-        unsigned amVol:4;
+        // TODO: AM/tremolo state. amPhase is a placeholder.
+        unsigned amPhase:4;
 
-        // TODO: FM/vibrato state. fmMod is a placeholder.
-        unsigned fmMod:4;
+        // TODO: FM/vibrato state. vibPhase is a placeholder.
+        unsigned vibPhase:4;
 
         // TODO: Modulator feedback state.
         unsigned int modFB1;
@@ -109,18 +96,65 @@ private:
         //reg 7
         unsigned sustainLevelCar:4;
         unsigned releaseCar:4;
-    } inst[16];
+    } inst[19];
 
     struct chan_t {
-        unsigned fNum:9; // 2nd of 3 elements that define the frequency
+        unsigned int fNum; // 2nd of 3 elements that define the frequency
         bool sustain; //1=key-off has release-rate at 5, 0=key-off has release-rate at 7 (both with KSR adjustment)
         bool keyOn; //on-off state of the key
-        unsigned octave:3; //3rd element that defines the frequency
-        unsigned volume:4; // volume for the channel, 3dB steps (add volume * 0x80 to output value)
+        unsigned int octave; //3rd element that defines the frequency
+        unsigned int volume; // volume for the channel, 3dB steps (add volume * 0x80 to output value)
+        unsigned int instNum;
         op_t modOp;
         op_t carOp;
     } chan[9];
 
+    bool rhythm;          // Rhythm mode enabled
+
+    struct percChan_t {
+        bool keyOn;
+        chan_t* chan;
+        op_t* modOp; // nullptr for everything but bass drum
+        op_t* carOp;
+        inst_t* instrument;
+        unsigned int* volume;
+
+    };
+
+    percChan_t percChan[5] = { {false, &chan[6], &chan[6].modOp, &chan[6].carOp, &inst[16], &chan[6].volume},  // Bass Drum
+                               {false, &chan[7], nullptr,        &chan[7].modOp, &inst[17], &chan[7].instNum}, // High Hat
+                               {false, &chan[7], nullptr,        &chan[7].carOp, &inst[17], &chan[7].volume},  // Snare Drum
+                               {false, &chan[8], nullptr,        &chan[8].modOp, &inst[18], &chan[8].instNum}, // Tom-tom
+                               {false, &chan[8], nullptr,        &chan[8].carOp, &inst[18], &chan[8].volume}}; // Top Cymbal
+
+    enum rhythmInsts {
+        bassDrum,
+        highHat,
+        snareDrum,
+        tomTom,
+        topCymbal
+    };
+
+                    /*
+    bool bassKeyOn;       //slot 13+16      addr 16  =  20
+    bool highHatKeyOn;    //slot 14              27  =  05
+    bool tomKeyOn;        //slot 15              18  =  C0
+    bool snareKeyOn;      //slot 17              17  =  50
+    bool topCymbalKeyOn;  //slot 18              26  =  05
+                             //                     28  =  01
+    unsigned bass_vol:4;     //0x36-low
+    unsigned snare_vol:4;    //0x37-low
+    unsigned tom_vol:4;      //0x38-high
+    unsigned high_hat_vol:4; //0x37-high
+    unsigned top_cym_vol:4;  //0x38-low
+
+    op_t * bassMod = &chan[6].modOp;
+    op_t * bassCar = &chan[6].carOp;
+    op_t * highHatCar = &chan[7].modOp;
+    op_t * snareCar = &chan[7].carOp;
+    op_t * tomCar = &chan[8].modOp;
+    op_t * topCymCar = &chan[8].carOp;
+*/
     static constexpr uint8_t multVal[16] = {1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 20, 24, 24, 30, 30};
 
     static constexpr uint8_t romInst[8*(1+15+3)] = {
