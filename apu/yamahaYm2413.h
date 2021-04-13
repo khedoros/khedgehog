@@ -40,6 +40,7 @@ private:
     };
 
     struct op_t {
+        void updateEnvelope(unsigned int envCounter, bool mod);
         bool modulator;          // true=modulator, false=carrier
         inst_t* inst;            // pointer to the instrument being used.
         unsigned totalLevel:6;   // level for the modulator, 0.75dB steps (add totalLevel * 0x20 to output value)
@@ -56,8 +57,12 @@ private:
         unsigned int modFB1;
         unsigned int modFB2;
 
+        bool releaseSustain;   //1=key-off has release-rate at 5, 0=key-off has release rate at 7 (both with KSR adjustment)
+
         adsrPhase envPhase;
         unsigned int envLevel; // 0 - 127. 0.375dB steps (add envLevel * 0x10)
+
+
     };
 
     struct inst_t {
@@ -101,7 +106,6 @@ private:
 
     struct chan_t {
         unsigned int fNum; // 2nd of 3 elements that define the frequency
-        bool sustain; //1=key-off has release-rate at 5, 0=key-off has release-rate at 7 (both with KSR adjustment)
         bool keyOn; //on-off state of the key
         unsigned int octave; //3rd element that defines the frequency
         unsigned int volume; // volume for the channel, 3dB steps (add volume * 0x80 to output value)

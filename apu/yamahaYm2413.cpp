@@ -25,7 +25,7 @@ YamahaYm2413::YamahaYm2413(std::shared_ptr<config>& conf) : apu(conf), curReg(0)
         chan[ch].modOp.phaseInc = 0;
         chan[ch].modOp.phaseCnt = 0;
         chan[ch].modOp.envPhase = silent;
-        chan[ch].modOp.envLevel = 127 * 0x10;
+        chan[ch].modOp.envLevel = 127;
         chan[ch].modOp.amPhase = 0;
         chan[ch].modOp.vibPhase = 0;
         chan[ch].modOp.modFB1 = 0;
@@ -35,12 +35,13 @@ YamahaYm2413::YamahaYm2413(std::shared_ptr<config>& conf) : apu(conf), curReg(0)
         chan[ch].carOp.phaseInc = 0;
         chan[ch].carOp.phaseCnt = 0;
         chan[ch].carOp.envPhase = silent;
-        chan[ch].carOp.envLevel = 127 * 0x10;
+        chan[ch].carOp.envLevel = 127;
         chan[ch].carOp.amPhase = 0;
         chan[ch].carOp.vibPhase = 0;
 
         chan[ch].fNum = 0;
-        chan[ch].sustain = false;
+        chan[ch].modOp.releaseSustain = false;
+        chan[ch].modOp.releaseSustain = false;
         chan[ch].keyOn = false;
         chan[ch].octave = 0;
         chan[ch].volume = 15;
@@ -103,11 +104,13 @@ void YamahaYm2413::writeRegister(uint8_t port, uint8_t val) {
             break;
         case 0xf2: // tricks the hardware detection. YM2413 docs make it sound like some kind of test register?
             statusVal = val;
+            std::cout<<"Writing port "<<std::hex<<port<<"with value "<<statusVal<<"\n";
             break;
     }
 }
 
 uint8_t YamahaYm2413::readRegister(uint8_t port) {
+    std::cout<<"Reading port "<<std::hex<<port<<", getting value "<<statusVal<<"\n";
     if(port == 0xf2) return statusVal;
     return 0;
 }
@@ -204,7 +207,10 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
         chan[chNum].fNum &= 0xff;
         chan[chNum].fNum |= ((val&0x01)<<8);
         chan[chNum].octave = ((val>>1) & 0x07);
-        chan[chNum].sustain = ((val>>5) & 0x01);
+        chan[chNum].modOp.releaseSustain = ((val>>5) & 0x01);
+        chan[chNum].carOp.releaseSustain = ((val>>5) & 0x01);
+        chan[chNum].modOp.phaseInc = ((chan[chNum].fNum * multVal[chan[chNum].modOp.inst->multMod]) << chan[chNum].octave) >> 1;
+        chan[chNum].carOp.phaseInc = ((chan[chNum].fNum * multVal[chan[chNum].carOp.inst->multCar]) << chan[chNum].octave) >> 1;
         bool newKeyOn = ((val>>4) & 0x01);
         if(chan[chNum].keyOn && !newKeyOn) { // keyOff event
             std::cout<<"melody chan "<<int(chNum)<<" ("<<instNames[chan[chNum].instNum]<<") key-off\n";
@@ -229,11 +235,10 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
         }
         chan[chNum].keyOn = newKeyOn;
 
-        chan[chNum].modOp.phaseInc = ((chan[chNum].fNum * multVal[chan[chNum].modOp.inst->multMod]) << chan[chNum].octave) >> 1;
-        chan[chNum].carOp.phaseInc = ((chan[chNum].fNum * multVal[chan[chNum].carOp.inst->multCar]) << chan[chNum].octave) >> 1;
     }
     else if(reg >=0x30 && reg <= 0x38) {
         chan[chNum].modOp.inst = &inst[val>>4];
+        chan[chNum].carOp.inst = &inst[val>>4];
         chan[chNum].instNum = val>>4;
         chan[chNum].volume = val & 0x0f;
     }
@@ -259,10 +264,12 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
         envCounter++;
 
         int chanMax = (rhythm)?6:9;
-        for(int ch=0;ch<0/*chanMax(*/;ch++) {
+        for(int ch=0;ch<chanMax;ch++) {
+            op_t * modOp = &(chan[ch].modOp);
+            op_t * carOp = &(chan[ch].carOp);
+            modOp->updateEnvelope(envCounter, true);
+            carOp->updateEnvelope(envCounter, false);
             if(chan[ch].carOp.envPhase != silent) {
-                op_t * modOp = &(chan[ch].modOp);
-                op_t * carOp = &(chan[ch].carOp);
                 modOp->phaseCnt += modOp->phaseInc;
                 carOp->phaseCnt += carOp->phaseInc;
                 int modSin = lookupSin((modOp->phaseCnt / 512) +                                 // phase
@@ -286,9 +293,13 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
         }
         if(rhythm) { // TODO: handle the 5 rhythm instruments
             for(int ch = 0; ch < 5; ch++) {
+                op_t * modOp = percChan[ch].modOp;
+                op_t * carOp = percChan[ch].carOp;
+                if(modOp) {
+                    modOp->updateEnvelope(envCounter, true);
+                }
+                carOp->updateEnvelope(envCounter, false);
                 if(percChan[ch].carOp->envPhase != silent) {
-                    op_t * modOp = percChan[ch].modOp;
-                    op_t * carOp = percChan[ch].carOp;
                     int modOut = 0;
                     carOp->phaseCnt += carOp->phaseInc;
                     if(modOp) {
@@ -355,3 +366,65 @@ const std::string YamahaYm2413::instNames[]  {"Custom", "Violin", "Guitar", "Pia
 const std::string YamahaYm2413::rhythmNames[] {"Bass Drum", "High Hat", 
 	                                           "Snare Drum", "Tom-tom", "Top Cymbal"};
 
+void YamahaYm2413::op_t::updateEnvelope(unsigned int counter, bool mod) {
+    if(envPhase == dampen && envLevel == 127) {
+        envPhase = attack;
+    }
+    else if(envPhase == attack && envLevel == 0) {
+        envPhase = decay;
+    }
+    else if(envPhase == decay && 
+            ((mod && envLevel >= (inst->sustainLevelMod) * 8) || (!mod && envLevel >= (inst->sustainLevelCar) * 8))) {
+        if((mod && inst->sustMod) || (!mod && inst->sustCar)) {
+            envPhase = sustain;
+        }
+        else {
+            envPhase = sustainRelease;
+        }
+    }
+    else if((envPhase == sustainRelease || envPhase == release) && envLevel == 127) {
+        envPhase = silent;
+    }
+
+    unsigned int activeRate = 0;
+    switch(envPhase) {
+        case silent: activeRate = 0; break;
+        case dampen: activeRate = 12; break;
+        case attack: if(mod) activeRate = inst->attackMod;
+                     else    activeRate = inst->attackCar;
+                     break;
+        case decay:  if(mod) activeRate = inst->decayMod;
+                     else    activeRate = inst->decayCar;
+                     break;
+        case sustain: activeRate = 0; break;
+        case sustainRelease: if(mod) activeRate = inst->releaseMod;
+                             else    activeRate = inst->releaseCar;
+                             break;
+        case release: if(releaseSustain) activeRate = 5;
+                      else        activeRate = 7;
+                      break;
+        default: activeRate = 0;
+                 std::cout<<"Unhandled envPhase: "<<envPhase<<"\n";
+                 break;
+    }
+
+    int changeAmount = 1;
+    if(activeRate == 0) return;
+    else if(activeRate == 15) {
+        changeAmount = 2;
+    }
+
+              //    0      1      2     3     4     5     6     7    8   9   a   b   c  d  e  f
+    int checks[] {65536, 32768, 16384, 8192, 4096, 2048, 1024, 236, 128, 64, 32, 16, 8, 4, 2, 1};
+
+    if(!(counter & (checks[activeRate] - 1))) {
+        if(envPhase == attack) {
+            envLevel -= changeAmount;
+        }
+        else envLevel += changeAmount;
+    }
+
+    if(envLevel > 127) std::cout<<std::dec<<"Env at "<<envLevel<<"\n";
+    if(envLevel > 130) envLevel = 0; // assume wrap-around
+    else if(envLevel > 127) envLevel = 127; //assume it just overflowed the 7-bit value
+}
