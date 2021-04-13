@@ -191,6 +191,6 @@ private:
     static int expTable[256];
 
     void initTables();
-    int lookupSin(int val);
+    int lookupSin(int val, bool waveForm);
     int lookupExp(int val);
 };
