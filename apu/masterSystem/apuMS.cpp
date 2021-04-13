@@ -30,18 +30,24 @@ void apuMS::setStereo(uint8_t val) {
 
 std::array<int16_t, 882 * 2>& apuMS::getSamples() {
     auto&& psgs = psg->getSamples();
-    auto&& fms = fm->getSamples();
-    for(int i = 0; i < psgs.size(); i++) {
-        psgs[i] += fms[i];
+    if(cfg->getSystemType() == systemType::masterSystem) {
+        auto&& fms = fm->getSamples();
+        for(int i = 0; i < psgs.size(); i++) {
+            psgs[i] += fms[i];
+        }
     }
     return psgs;
 }
+
 uint8_t apuMS::readRegister(uint8_t port) {
     switch(port) {
         case 0x40: case 0x41:
             return psg->readRegister(port);
         case 0xf0: case 0xf1: case 0xf2:
-            return fm->readRegister(port);
+            if(cfg->getSystemType() == systemType::masterSystem) {
+                return fm->readRegister(port);
+            }
+            //fallthrough
         default:
             return 0xff;
     }

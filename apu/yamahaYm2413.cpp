@@ -21,23 +21,30 @@ YamahaYm2413::YamahaYm2413(std::shared_ptr<config>& conf) : apu(conf), curReg(0)
 
     for(int ch = 0; ch < 9; ch++) {
         chan[ch].modOp.inst = &inst[0];
-        chan[ch].modOp.totalLevel = 0;
+        chan[ch].modOp.totalLevel = 15;
         chan[ch].modOp.phaseInc = 0;
         chan[ch].modOp.phaseCnt = 0;
         chan[ch].modOp.envPhase = silent;
         chan[ch].modOp.envLevel = 127 * 0x10;
+        chan[ch].modOp.amPhase = 0;
+        chan[ch].modOp.vibPhase = 0;
+        chan[ch].modOp.modFB1 = 0;
+        chan[ch].modOp.modFB2 = 0;
 
         chan[ch].carOp.inst = &inst[0];
         chan[ch].carOp.phaseInc = 0;
         chan[ch].carOp.phaseCnt = 0;
         chan[ch].carOp.envPhase = silent;
         chan[ch].carOp.envLevel = 127 * 0x10;
+        chan[ch].carOp.amPhase = 0;
+        chan[ch].carOp.vibPhase = 0;
 
         chan[ch].fNum = 0;
         chan[ch].sustain = false;
         chan[ch].keyOn = false;
         chan[ch].octave = 0;
         chan[ch].volume = 15;
+        chan[ch].instNum = 0;
     }
 
     for(int instrument=0;instrument<19;instrument++) {
@@ -161,7 +168,7 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
             bool newKeyOn = (val & key[i]);
             if(percChan[i].keyOn && !newKeyOn) { //keyoff event
                 if(percChan[i].modOp) {
-                    std::cout<<"perc chan "<<i<<" key-off\n";
+                    std::cout<<"perc   chan "<<i<<" ("<<rhythmNames[i]<<") key-off\n";
                     percChan[i].modOp->envPhase = release;
                 }
                 percChan[i].carOp->envPhase = release;
@@ -177,11 +184,11 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
                 }
                 if(percChan[i].carOp->envPhase != silent) {
                     percChan[i].carOp->envPhase = dampen;
-                    std::cout<<"perc chan "<<i<<" dampen key-on\n";
+                    std::cout<<"perc   chan "<<i<<" ("<<rhythmNames[i]<<") dampen key-on\n";
                 }
                 else {
                     percChan[i].carOp->envPhase = attack;
-                    std::cout<<"perc chan "<<i<<" attack key-on\n";
+                    std::cout<<"perc   chan "<<i<<" ("<<rhythmNames[i]<<") attack key-on\n";
                 }
             }
             percChan[i].keyOn = newKeyOn;
@@ -200,7 +207,7 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
         chan[chNum].sustain = ((val>>5) & 0x01);
         bool newKeyOn = ((val>>4) & 0x01);
         if(chan[chNum].keyOn && !newKeyOn) { // keyOff event
-            std::cout<<"melody chan "<<int(chNum)<<" key-off\n";
+            std::cout<<"melody chan "<<int(chNum)<<" ("<<instNames[chan[chNum].instNum]<<") key-off\n";
             chan[chNum].modOp.envPhase = release;
             chan[chNum].carOp.envPhase = release;
         }
@@ -213,11 +220,11 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
             }
             if(chan[chNum].carOp.envPhase == silent) {
                 chan[chNum].carOp.envPhase = attack;
-                std::cout<<"melody chan "<<int(chNum)<<" attack key-on\n";
+                std::cout<<"melody chan "<<int(chNum)<<" ("<< instNames[chan[chNum].instNum]<<") attack key-on\n";
             }
             else {
                 chan[chNum].carOp.envPhase = dampen;
-                std::cout<<"melody chan "<<int(chNum)<<" dampen key-on\n";
+                std::cout<<"melody chan "<<int(chNum)<<" ("<< instNames[chan[chNum].instNum]<<") dampen key-on\n";
             }
         }
         chan[chNum].keyOn = newKeyOn;
@@ -252,7 +259,7 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
         envCounter++;
 
         int chanMax = (rhythm)?6:9;
-        for(int ch=0;ch<chanMax;ch++) {
+        for(int ch=0;ch<0/*chanMax(*/;ch++) {
             if(chan[ch].carOp.envPhase != silent) {
                 op_t * modOp = &(chan[ch].modOp);
                 op_t * carOp = &(chan[ch].carOp);
@@ -339,3 +346,12 @@ int YamahaYm2413::lookupExp(int val) {
 
 int YamahaYm2413::logsinTable[256];
 int YamahaYm2413::expTable[256];
+
+const std::string YamahaYm2413::instNames[]  {"Custom", "Violin", "Guitar", "Piano",
+                                              "Flute", "Clarinet", "Oboe", "Trumpet",
+                                              "Organ", "Horn", "Synth", "Harpsichord",
+                                              "Vibraphone", "Synth Bass", "Acoustic Bass",
+                                              "Electric Guitar"};
+const std::string YamahaYm2413::rhythmNames[] {"Bass Drum", "High Hat", 
+	                                           "Snare Drum", "Tom-tom", "Top Cymbal"};
+
