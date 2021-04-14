@@ -14,10 +14,7 @@ YamahaYm2413::YamahaYm2413(std::shared_ptr<config>& conf) : apu(conf), curReg(0)
         ticksPerSample = 5.07;
     }
 
-    for(double i=0.0;i<512.0;i+=1.0) {
-        //std::cout<<"i: "<<i<<" sine: "<<sin((i+.5)*M_PI/512)<<"\n";
-        sine[int(i)] = sin((i+.5)*M_PI/512);
-    }
+    initTables();
 
     for(int ch = 0; ch < 9; ch++) {
         chan[ch].modOp.inst = &inst[0];
@@ -200,8 +197,8 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
     else if(reg >= 0x10 && reg <= 0x18) {
         chan[chNum].fNum &= 0x100;
         chan[chNum].fNum |= val;
-        chan[chNum].modOp.phaseInc = ((chan[chNum].fNum * multVal[chan[chNum].modOp.inst->multMod]) << chan[chNum].octave);
-        chan[chNum].carOp.phaseInc = ((chan[chNum].fNum * multVal[chan[chNum].carOp.inst->multCar]) << chan[chNum].octave);
+        chan[chNum].modOp.phaseInc = (((chan[chNum].fNum * multVal[chan[chNum].modOp.inst->multMod]) << chan[chNum].octave) * 44100) / 49716;
+        chan[chNum].carOp.phaseInc = (((chan[chNum].fNum * multVal[chan[chNum].carOp.inst->multCar]) << chan[chNum].octave) * 44100) / 49716;
     }
     else if(reg >= 0x20 && reg <= 0x28) {
         chan[chNum].fNum &= 0xff;
@@ -209,8 +206,8 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
         chan[chNum].octave = ((val>>1) & 0x07);
         chan[chNum].modOp.releaseSustain = ((val>>5) & 0x01);
         chan[chNum].carOp.releaseSustain = ((val>>5) & 0x01);
-        chan[chNum].modOp.phaseInc = ((chan[chNum].fNum * multVal[chan[chNum].modOp.inst->multMod]) << chan[chNum].octave);
-        chan[chNum].carOp.phaseInc = ((chan[chNum].fNum * multVal[chan[chNum].carOp.inst->multCar]) << chan[chNum].octave);
+        chan[chNum].modOp.phaseInc = (((chan[chNum].fNum * multVal[chan[chNum].modOp.inst->multMod]) << chan[chNum].octave) * 44100) / 49716;
+        chan[chNum].carOp.phaseInc = (((chan[chNum].fNum * multVal[chan[chNum].carOp.inst->multCar]) << chan[chNum].octave) * 44100) / 49716;
         bool newKeyOn = ((val>>4) & 0x01);
         if(chan[chNum].keyOn && !newKeyOn) { // keyOff event
             std::cout<<"melody chan "<<int(chNum)<<" ("<<instNames[chan[chNum].instNum]<<") key-off\n";
@@ -347,8 +344,8 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
 
 void YamahaYm2413::initTables() {
     for (int i = 0; i < 256; ++i) {
-        logsinTable[i] = round(-log2(sin((double(i) + 0.5) * M_PI / 256.0 / 2.0)) * 256.0);
-        expTable[i] = round(exp2(double(i) / 256.0) - 1) * 1024.0;
+        logsinTable[i] = round(-log2(sin((double(i) + 0.5) * M_PI_2 / 256.0)) * 256.0);
+        expTable[i] = round(exp2(double(i) / 256.0) * 1024.0) - 1024.0;
     }
 }
 

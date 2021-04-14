@@ -25,7 +25,6 @@ private:
 
     unsigned int writeIndex;
     std::array<std::pair<uint8_t, uint8_t>, 100> regWrites;
-    double sine[512];
 
     unsigned int envCounter; // Global counter for advancing envelope state
 
