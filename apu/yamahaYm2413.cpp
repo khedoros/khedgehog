@@ -165,15 +165,15 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
     }
     else if(reg == 0x0e) {
         rhythm = val & 0x20;
-        rhythmInsts ins[] = {bassDrum, highHat, snareDrum, tomTom, topCymbal};
-        int key[] = { 0x10, 0x08, 0x04, 0x02, 0x01};
+        int key[] = { 0x10, 0x01, 0x08, 0x04, 0x02};
+        std::cout<<"Rhythm: "<<rhythm<<"\n";
         for(int i=0;i<5;i++) {
             bool newKeyOn = (val & key[i]);
             if(percChan[i].keyOn && !newKeyOn) { //keyoff event
                 if(percChan[i].modOp) {
-                    std::cout<<"perc   chan "<<i<<" ("<<rhythmNames[i]<<") key-off\n";
                     percChan[i].modOp->envPhase = release;
                 }
+                std::cout<<"perc   chan "<<i<<" ("<<rhythmNames[i]<<") key-off\n";
                 percChan[i].carOp->envPhase = release;
             }
             else if(!percChan[i].keyOn && newKeyOn) { //keyon event
@@ -261,7 +261,7 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
     /**/    applyRegister(regWrites[curIndex++]);
     /**/ }
          
-        envCounter++;
+        envCounter+=16;
 
         int chanMax = (rhythm)?6:9;
         for(int ch=0;ch<chanMax;ch++) {
@@ -298,7 +298,7 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
                                      (chan[ch].volume * 0x80)) & 0xfff0;                         // Channel volume
             }
         }
-        if(rhythm) { // TODO: handle the 5 rhythm instruments
+        if(rhythm) { // TODO: handle the 5 rhythm instruments (correctly)
             for(int ch = 0; ch < 5; ch++) {
                 op_t * modOp = percChan[ch].modOp;
                 op_t * carOp = percChan[ch].carOp;
@@ -331,7 +331,7 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
                                            (carOp->vibPhase),                                        // modification for vibrato
                                            carOp->inst->waveformCar);
 
-                    buffer[i]+=lookupExp((carSin/16) +                                               // sine input
+                    buffer[i]+=lookupExp((carSin) +                                                  // sine input
                                          (carOp->amPhase * 0x10) +                                   // AM volume attenuation (tremolo)
                                          (carOp->envLevel * 0x10) +                                  // Envelope
                                          //TODO: KSL

@@ -140,26 +140,6 @@ private:
         topCymbal
     };
 
-                    /*
-    bool bassKeyOn;       //slot 13+16      addr 16  =  20
-    bool highHatKeyOn;    //slot 14              27  =  05
-    bool tomKeyOn;        //slot 15              18  =  C0
-    bool snareKeyOn;      //slot 17              17  =  50
-    bool topCymbalKeyOn;  //slot 18              26  =  05
-                             //                     28  =  01
-    unsigned bass_vol:4;     //0x36-low
-    unsigned snare_vol:4;    //0x37-low
-    unsigned tom_vol:4;      //0x38-high
-    unsigned high_hat_vol:4; //0x37-high
-    unsigned top_cym_vol:4;  //0x38-low
-
-    op_t * bassMod = &chan[6].modOp;
-    op_t * bassCar = &chan[6].carOp;
-    op_t * highHatCar = &chan[7].modOp;
-    op_t * snareCar = &chan[7].carOp;
-    op_t * tomCar = &chan[8].modOp;
-    op_t * topCymCar = &chan[8].carOp;
-*/
     static constexpr uint8_t multVal[16] = {1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 20, 24, 24, 30, 30};
 
     static constexpr uint8_t romInst[8*(1+15+3)] = {
