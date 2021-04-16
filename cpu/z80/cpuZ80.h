@@ -42,6 +42,7 @@ private:
     uint8_t mem_refresh;
     uint16_t sp, pc;
     bool iff1, iff2; //interrupt enable registers
+    bool eiTriggered; //used to delay EI's effect for 1 instruction
     bool halted;
 
     enum intMode {

@@ -79,8 +79,11 @@ int emulator::run() {
             running = false;
             std::cerr<<"Found a bad op, I guess?\n";
         }
-        if(vdp_dev->frameInterrupt() || vdp_dev->lineInterrupt()) {
+        if(vdp_dev->frameInterrupt()) {
             cpu_dev->interrupt(0);
+        }
+        else if(vdp_dev->lineInterrupt()) {
+            cpu_dev->interrupt(1);
         }
         if(line == 192) {
             //vdp_dev->calc(cycle_chunk); //run VDP for amount matching the CPU

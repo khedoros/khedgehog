@@ -6,6 +6,7 @@
 
 #undef dbg_printf
 #define dbg_printf dummy
+//#define dbg_printf printf
 
 uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
 
@@ -14,8 +15,14 @@ uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
         const uint8_t opcode = memory->readByte(pc++);
         dbg_printf("%04X: %02x", pc-1, opcode);
         const uint64_t inst_cycles = CALL_MEMBER_FN(this, op_table[opcode])(opcode);
+        if(eiTriggered && opcode != 0xfb) {
+            iff1 = true;
+            iff2 = true;
+            eiTriggered = false;
+        }
+
         print_registers();
-        dbg_printf("\n");
+        dbg_printf("\t%lld cycles\n", inst_cycles);
 
         if(inst_cycles == uint64_t(-1)) {
             return 0;
@@ -29,7 +36,7 @@ uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
     return cycles_to_run - cycles_remaining;
 }
 
-cpuZ80::cpuZ80(std::shared_ptr<memmapZ80Console> memmap): memory(memmap), cycles_remaining(0), pc(0), iff1(false), iff2(false), total_cycles(0), halted(false), sp(0xdfef), int_mode(cpuZ80::mode0) {
+cpuZ80::cpuZ80(std::shared_ptr<memmapZ80Console> memmap): memory(memmap), cycles_remaining(0), pc(0), iff1(false), iff2(false), eiTriggered(false), total_cycles(0), halted(false), sp(0xdfef), int_mode(cpuZ80::mode0) {
     af.pair = 0xffff;
     bc.pair = 0;
     de.pair = 0;
@@ -115,6 +122,16 @@ void cpuZ80::nmi() { // Pause button, jump to 66h
 
 void cpuZ80::interrupt(uint8_t vector) { // Maskable interrupts, no vector provided on data bus, so it jumps to 38h
     if(iff1) {
+        /*
+        if(vector == 0) {
+            std::cout<<"cpuZ80::interrupt frame call\n";
+        }
+        else if(vector == 1) {
+            std::cout<<"cpuZ80::interrupt line call\n";
+        }
+        */
+        iff1 = false;
+        iff2 = false;
         push(pc);
         uint16_t temp_addr;
         switch(int_mode) {
@@ -899,6 +916,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_call(uint8_t opcode) { // CALL 17
     else {
         address = ((OPCODE >> 3) & 0x7 ) * 0x08;
         cycles = 11;
+        //if(address == 0x38) std::cout<<"VINT by RST 0038\n";
     }
     push(pc);
     pc = address;
@@ -1333,8 +1351,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_di(uint8_t opcode) { // DI 4
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_ei(uint8_t opcode) { // EI 4
-    iff1 = true;
-    iff2 = true;
+    eiTriggered = true;
     return 4;
 }
 

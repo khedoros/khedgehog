@@ -483,12 +483,12 @@ void vdpMS::setPixelSMS(std::vector<uint8_t>& buffer, int x, int y, int index) {
                    + (0.6 * sms_pal_component[color.component.green])
                    + (0.3 * sms_pal_component[color.component.red]);
         if(glassesEye) {
-            buffer[256 * 4 * y + 4 * x + 1] = 0;    // green component
+            //buffer[256 * 4 * y + 4 * x + 1] = mono;    // green component
             buffer[256 * 4 * y + 4 * x + 2] = mono; // red component for left eye
         }
         else {
             buffer[256 * 4 * y + 4 * x + 0] = mono; // blue component for right eye
-            buffer[256 * 4 * y + 4 * x + 1] = 0;    // green component
+            //buffer[256 * 4 * y + 4 * x + 1] = 0;    // green component
         }
     }
     else { // standard pixel rendering
@@ -563,18 +563,18 @@ unsigned int vdpMS::getFrameLines() {
 void vdpMS::endLine(uint64_t lineNum) {
     uint64_t line = lineNum % getFrameLines();
     curLine = line; //VCounter
-    if(line == 192) {
+    if(line == 191) {
         scr_int_active = true;
         status.fields.vblank_flag = 1;
     }
-    if(line < 193 && line_int_cur) {
+    if(line < 192 && line_int_cur) {
         line_int_cur--;
     }
-    if(line < 193 && !line_int_cur) { // interrupt should be generated when H-counter == 0xF4
+    if(line < 192 && !line_int_cur) { // interrupt should be generated when H-counter == 0xF4
         line_int_active = true;
         line_int_cur = line_interrupt;
     }
-    else if(line >= 193) {
+    else if(line >= 192) {
         line_int_cur = line_interrupt;
     }
     renderLine(line, buffer);
