@@ -5,8 +5,8 @@
 #include "../../util.h"
 
 #undef dbg_printf
-#define dbg_printf dummy
-//#define dbg_printf printf
+//#define dbg_printf dummy
+#define dbg_printf printf
 
 uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
 
@@ -37,10 +37,15 @@ uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
 }
 
 cpuZ80::cpuZ80(std::shared_ptr<memmapZ80Console> memmap): memory(memmap), cycles_remaining(0), pc(0), iff1(false), iff2(false), eiTriggered(false), total_cycles(0), halted(false), sp(0xdfef), int_mode(cpuZ80::mode0) {
+
     af.pair = 0xffff;
+    af_1.pair = 0xffff;
     bc.pair = 0;
+    bc_1.pair = 0;
     de.pair = 0;
+    de_1.pair = 0;
     hl.pair = 0;
+    hl_1.pair = 0;
     ix.pair = 0;
     iy.pair = 0;
     reset();
@@ -781,6 +786,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_add16(uint8_t opcode) { // 16-bit
 
     return cycles;
 }
+
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mostly r-r add, adc, sub, sbc, and, xor, or, cp
     uint8_t* const regset[] = {&(bc.hi), &(bc.low), &(de.hi), &(de.low),
