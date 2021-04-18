@@ -36,7 +36,7 @@ private:
     bool valid;
 
     std::array<uint8_t, 0x2000> ram; // 8KB of RAM, mapped to 0xC000-0xDFFF and mirrored to 0xE000-0xFFFB
-    std::array<uint8_t, 0x10'0000> rom; // ROM is only visible in 3 chunks of 16KB each, with most games controlled by a Sega family of mappers. Largest GG/SMS/SG-1000 ROMs are 1MB in size.
+    std::array<uint8_t, 0x40'0000> rom; // ROM is only visible in 3 chunks of 16KB each, with most games controlled by a Sega family of mappers. Largest GG/SMS/SG-1000 ROMs are 1MB in size.
     std::size_t romsize;
     std::array<uint8_t, 0x8000> cartRam;
 
