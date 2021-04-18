@@ -5,8 +5,8 @@
 #include "../../util.h"
 
 #undef dbg_printf
-//#define dbg_printf dummy
-#define dbg_printf printf
+#define dbg_printf dummy
+//#define dbg_printf printf
 
 uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
 
@@ -736,7 +736,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_adc16(uint8_t opcode) { // ADC HL
 
     if((hl.pair & 0xfff) + ((*regset[reg] + carry()) & 0xfff) >= 0x1000) set(HALF_CARRY_FLAG);
     else clear(HALF_CARRY_FLAG);
- 
+
     if(temp > 0xffff) set(CARRY_FLAG);
     else              clear(CARRY_FLAG);
 
@@ -789,32 +789,35 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
     constexpr uint8_t operation = ((OPCODE>>3) & 0x07);
     uint8_t reg = (OPCODE & 0x07);
     uint64_t cycles = 4;
-    if(OPCODE < 0xc0 && reg == 6) { // ops [89ab][6e] 2nd operand from (HL)
-        dummy8 = memory->readByte(hl.pair);
-        cycles = 7;
+    if(reg == 6) {
+        if(OPCODE < 0xc0) { // ops [89ab][6e] 2nd operand from (HL)
+            dummy8 = memory->readByte(hl.pair);
+            cycles = 7;
+        }
+        else if(OPCODE <= 0xff) { // ops [cdef][6e] 2nd operand from immediate
+            dummy8 = memory->readByte(pc++);
+            dbg_printf(" %02x", dummy8);
+            cycles = 7;
+        }
+        else if((OPCODE & 0xff00) == 0xdd00) { // DDxx ops, 2nd operand from (IX+d)
+            int8_t offset = memory->readByte(pc++);
+            dbg_printf(" %02x", offset);
+            dummy8 = memory->readByte(ix.pair + offset);
+            cycles = 19;
+        }
+        else if((OPCODE & 0xff00) == 0xfd00) { // FDxx ops, 2nd operand from (IY+d)
+            int8_t offset = memory->readByte(pc++);
+            dbg_printf(" %02x", offset);
+            dummy8 = memory->readByte(iy.pair + offset);
+            cycles = 19;
+        }
     }
-    else if(OPCODE >= 0xc0 && (OPCODE & 0xff00) == 0 && reg == 6) { // ops [cdef][6e] 2nd operand from immediate
-        dummy8 = memory->readByte(pc++);
-        dbg_printf(" %02x", dummy8);
-        cycles = 7;
-    }
-    else if((OPCODE & 0xff00) == 0xdd00 && reg == 6) { // DDxx ops, 2nd operand from (IX+d)
-        int8_t offset = memory->readByte(pc++);
-        dbg_printf(" %02x", offset);
-        dummy8 = memory->readByte(ix.pair + offset);
-        cycles = 19;
-    }
-    else if((OPCODE & 0xff00) == 0xfd00 && reg == 6) { // FDxx ops, 2nd operand from (IY+d)
-        int8_t offset = memory->readByte(pc++);
-        dbg_printf(" %02x", offset);
-        dummy8 = memory->readByte(iy.pair + offset);
-        cycles = 19;
-    }
-    else if((OPCODE & 0xff00) == 0xdd00) { // DDxx ops, 2nd operand from ixh and ixl
+
+    else if((OPCODE & 0xff00) == 0xdd00) { // DDxx ops, dd[89ab][45cd] 2nd operand from ixh and ixl
         reg += 4;
         cycles = 8;
     }
-    else if((OPCODE & 0xff00) == 0xfd00) { // FDxx ops, 2nd operand from iyh and iyl
+    else if((OPCODE & 0xff00) == 0xfd00) { // FDxx ops, fd[89ab][45cd] 2nd operand from iyh and iyl
         reg += 6;
         cycles = 8;
     }
@@ -958,7 +961,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_cbrot(uint8_t opcode) { // CB00 -
             cycles = 23;
         }
     }
-    
+
     uint8_t* const regset[] = {&(bc.hi), &(bc.low), &(de.hi), &(de.low),
                                &(hl.hi), &(hl.low),  &dummy8, &(af.hi)};
     uint8_t high = (*regset[reg] & 0x80)>>7;
