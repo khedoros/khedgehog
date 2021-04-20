@@ -130,19 +130,12 @@ private:
     template <uint32_t OPCODE> uint64_t op_rxd(uint8_t);
     template <uint32_t OPCODE> uint64_t op_scf(uint8_t);
     template <uint32_t OPCODE> uint64_t op_sbc16(uint8_t);
-    uint64_t op_wtf(uint8_t);
 
     uint64_t decode(uint8_t opcode);
     void push(uint16_t);
     uint16_t pop();
     static constexpr std::array<bool, 256> setParityArray(); //utility for parity-calculation
     static std::array<bool, 256> parity;
-    bool addition_overflows(int8_t a, int8_t b);
-    bool addition_underflows(int8_t a, int8_t b);
-    template <typename T>
-    bool subtraction_overflows(T a, T b);
-    template <typename T>
-    bool subtraction_underflows(T a, T b);
     bool condition(int condition_number);
     int_type_t check_interrupts();
     void print_registers();

@@ -671,24 +671,6 @@ constexpr std::array<bool,256> cpuZ80::setParityArray() { // Calculate number of
     return parArray;
 }
 
-bool cpuZ80::addition_overflows(int8_t a, int8_t b) {
-    return (b >= 0) && ( a > std::numeric_limits<int8_t>::max() - b);
-}
-
-bool cpuZ80::addition_underflows(int8_t a, int8_t b) {
-    return (b < 0) && (a < std::numeric_limits<int8_t>::min() - b);
-}
-
-template<typename T>
-bool cpuZ80::subtraction_overflows(T a, T b) {
-    return (b < 0) && (a > std::numeric_limits<T>::max() + b);
-}
-
-template<typename T>
-bool cpuZ80::subtraction_underflows(T a, T b) {
-    return (b >= 0) && (a < std::numeric_limits<T>::min() + b);
-}
-
 void cpuZ80::print_registers() {
     dbg_printf("\t\tA: %02x BC: %04x DE: %04x HL: %04x IX: %04x IY: %04x SP: %04x status: %c%c0%c0%c%c%c", af.hi, bc.pair, de.pair, hl.pair, ix.pair, iy.pair, sp,
      sign()?'S':'s',
@@ -729,18 +711,18 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_unimpl(uint8_t opcode) {
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_adc16(uint8_t opcode) { // ADC HL, ss 4
     uint16_t* const regset[] {&(bc.pair), &(de.pair), &(hl.pair), &(sp)};
-    int reg = ((OPCODE>>4) & 0x3);
-    uint32_t temp = hl.pair + *regset[reg] + carry();
+    uint16_t operand2 = *regset[(OPCODE>>4) & 0x3] + carry();
+    uint32_t temp = hl.pair + operand2;
 
     clear(SUB_FLAG);
 
-    if((hl.pair & 0xfff) + ((*regset[reg] + carry()) & 0xfff) >= 0x1000) set(HALF_CARRY_FLAG);
+    if((hl.pair & 0xfff) + (operand2 & 0xfff) >= 0x1000) set(HALF_CARRY_FLAG);
     else clear(HALF_CARRY_FLAG);
 
     if(temp > 0xffff) set(CARRY_FLAG);
     else              clear(CARRY_FLAG);
 
-    if( !((hl.pair & 0x8000)^((*regset[reg]+carry()) & 0x8000)) && (hl.pair&0x8000) != (temp&0x8000)) set(OVERFLOW_FLAG);
+    if( !((hl.pair & 0x8000)^(operand2 & 0x8000)) && (hl.pair&0x8000) != (temp&0x8000)) set(OVERFLOW_FLAG);
     else clear(OVERFLOW_FLAG);
 
     if(!(temp&0xffff)) set(ZERO_FLAG);
@@ -770,10 +752,11 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_add16(uint8_t opcode) { // 16-bit
         if(reg == 2) reg = 5;
     }
 
+    uint16_t operand2 = *regset[reg];
     clear(SUB_FLAG);
-    if(((*dest) & 0xfff) + ((*regset[reg]) & 0xfff) >= 4096) set(HALF_CARRY_FLAG);
+    if(((*dest) & 0xfff) + (operand2 & 0xfff) >= 4096) set(HALF_CARRY_FLAG);
     else clear(HALF_CARRY_FLAG);
-    uint32_t temp = (*regset[reg]) + (*dest);
+    uint32_t temp = operand2 + (*dest);
     if(temp > 0xffff) set(CARRY_FLAG);
     else clear(CARRY_FLAG);
     *dest = (temp & 0xffff);
@@ -812,7 +795,6 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
             cycles = 19;
         }
     }
-
     else if((OPCODE & 0xff00) == 0xdd00) { // DDxx ops, dd[89ab][45cd] 2nd operand from ixh and ixl
         reg += 4;
         cycles = 8;
@@ -822,23 +804,23 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
         cycles = 8;
     }
 
+    uint8_t operand2 = *regset[reg];
     uint16_t temp_a = af.hi;
-	uint8_t car = 0;
     switch(operation) {
     case 0x00: // add
     case 0x01: // adc
-		if(operation == 1) car = carry();
-        temp_a += *regset[reg] + car;
+        if(operation == 1) operand2 += carry();
+        temp_a += operand2;
 
         clear(SUB_FLAG);
 
         if(temp_a > 0xff) set(CARRY_FLAG);
         else              clear(CARRY_FLAG);
 
-        if(addition_overflows(af.hi, *regset[reg] + car) || addition_underflows(af.hi, *regset[reg] + car)) set(OVERFLOW_FLAG);
+        if( !((af.hi & 0x80)^(operand2 & 0x80)) && (af.hi&0x80) != (temp_a&0x80)) set(OVERFLOW_FLAG);
         else clear(OVERFLOW_FLAG);
 
-        if((af.hi & 0xf) + ((*regset[reg] + car) & 0xf) >= 0x10) set(HALF_CARRY_FLAG);
+        if((af.hi & 0xf) + (operand2 & 0xf) >= 0x10) set(HALF_CARRY_FLAG);
         else clear(HALF_CARRY_FLAG);
 
         af.hi = temp_a; //truncates to 8 bits
@@ -846,17 +828,17 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
     case 0x02: // sub
     case 0x03: // sbc
     case 0x07: // cp
-        if(operation == 3) car = carry();
-        temp_a -= (*regset[reg] + car);
+        if(operation == 3) operand2 += carry();
+        temp_a -= (operand2);
         set(SUB_FLAG);
 
-        if(*regset[reg] + car > af.hi) set(CARRY_FLAG);
+        if(operand2 > af.hi) set(CARRY_FLAG);
         else               clear(CARRY_FLAG);
 
-        if(((*regset[reg] + car) & 0xf) > (af.hi & 0xf)) set(HALF_CARRY_FLAG);
+        if((operand2 & 0xf) > (af.hi & 0xf)) set(HALF_CARRY_FLAG);
         else clear(HALF_CARRY_FLAG);
 
-        if(subtraction_overflows(int8_t(af.hi), int8_t(*regset[reg] + car)) || subtraction_underflows(int8_t(af.hi), int8_t(*regset[reg] + car))) set(OVERFLOW_FLAG);
+        if (((af.hi & 0x80)^(operand2 & 0x80)) && (operand2 & 0x80) == (temp_a & 0x80)) set(OVERFLOW_FLAG);
         else clear(OVERFLOW_FLAG);
 
         // TODO: Fix flags
@@ -873,7 +855,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
         }
         break;
     case 0x04: // and
-        af.hi &= *regset[reg];
+        af.hi &= operand2;
         clear(SUB_FLAG);
         clear(CARRY_FLAG);
         set(HALF_CARRY_FLAG);
@@ -881,7 +863,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
         else              clear(PARITY_FLAG);
         break;
     case 0x05: // xor
-        af.hi ^= *regset[reg];
+        af.hi ^= operand2;
         clear(SUB_FLAG);
         clear(CARRY_FLAG);
         clear(HALF_CARRY_FLAG);
@@ -889,7 +871,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
         else              clear(PARITY_FLAG);
         break;
     case 0x06: // or
-        af.hi |= *regset[reg];
+        af.hi |= operand2;
         clear(SUB_FLAG);
         clear(CARRY_FLAG);
         clear(HALF_CARRY_FLAG);
@@ -964,77 +946,80 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_cbrot(uint8_t opcode) { // CB00 -
 
     uint8_t* const regset[] = {&(bc.hi), &(bc.low), &(de.hi), &(de.low),
                                &(hl.hi), &(hl.low),  &dummy8, &(af.hi)};
-    uint8_t high = (*regset[reg] & 0x80)>>7;
-    uint8_t low = (*regset[reg] & 0x01);
+    uint8_t regVal = *regset[reg];
+    uint8_t high = (regVal & 0x80)>>7;
+    uint8_t low = (regVal & 0x01);
 
     switch(op) {
     case 0: //rlc:
-        *regset[reg] <<= 1;
+        regVal <<= 1;
         if(high) set(CARRY_FLAG);
         else clear(CARRY_FLAG);
-        *regset[reg] |= high;
+        regVal |= high;
         break;
     case 1: //rrc:
-        *regset[reg] >>= 1;
+        regVal >>= 1;
         if(low) set(CARRY_FLAG);
         else clear(CARRY_FLAG);
-        *regset[reg] |= (low<<7);
+        regVal |= (low<<7);
         break;
     case 2: //rl:
-        *regset[reg] <<= 1;
+        regVal <<= 1;
         if(high) set(CARRY_FLAG);
         else clear(CARRY_FLAG);
-        *regset[reg] |= c;
+        regVal |= c;
         break;
     case 3: //rr:
-        *regset[reg] >>= 1;
+        regVal >>= 1;
         if(low) set(CARRY_FLAG);
         else clear(CARRY_FLAG);
-        *regset[reg] |= (c << 7);
+        regVal |= (c << 7);
         break;
     case 4: //sla:
-        *regset[reg]<<=1;
+        regVal<<=1;
         if(high) set(CARRY_FLAG);
         else clear(CARRY_FLAG);
         break;
     case 5: //sra:
-        *regset[reg]>>=1;
-        if(high) *regset[reg] |= 0x80;
+        regVal>>=1;
+        if(high) regVal |= 0x80;
         if(low) set(CARRY_FLAG);
         else clear(CARRY_FLAG);
         break;
     case 6: //sll:
-        *regset[reg]<<=1;
-        *regset[reg]|=0x01;
+        regVal<<=1;
+        regVal|=0x01;
         if(high) set(CARRY_FLAG);
         else clear(CARRY_FLAG);
         break;
     case 7: //srl:
-        *regset[reg]>>=1;
+        regVal>>=1;
         if(low) set(CARRY_FLAG);
         else clear(CARRY_FLAG);
         break;
     }
     if(reg == 0x06) {
         if((OPCODE & 0xFFFF00) == 0xCB00) { //CB group
-            memory->writeByte(hl.pair, dummy8);
+            memory->writeByte(hl.pair, regVal);
         }
         else if((OPCODE & 0xFFFF00) == 0xDDCB00) {
-            memory->writeByte(ix.pair + offset, dummy8);
+            memory->writeByte(ix.pair + offset, regVal);
         }
         else if((OPCODE & 0xFFFF00) == 0xFDCB00) {
-            memory->writeByte(iy.pair + offset, dummy8);
+            memory->writeByte(iy.pair + offset, regVal);
         }
     }
 
     clear(SUB_FLAG);
-    if(parity[*regset[reg]]) set(PARITY_FLAG);
+    if(parity[regVal]) set(PARITY_FLAG);
     else clear(PARITY_FLAG);
     clear(HALF_CARRY_FLAG);
-    if(*regset[reg]) clear(ZERO_FLAG);
+    if(regVal) clear(ZERO_FLAG);
     else set(ZERO_FLAG);
-    if(*regset[reg] & 0x80) set(SIGN_FLAG);
+    if(regVal & 0x80) set(SIGN_FLAG);
     else clear(SIGN_FLAG);
+
+    *regset[reg] = regVal;
 
     return cycles;
 }
@@ -1227,15 +1212,6 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_daa(uint8_t opcode) { // DAA 4
          set(CARRY_FLAG);
    }
 
-   // builds final H flag
-   /*
-   if (sub() && !hc()) {
-      clear(HALF_CARRY_FLAG);
-   }
-   else if (sub() && hc() && ((af.hi & 0x0F)) < 6) set(HALF_CARRY_FLAG);
-    else if ((af.hi & 0x0f) >= 0x0a) set(HALF_CARRY_FLAG);
-   else clear(HALF_CARRY_FLAG);
-*/
    // builds final H flag
    if (sub() && !hc()) clear(HALF_CARRY_FLAG);
    else {
@@ -2128,17 +2104,17 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_scf(uint8_t opcode) { // SCF 4
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_sbc16(uint8_t opcode) { // SBC HL, ss 4
     uint16_t* const regset[] {&(bc.pair), &(de.pair), &(hl.pair), &(sp)};
-    int reg = ((OPCODE>>4) & 0x3);
-    uint32_t temp = hl.pair - (*regset[reg] + carry());
+    uint16_t operand2 = *regset[(OPCODE>>4) & 0x3] + carry();
+    uint32_t temp = hl.pair - operand2;
 
     set(SUB_FLAG);
-    if((((*regset[reg]) + carry()) & 0xfff) > (hl.pair & 0xfff)) set(HALF_CARRY_FLAG);
+    if((operand2 & 0xfff) > (hl.pair & 0xfff)) set(HALF_CARRY_FLAG);
     else clear(HALF_CARRY_FLAG);
 
-    if(*regset[reg] + carry() > hl.pair) set(CARRY_FLAG);
+    if(operand2 > hl.pair) set(CARRY_FLAG);
     else                                 clear(CARRY_FLAG);
 
-    if (((hl.pair & 0x8000)^((*regset[reg] + carry()) & 0x8000)) && ((*regset[reg] + carry()) & 0x8000) == (temp & 0x8000)) set(OVERFLOW_FLAG);
+    if (((hl.pair & 0x8000)^(operand2 & 0x8000)) && (operand2 & 0x8000) == (temp & 0x8000)) set(OVERFLOW_FLAG);
     else clear(OVERFLOW_FLAG);
 
     if(!(temp&0xffff)) set(ZERO_FLAG);
@@ -2150,9 +2126,4 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_sbc16(uint8_t opcode) { // SBC HL
     else                 clear(SIGN_FLAG);
 
     return 15;
-}
-
-uint64_t cpuZ80::op_wtf(uint8_t opcode) {
-    std::printf("Undefined opcode: %08x, arg: %02x, next: %02x(PC %04x) next+1: %02x", opcode, memory->readByte(pc), pc, memory->readByte(pc+1));
-    return 4;
 }
