@@ -78,6 +78,7 @@ private:
 
     bool glassesInUse;
     bool glassesEye; //0 for right (blue), 1 for left (red)
+    int glassesWriteCount;
 
     // Reference: https://www.smspower.org/Development/VDPRegisters
     // Control Registers

@@ -7,7 +7,7 @@
 #include "../font.h"
 
 
-vdpMS::vdpMS(systemType t, systemRegion r):addr_latch(false), vdpMode(t), vdpRegion(r), latchedPixel(0), glassesInUse(false) {
+vdpMS::vdpMS(systemType t, systemRegion r):addr_latch(false), vdpMode(t), vdpRegion(r), latchedPixel(0), glassesInUse(false), glassesWriteCount(0) {
 
     ctrl_1.val = 0;
     ctrl_2.val = 0;
@@ -483,12 +483,10 @@ void vdpMS::setPixelSMS(std::vector<uint8_t>& buffer, int x, int y, int index) {
                    + (0.6 * sms_pal_component[color.component.green])
                    + (0.3 * sms_pal_component[color.component.red]);
         if(glassesEye) {
-            //buffer[256 * 4 * y + 4 * x + 1] = mono;    // green component
             buffer[256 * 4 * y + 4 * x + 2] = mono; // red component for left eye
         }
         else {
             buffer[256 * 4 * y + 4 * x + 0] = mono; // blue component for right eye
-            //buffer[256 * 4 * y + 4 * x + 1] = 0;    // green component
         }
     }
     else { // standard pixel rendering
@@ -799,6 +797,9 @@ void vdpMS::latchHCounter(uint64_t cycle) {
 }
 
 void vdpMS::setGlasses(uint8_t val) {
-    glassesInUse = true;
-    glassesEye = val;
+    if(glassesWriteCount >= 10) {
+        glassesInUse = true;
+        glassesEye = val;
+    }
+    glassesWriteCount++;
 }
