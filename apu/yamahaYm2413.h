@@ -12,6 +12,7 @@ public:
     uint8_t readRegister(uint8_t reg) override;
     void setStereo(uint8_t) override;
     std::array<int16_t, 882 * 2>& getSamples() override;
+    void clearWrites() override;
 private:
     class inst_t;
     void applyRegister(std::pair<uint8_t, uint8_t>& write);
@@ -163,8 +164,8 @@ private:
         0x05,0x01,0x00,0x00,0xf8,0xaa,0x59,0x55, // R: Tom-tom(M) / Top Cymbal(C) (from VRC7)
     };
 
-	static const std::string instNames[];
-	static const std::string rhythmNames[];
+    static const std::string instNames[];
+    static const std::string rhythmNames[];
 
     static int logsinTable[256];
     static int expTable[256];

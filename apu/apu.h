@@ -14,4 +14,5 @@ class apu {
     virtual void setStereo(uint8_t) = 0;
     virtual std::array<int16_t, 882 * 2>& getSamples() = 0;
     virtual uint8_t readRegister(uint8_t reg) = 0;
+    virtual void clearWrites() = 0;
 };

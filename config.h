@@ -4,6 +4,8 @@
 #include<tuple>
 #include "emulator.h"
 
+//#define DISABLE_AUDIO
+//#define AUDIO_RAW_OUT
 enum systemType {
     uncheckedSystem,
     sg_1000,

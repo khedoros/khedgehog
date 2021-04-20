@@ -11,6 +11,7 @@ public:
     uint8_t readRegister(uint8_t reg) override;
     void setStereo(uint8_t) override;
     std::array<int16_t, 882*2>& getSamples() override;
+    void clearWrites() override;
 
 private:
     std::array<int16_t, 882*2> buffer;

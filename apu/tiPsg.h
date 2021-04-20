@@ -16,9 +16,10 @@ public:
     uint8_t readRegister(uint8_t reg) override;
     void setStereo(uint8_t) override;
     std::array<int16_t, 882 * 2>& getSamples() override;
+    void clearWrites() override;
 private:
     void applyRegister(uint8_t val);
-	std::shared_ptr<config> cfg;
+    std::shared_ptr<config> cfg;
     unsigned latchedChannel:2;
     bool latchedType:1; // 0 = data, 1 = volume
     uint16_t toneCountReset[4]; // 0 and 1 just give a constant "1" output. First audible signal on a real SMS2 was at Reset value 6, at 18643Hz
@@ -43,10 +44,10 @@ private:
 
     std::array<int16_t, 882 * 2> buffer;
 
-	int stereoChannels; // channel count to render
-	int sampleCnt; // number of samples to render per request
+    int stereoChannels; // channel count to render
+    int sampleCnt; // number of samples to render per request
     double ticksPerSample; // How many ticks in a sample
     std::ofstream output;
-	int writeCount;
-	std::array<uint8_t, 2048> writes;
+    int writeCount;
+    std::array<uint8_t, 2048> writes;
 };

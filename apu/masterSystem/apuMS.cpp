@@ -53,3 +53,7 @@ uint8_t apuMS::readRegister(uint8_t port) {
     }
 }
 
+void apuMS::clearWrites() {
+    psg->clearWrites();
+    fm->clearWrites();
+}

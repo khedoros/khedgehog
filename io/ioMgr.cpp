@@ -132,6 +132,9 @@ ioMgr::ioMgr(std::shared_ptr<config> conf) : cfg(conf) {
     else {
         SDL_PauseAudioDevice(audioDev, 0);
     }
+#ifdef AUDIO_RAW_OUT
+    audio.open("audio.raw");
+#endif
 }
 
 
@@ -209,10 +212,16 @@ bool ioMgr::resizeWindow(unsigned int winIndex, unsigned int xres, unsigned int 
 }
 
 void ioMgr::pushAudio(std::array<int16_t, 882 * 2>& samples) {
+#ifdef DISABLE_AUDIO
+	return;
+#endif
     uint32_t enqueuedBytes = SDL_GetQueuedAudioSize(audioDev);
     //std::cout<<"audio: "<<enqueuedBytes<<" bytes of queued audio.\n";
     while(SDL_GetQueuedAudioSize(audioDev) > 2 * sampleCnt * audioSpec.channels * sizeof(int16_t)) {
         SDL_Delay(1);
     }
     SDL_QueueAudio(audioDev, samples.data(), sampleCnt * audioSpec.channels * sizeof(int16_t));
+#ifdef AUDIO_RAW_OUT
+    audio.write(reinterpret_cast<char *>(&samples), 2*sampleCnt*audioSpec.channels);
+#endif
 }

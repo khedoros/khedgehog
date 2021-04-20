@@ -93,7 +93,11 @@ int emulator::run() {
         }
         else if(line == cfg->getFrameLines()) {
             line = 0;
+#ifdef DISABLE_AUDIO
+            apu_dev->clearWrites();
+#else
             io -> pushAudio(apu_dev->getSamples());
+#endif
         }
         //run APU
         //pause for effect

@@ -3,6 +3,7 @@
 #include<cstdint>
 #include<SDL2/SDL.h>
 #include<string>
+#include<fstream>
 
 #include "ioEvent.h"
 #include "../config.h"
@@ -37,10 +38,11 @@ public:
     void pushAudio(std::array<int16_t, 882 * 2>& samples);
 
 private:
-	std::shared_ptr<config> cfg;
+    std::shared_ptr<config> cfg;
     std::vector<sdlWindow> windowList;
 
     SDL_AudioDeviceID audioDev;
     SDL_AudioSpec audioSpec;
-	size_t sampleCnt;
+    size_t sampleCnt;
+    std::ofstream audio;
 };

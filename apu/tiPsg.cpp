@@ -35,8 +35,11 @@ TiPsg::TiPsg(std::shared_ptr<config>& conf): noiseLfsr(1<<15), cfg(conf), apu(co
 void TiPsg::mute(bool) {}
 
 void TiPsg::writeRegister(uint8_t val) {
-    writes[writeCount] = val;
-    writeCount++;
+    writes[writeCount++] = val;
+}
+
+void TiPsg::clearWrites() {
+    writeCount = 0;
 }
 
 void TiPsg::writeRegister(uint8_t port, uint8_t val) { }
