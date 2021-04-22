@@ -166,7 +166,22 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
         }
     }
     else if(reg == 0x0e) {
-        rhythm = val & 0x20;
+        bool newRhythm = val & 0x20;
+
+        if(newRhythm && !rhythm) {
+            percChan[0].modOp->inst = percChan[0].instrument;
+            for(int i=0;i<5;i++) {
+                percChan[i].carOp->inst = percChan[i].instrument;
+            }
+        }
+        else if(rhythm && !newRhythm) {
+            for(int i=7;i<9;i++) {
+                chan[i].modOp.inst = &inst[chan[i].instNum];
+                chan[i].carOp.inst = &inst[chan[i].instNum];
+            }
+        }
+        rhythm = newRhythm;
+
         int key[] = { 0x10, 0x01, 0x08, 0x04, 0x02};
         dbg_printf("APU::YM2413 Rhythm: %02x\n", rhythm);
         for(int i=0;i<5;i++) {
@@ -329,11 +344,11 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
 
                     }
                     int carSin = lookupSin((carOp->phaseCnt / 512) +                                 // phase
-                                           (2 * modOut) +                                           // fm modulation
+                                           (2 * modOut) +                                            // fm modulation
                                            (carOp->vibPhase),                                        // modification for vibrato
                                            carOp->inst->waveformCar);
 
-                    buffer[i]+=lookupExp((carSin) +                                                  // sine input
+                    buffer[i]+= lookupExp((carSin) +                                                 // sine input
                                          (carOp->amPhase * 0x10) +                                   // AM volume attenuation (tremolo)
                                          (carOp->envLevel * 0x10) +                                  // Envelope
                                          //TODO: KSL
