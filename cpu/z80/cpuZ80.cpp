@@ -1300,26 +1300,31 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_decr8(uint8_t opcode) {
             break;
         }
     }
+	uint8_t val = *regset[index];
 
-    (*regset[index])--;
+    val--;
 
-    if(*regset[index] >= 0x80) { set(SIGN_FLAG); } else { clear(SIGN_FLAG); }
-    if(*regset[index] == 0)   { set(ZERO_FLAG); } else { clear(ZERO_FLAG); }
-    if(((*regset[index]) & 0x0f) == 0x0f)  { set(HALF_CARRY_FLAG);} else { clear(HALF_CARRY_FLAG); }
-    if(*regset[index] == 0x7f) { set(OVERFLOW_FLAG); } else { clear(OVERFLOW_FLAG); }
+    if(val >= 0x80) { set(SIGN_FLAG); } else { clear(SIGN_FLAG); }
+    if(val == 0)   { set(ZERO_FLAG); } else { clear(ZERO_FLAG); }
+    if((val & 0x0f) == 0x0f)  { set(HALF_CARRY_FLAG);} else { clear(HALF_CARRY_FLAG); }
+    if(val == 0x7f) { set(OVERFLOW_FLAG); } else { clear(OVERFLOW_FLAG); }
     set(SUB_FLAG);
+
     if(index == 6) {
         switch(OPCODE & 0xFF00) {
         case 0x0000:
-            memory->writeByte(hl.pair, dummy8);
+            memory->writeByte(hl.pair, val);
             break;
         case 0xdd00:
-            memory->writeByte(ix.pair + offset, dummy8);
+            memory->writeByte(ix.pair + offset, val);
             break;
         case 0xfd00:
-            memory->writeByte(iy.pair + offset, dummy8);
+            memory->writeByte(iy.pair + offset, val);
         }
     }
+	else {
+		*regset[index] = val;
+	}
     return cycles;
 }
 
@@ -1517,28 +1522,32 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_incr8(uint8_t opcode) {
         }
     }
 
-    (*regset[index])++;
+	uint8_t val = *regset[index];
+    val++;
 
-    if(*regset[index] >= 128) { set(SIGN_FLAG); } else { clear(SIGN_FLAG); }
-    if(*regset[index] == 0)   { set(ZERO_FLAG); } else { clear(ZERO_FLAG); }
-    if(((*regset[index]) & 0x0f) == 0x00)  { set(HALF_CARRY_FLAG);} else { clear(HALF_CARRY_FLAG); }
-    if(*regset[index] == 0x80) { set(OVERFLOW_FLAG); } else { clear(OVERFLOW_FLAG); }
+    if(val >= 128) { set(SIGN_FLAG); } else { clear(SIGN_FLAG); }
+    if(val == 0)   { set(ZERO_FLAG); } else { clear(ZERO_FLAG); }
+    if((val & 0x0f) == 0x00)  { set(HALF_CARRY_FLAG);} else { clear(HALF_CARRY_FLAG); }
+    if(val == 0x80) { set(OVERFLOW_FLAG); } else { clear(OVERFLOW_FLAG); }
     clear(SUB_FLAG);
 
     if(index == 6) {
         switch(OPCODE & 0xFF00) {
         case 0x00:
-            memory->writeByte(hl.pair, dummy8);
+            memory->writeByte(hl.pair, val);
             break;
         case 0xdd00:
-            memory->writeByte(ix.pair+offset, dummy8);
+            memory->writeByte(ix.pair+offset, val);
             break;
         case 0xfd00:
-            memory->writeByte(iy.pair+offset, dummy8);
+            memory->writeByte(iy.pair+offset, val);
             break;
         }
 
     }
+	else {
+		*regset[index] = val;
+	}
     return cycles;
 }
 
