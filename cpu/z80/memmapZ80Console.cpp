@@ -33,26 +33,6 @@ uint8_t& memmapZ80Console::readByte(uint32_t addr) {
     return map(addr);
 }
 
-/*
- 
-           switch(port) {//     https://www.smspower.org/Development/GearToGearCable#StatusPort05
-                case 0: dbg_printf(" (Game Gear registers, start button)"); break;
-                case 2: dbg_printf(" (Game Gear registers, EXT direction)"); break; //There are seven parallel bits which can be configured in either direction. Write to port $02 to configure the direction: 0 = output, 1 = input. 
-                case 4: dbg_printf(" (Game Gear registers)"); break;
-                case 6: dbg_printf(" (Game Gear registers)"); break;
-                default:
-                    dbg_printf(" (memory control)");
-                    break;
-            }
-            break;
-        case 0x01:
-            switch(port) {
-                case 1: dbg_printf(" (Game Gear registers)"); break;
-                case 3: dbg_printf(" (Game Gear registers, EXT transmit)"); break; // Read or write port $03 to receive or transmit. 
-                case 5: dbg_printf(" (Game Gear registers, EXT status)"); break; // bit0: 1 if send buffer occupied. bit1: 1 if recv buffer occupied. bit2: 1 if remote console on. bit 3-5: must be 1 to enable communication.
-
-
-*/
 uint8_t memmapZ80Console::readPortByte(uint8_t port, uint64_t cycle) {
     dbg_printf(" read port %02x ", port);
     switch(port & 0b11000001) {
