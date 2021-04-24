@@ -553,8 +553,8 @@ bool vdpMS::frameInterrupt() {
 }
 
 unsigned int vdpMS::getFrameLines() {
-    if(vdpRegion == systemRegion::ntsc || vdpMode == systemType::gameGear) return 262;
-    else if(vdpRegion == systemRegion::pal) return 314;
+    if(vdpRegion == systemRegion::us_ntsc || vdpRegion == systemRegion::jp_ntsc || vdpMode == systemType::gameGear) return 262;
+    else if(vdpRegion == systemRegion::eu_pal) return 314;
     return 288;
 }
 
@@ -727,7 +727,7 @@ uint8_t vdpMS::readStatus(uint64_t cycle) {
 }
 
 uint8_t vdpMS::readVCounter(uint64_t cycle) {
-    if(vdpRegion == systemRegion::ntsc) {
+    if(vdpRegion == systemRegion::us_ntsc || vdpRegion == systemRegion::jp_ntsc) {
         // NTSC, 256x192 00-DA, D5-FF
         // NTSC, 256x224 00-EA, E5-FF
         // NTSC, 256x240 00-FF, 00-06

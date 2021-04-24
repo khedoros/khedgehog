@@ -25,7 +25,7 @@ TiPsg::TiPsg(std::shared_ptr<config>& conf): noiseLfsr(1<<15), cfg(conf), apu(co
         sampleCnt = 735;
         ticksPerSample = 5.07;
     }
-    else if(cfg->getSystemRegion() != systemRegion::pal) {
+    else if(cfg->getSystemRegion() != systemRegion::eu_pal) {
         sampleCnt = 735;
         ticksPerSample = 5.07;
     }

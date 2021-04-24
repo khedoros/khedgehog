@@ -111,7 +111,7 @@ ioMgr::ioMgr(std::shared_ptr<config> conf) : cfg(conf) {
         channels = 2;
         sampleCnt = 735;
     }
-    else if(cfg->getSystemRegion() != systemRegion::pal) {
+    else if(cfg->getSystemRegion() != systemRegion::eu_pal) {
         sampleCnt = 735;
     }
     else {

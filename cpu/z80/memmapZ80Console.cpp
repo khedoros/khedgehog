@@ -129,18 +129,30 @@ uint8_t memmapZ80Console::readPortByte(uint8_t port, uint64_t cycle) {
                     dbg_printf(" (YM2413 data port register data)");
                     return apu_dev->readRegister(port);
                 default:
-                    dbg_printf(" (joystick port 2 + nationalization)\n");
-                    return (
-                        ((io_port_ab.port_b_up) ? 0 : p2_up) |
-                        ((io_port_ab.port_b_down) ? 0 : p2_down) |
-                        ((io_port_b_misc.port_b_left) ? 0 : p2_left) |
+                    dbg_printf(" (joystick port 2 + nationalization) ");
+                    {
+                      uint8_t retval =
+                        ((io_port_b_misc.port_b_left)  ? 0 : p2_left) |
                         ((io_port_b_misc.port_b_right) ? 0 : p2_right) |
-                        ((io_port_b_misc.port_b_tl) ? 0 : p2_b1) |
-                        ((io_port_b_misc.port_b_tr) ? 0 : p2_b2) |
-                        ((io_port_b_misc.reset ) ? 0 : reset) |
-                        ((io_port_b_misc.port_a_th) ? 0 : p1_b3) |
-                        ((io_port_b_misc.port_b_th) ? 0 : p2_b3)
-                    );
+                        ((io_port_b_misc.port_b_tl)    ? 0 : p2_b1) |
+                        ((io_port_b_misc.port_b_tr)    ? 0 : p2_b2) |
+                        ((io_port_b_misc.reset)        ? 0 : reset) |
+                        ((io_port_b_misc.port_b_tr)    ? 0 : p2_b2);
+                      if(io_port_ctrl.port_a_th_input || cfg->getSystemRegion() == systemRegion::jp_ntsc) {
+                        retval |= ((io_port_b_misc.port_a_th) ? 0 : p1_b3);
+                      }
+                      else {
+                        retval |= (io_port_ctrl.port_a_th_lev * p1_b3);
+                      }
+                      if(io_port_ctrl.port_b_th_input || cfg->getSystemRegion() == systemRegion::jp_ntsc) {
+                        retval |= ((io_port_b_misc.port_b_th) ? 0 : p2_b3);
+                      }
+                      else {
+                        retval |= (io_port_ctrl.port_b_th_lev * p2_b3);
+                      }
+                      dbg_printf(" outputting %02x\n", retval);
+                      return retval;
+                    }
             }
         default: dbg_printf(" (no info on port)\n"); break;
     }
@@ -241,13 +253,16 @@ void memmapZ80Console::writePortByte(uint8_t port, uint8_t val, uint64_t cycle) 
 						std::dynamic_pointer_cast<vdpMS>(vdp_dev)->latchHCounter(cycle);
 					}
 					io_port_ctrl.port_a_tr_input = (val & (1<<0));
-					io_port_ctrl.port_a_th_input = (val & (1<<1));
-					io_port_ctrl.port_b_tr_input = (val & (1<<2));
-					io_port_ctrl.port_b_th_input = (val & (1<<3));
-					io_port_ctrl.port_a_tr_lev = (val & (1<<4));
-					io_port_ctrl.port_a_th_lev = (val & (1<<5));
-					io_port_ctrl.port_b_tr_lev = (val & (1<<6));
-					io_port_ctrl.port_b_th_lev = (val & (1<<7));
+					io_port_ctrl.port_a_th_input = (val & (1<<1))>>1;
+					io_port_ctrl.port_b_tr_input = (val & (1<<2))>>2;
+					io_port_ctrl.port_b_th_input = (val & (1<<3))>>3;
+					io_port_ctrl.port_a_tr_lev = (val & (1<<4))>>4;
+					io_port_ctrl.port_a_th_lev = (val & (1<<5))>>5;
+					io_port_ctrl.port_b_tr_lev = (val & (1<<6))>>6;
+					io_port_ctrl.port_b_th_lev = (val & (1<<7))>>7;
+                    dbg_printf("io port control set to: %d %d %d %d %d %d %d %d\n", io_port_ctrl.port_b_th_lev, io_port_ctrl.port_b_tr_lev, io_port_ctrl.port_a_th_lev, io_port_ctrl.port_a_tr_lev,
+                                                                                    io_port_ctrl.port_b_th_input, io_port_ctrl.port_b_tr_input,io_port_ctrl.port_a_th_input,io_port_ctrl.port_a_tr_input);
+
                     //std::cerr<<"Really not implemented. Got port "<<std::hex<<int(port)<<" = "<<int(val)<<"\n";
 					break;
             }

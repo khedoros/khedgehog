@@ -6,7 +6,7 @@
 YamahaYm2413::YamahaYm2413(std::shared_ptr<config>& conf) : apu(conf), curReg(0), statusVal(0), writeIndex(0), cfg(conf), envCounter(0) {
     buffer.fill(0);
 
-    if(cfg->getSystemRegion() == systemRegion::pal) {
+    if(cfg->getSystemRegion() == systemRegion::eu_pal) {
         sampleCnt = 882;
         ticksPerSample = 5.03;
     }

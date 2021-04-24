@@ -6,6 +6,7 @@
 
 //#define DISABLE_AUDIO
 //#define AUDIO_RAW_OUT
+
 enum systemType {
     uncheckedSystem,
     sg_1000,
@@ -17,8 +18,9 @@ enum systemType {
 
 enum systemRegion {
     uncheckedRegion,
-    pal,
-    ntsc,
+    eu_pal,
+    us_ntsc,
+    jp_ntsc,
     invalidRegion
 };
 

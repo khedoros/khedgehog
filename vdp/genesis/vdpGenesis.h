@@ -4,7 +4,7 @@
 
 class vdpGenesis: public vdp {
     public:
-    vdpGenesis(systemType t = systemType::genesis, systemRegion r = systemRegion::ntsc);
+    vdpGenesis(systemType t = systemType::genesis, systemRegion r = systemRegion::us_ntsc);
     std::vector<uint8_t> getPartialRender() override; // Render a composited view of the current VDP memory state
     std::vector<uint8_t> getDebugRender() override;
     std::vector<uint8_t>& getFrameBuffer() override; // Get current framebuffer state (e.g. after completing the frame)

@@ -61,8 +61,8 @@ std::pair<int,int> config::getResolution(systemType t, systemRegion r) {
 }
 
 unsigned int config::getFrameLines() {
-    if(region == systemRegion::ntsc) return 262;
-    else if(region == systemRegion::pal) return 314;
+    if(region == systemRegion::us_ntsc || region == systemRegion::jp_ntsc) return 262;
+    else if(region == systemRegion::eu_pal) return 314;
     return 288;
 }
 
@@ -133,7 +133,9 @@ systemType config::detectRomType() {
 
 systemRegion config::detectRomRegion() {
     //TODO: detect ROM region from file
-    return ntsc;
+    //    return eu_pal;
+    //return jp_ntsc;
+    return us_ntsc;
 }
 
 size_t config::getHeaderOffset() {
