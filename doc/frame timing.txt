@@ -62,21 +62,6 @@ PAL240 : 00-FF, 00-0A, D2-FF
  192     $C1
  224     $E1
  240     $F1
-
- The VDP can generate an interrupt relating to two conditions; when the
- vertical blanking period has started (frame interrupt), and when the line
- interrupt counter has expired (line interrupt).
-
- Frame interrupts
-
- Depending on the height of the display, the VDP will attempt to generate a
- frame interrupt on the following lines:
-
- Height  Line
- ------  ----
- 192     $C1
- 224     $E1
- 240     $F1
  
   Line interrupts
 

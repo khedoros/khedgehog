@@ -565,14 +565,14 @@ void vdpMS::endLine(uint64_t lineNum) {
         scr_int_active = true;
         status.fields.vblank_flag = 1;
     }
-    if(line < 192 && line_int_cur) {
+    if(line < 193 && line_int_cur) {
         line_int_cur--;
     }
-    if(line < 192 && !line_int_cur) { // interrupt should be generated when H-counter == 0xF4
+    if(line < 193 && line_int_cur == 0xff) { // interrupt should be generated when H-counter == 0xF4
         line_int_active = true;
         line_int_cur = line_interrupt;
     }
-    else if(line >= 192) {
+    else if(line >= 193) {
         line_int_cur = line_interrupt;
     }
     renderLine(line, buffer);

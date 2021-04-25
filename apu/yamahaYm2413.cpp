@@ -445,7 +445,15 @@ void YamahaYm2413::op_t::updateEnvelope(unsigned int counter, bool mod) {
     }
 
     int changeAmount = 1;
-    if(activeRate == 0) return;
+    if(envPhase == attack) {
+        if(activeRate == 15) {
+            envLevel = 0;
+        }
+        else {
+            envLevel += ~envLevel >> 2;
+        }
+    }
+    else if(activeRate == 0) changeAmount = 0;
     else if(activeRate == 15) {
         changeAmount = 2;
     }
@@ -454,10 +462,9 @@ void YamahaYm2413::op_t::updateEnvelope(unsigned int counter, bool mod) {
     int checks[] {65536, 32768, 16384, 8192, 4096, 2048, 1024, 236, 128, 64, 32, 16, 8, 4, 2, 1};
 
     if(!(counter & (checks[activeRate] - 1))) {
-        if(envPhase == attack) {
-            envLevel -= changeAmount;
+        if(envPhase != attack) {
+            envLevel += changeAmount;
         }
-        else envLevel += changeAmount;
     }
 
     //if(envLevel > 127) std::cout<<std::dec<<"Env at "<<envLevel<<"\n";
