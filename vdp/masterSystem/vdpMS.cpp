@@ -559,20 +559,20 @@ unsigned int vdpMS::getFrameLines() {
 }
 
 void vdpMS::endLine(uint64_t lineNum) {
-    uint64_t line = lineNum % getFrameLines();
+    uint64_t line = (lineNum+1) % getFrameLines();
     curLine = line; //VCounter
-    if(line == 191) {
+    if(line == 192) {
         scr_int_active = true;
         status.fields.vblank_flag = 1;
     }
-    if(line < 193 && line_int_cur) {
+    if(line < 193) {
         line_int_cur--;
+        if(line_int_cur == 0xff) { // interrupt should be generated when H-counter == 0xF4
+            line_int_active = true;
+            line_int_cur = line_interrupt;
+        }
     }
-    if(line < 193 && line_int_cur == 0xff) { // interrupt should be generated when H-counter == 0xF4
-        line_int_active = true;
-        line_int_cur = line_interrupt;
-    }
-    else if(line >= 193) {
+    else {
         line_int_cur = line_interrupt;
     }
     renderLine(line, buffer);
