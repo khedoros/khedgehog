@@ -190,7 +190,7 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
                 if(percChan[i].modOp) {
                     percChan[i].modOp->envPhase = release;
                 }
-                dbg_printf("APU::YM2413 perc   chan %d (%s) key-off\n", i, rhythmNames[i]);
+                dbg_printf("APU::YM2413 perc   chan %d (%s) key-off\n", i, rhythmNames[i].c_str());
                 percChan[i].carOp->envPhase = release;
             }
             else if(!percChan[i].keyOn && newKeyOn) { //keyon event
@@ -204,11 +204,11 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
                 }
                 if(percChan[i].carOp->envPhase != silent) {
                     percChan[i].carOp->envPhase = dampen;
-                    dbg_printf("APU::YM2413 perc   chan %d (%s) dampen key-on\n", i, rhythmNames[i]);
+                    dbg_printf("APU::YM2413 perc   chan %d (%s) dampen key-on\n", i, rhythmNames[i].c_str());
                 }
                 else {
                     percChan[i].carOp->envPhase = attack;
-                    dbg_printf("APU::YM2413 perc   chan %d (%s) attack key-on\n", i, rhythmNames[i]);
+                    dbg_printf("APU::YM2413 perc   chan %d (%s) attack key-on\n", i, rhythmNames[i].c_str());
                 }
             }
             percChan[i].keyOn = newKeyOn;
@@ -230,7 +230,7 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
         chan[chNum].carOp.phaseInc = (((chan[chNum].fNum * multVal[chan[chNum].carOp.inst->multCar]) << chan[chNum].octave) * 44100) / 49716;
         bool newKeyOn = ((val>>4) & 0x01);
         if(chan[chNum].keyOn && !newKeyOn) { // keyOff event
-            dbg_printf("APU::YM2413 melody chan %d (%s) key-off\n", chNum, instNames[chan[chNum].instNum]);
+            dbg_printf("APU::YM2413 melody chan %d (%s) key-off\n", chNum, instNames[chan[chNum].instNum].c_str());
             chan[chNum].modOp.envPhase = release;
             chan[chNum].carOp.envPhase = release;
         }
@@ -243,11 +243,11 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
             }
             if(chan[chNum].carOp.envPhase == silent) {
                 chan[chNum].carOp.envPhase = attack;
-                dbg_printf("APU::YM2413 melody chan %d (%s) attack key-on\n", chNum, instNames[chan[chNum].instNum]);
+                dbg_printf("APU::YM2413 melody chan %d (%s) attack key-on\n", chNum, instNames[chan[chNum].instNum].c_str());
             }
             else {
                 chan[chNum].carOp.envPhase = dampen;
-                dbg_printf("APU::YM2413 melody chan %d (%s) dampen key-on\n", chNum, instNames[chan[chNum].instNum]);
+                dbg_printf("APU::YM2413 melody chan %d (%s) dampen key-on\n", chNum, instNames[chan[chNum].instNum].c_str());
             }
         }
         chan[chNum].keyOn = newKeyOn;

@@ -33,7 +33,7 @@ cpuM68k::cpuM68k(std::shared_ptr<memmapM68k> memmap) : memory(memmap) {
         {ops::scc, &cpuM68k::op_Scc}, {ops::special, &cpuM68k::op_SPECIAL}, {ops::sub, &cpuM68k::op_SUB},
         {ops::suba, &cpuM68k::op_SUBA}, {ops::subi, &cpuM68k::op_SUBI}, {ops::subq, &cpuM68k::op_SUBQ},
         {ops::subx, &cpuM68k::op_SUBX}, {ops::swap, &cpuM68k::op_SWAP}, {ops::tas, &cpuM68k::op_TAS},
-        {ops::trap, &cpuM68k::op_TRAP}, {ops:tst, &cpuM68k::op_TST}, {ops:unlk, &cpuM68k::op_UNLK}
+        {ops::trap, &cpuM68k::op_TRAP}, {ops::tst, &cpuM68k::op_TST}, {ops::unlk, &cpuM68k::op_UNLK}
     });
 
     for(int inst=0;inst<8192;inst++) {
