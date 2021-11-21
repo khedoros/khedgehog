@@ -78,6 +78,42 @@ uint16_t cpuM68k::getCCRReg(ccrField f) {
     return (ccr & f);
 }
 
+bool cpuM68k::evalCond(uint8_t c) {
+    switch(c) {
+        case higher:
+            break;
+        case lowerSame:
+            break;
+        case carryClear:
+            break;
+        case carrySet:
+            break;
+        case notEqual:
+            break;
+        case equal:
+            break;
+        case overflowClear:
+            break;
+        case overflowSet:
+            break;
+        case plus:
+            break;
+        case minus:
+            break;
+        case greaterEqual:
+            break;
+        case lessThan:
+            break;
+        case greaterThan:
+            break;
+        case lessEqual:
+            break;
+        default:
+            break;
+    }
+    return false;
+}
+
 uint64_t cpuM68k::op_ABCD(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_ADD(uint16_t opcode)  {return -1;}
 uint64_t cpuM68k::op_ADDA(uint16_t opcode) {return -1;}
@@ -87,20 +123,56 @@ uint64_t cpuM68k::op_ADDX(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_AND(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_ANDI(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_ASd(uint16_t opcode) {return -1;}
-uint64_t cpuM68k::op_Bcc(uint16_t opcode) {return -1;}
+uint64_t cpuM68k::op_Bcc(uint16_t opcode) {
+    uint8_t condition = (opcode>>4) & 0b1111;
+    int32_t displacement = static_cast<int8_t>(opcode & 0b1111'1111);
+    bool trigger = false;
+
+    if(displacement == 0) { // 16-bit displacement
+        displacement = static_cast<int16_t>(memory->readWord(pc+2));
+        pc+=4;
+    }
+    else if(displacement == -1) { // 32-bit displacement
+        displacement = static_cast<int32_t>(memory->readLong(pc+2));
+        pc+=6;
+    }
+    else { // 8-bit displacement
+        pc+=2;
+
+    }
+
+    if(evalCond(condition)) {
+        pc += displacement;
+    }
+
+    return 1; // TODO: Fix timing
+}
 uint64_t cpuM68k::op_BCHG(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_BCLR(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_BRA(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_BSET(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_BSR(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_BTST(uint16_t opcode) {
-    pc+=4;
+    // f e d c b a 9    8 7 6 543  2 1 0    f e d c b a 9 8 76543210
+    // ----------------------------------|--------------------------
+    // 0 0 0 0 1 0 0    0 0 0 mode register 0 0 0 0 0 0 0 0 bit-number   Bit-number specified as immediate data
+    // 0 0 0 0 register 1 0 0 mode register                              Bit-number specified in data register
+    pc+=2;
     operandSize size = static_cast<operandSize>((opcode & 0b11000000)>>6);
-    uint8_t bitNum = memory->readByte(pc-1);
-    // TODO: fix size handling
+    uint8_t bitNum;
+    if (opcode & 0b1'0000'0000) { // bit number in register
+        int regNum = (opcode & 0b1110'0000'0000)>>9;
+        bitNum = dreg[regNum] & 0x1f;
+    }
+    else { // bit number in immediate value
+        bitNum = memory->readByte(pc+1) & 0x1f;
+        pc+=2;
+    }
     uint32_t operand = fetchArg<uint32_t>(opcode & 0b111111);
+    if(operand & (1<<bitNum)) clearCCRReg(cpuM68k::zero);
+    else                      setCCRReg(cpuM68k::zero);
 
-    return -1;
+    return 1; // TODO: Fix timing
 }
 uint64_t cpuM68k::op_CHK(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_CLR(uint16_t opcode) {return -1;}

@@ -51,9 +51,31 @@ private:
         trace = 1<<15
     };
 
+    enum conditions {
+        always = 0,
+        never = 1,
+        higher = 2,
+        lowerSame = 3,
+        carryClear = 4,
+        carrySet = 5,
+        notEqual = 6,
+        equal = 7,
+        overflowClear = 8,
+        overflowSet = 9,
+        plus = 10,
+        minus = 11,
+        greaterEqual = 12,
+        lessThan = 13,
+        greaterThan = 14,
+        lessEqual = 15
+    };
+
+
+
     void setCCRReg(ccrField);
     void clearCCRReg(ccrField);
     uint16_t getCCRReg(ccrField);
+    bool evalCond(uint8_t);
 
     stackType curStack = supervisorMode;
 
