@@ -54,9 +54,9 @@ uint64_t cpuM68k::calc(uint64_t cycle_max) {
     uint64_t inst_cycles = 0;
     while(cycles < cycle_max && inst_cycles < 1000) {
         uint16_t op = bswap_16(memory->readWord(pc));
+        std::printf("%06X: %04x (%s)\n", pc, op, op_name[op>>3].c_str());
         inst_cycles = (this->*op_table[op>>3])(op);
         if(inst_cycles == uint64_t(-1)) {
-            std::printf("%06X: %04x (%s)\n", pc, op, op_name[op>>3].c_str());
             return 0;
         }
         cycles += inst_cycles;
@@ -80,34 +80,20 @@ uint16_t cpuM68k::getCCRReg(ccrField f) {
 
 bool cpuM68k::evalCond(uint8_t c) {
     switch(c) {
-        case higher:
-            break;
-        case lowerSame:
-            break;
-        case carryClear:
-            break;
-        case carrySet:
-            break;
-        case notEqual:
-            break;
-        case equal:
-            break;
-        case overflowClear:
-            break;
-        case overflowSet:
-            break;
-        case plus:
-            break;
-        case minus:
-            break;
-        case greaterEqual:
-            break;
-        case lessThan:
-            break;
-        case greaterThan:
-            break;
-        case lessEqual:
-            break;
+        case higher: return !getCCRReg(cpuM68k::carry) && !getCCRReg(cpuM68k::zero);
+        case lowerEqual: return getCCRReg(cpuM68k::carry) || getCCRReg(cpuM68k::zero);
+        case carryClear: return !getCCRReg(cpuM68k::carry);
+        case carrySet: return getCCRReg(cpuM68k::carry);
+        case notEqual: return !getCCRReg(cpuM68k::zero);
+        case equal: return getCCRReg(cpuM68k::zero);
+        case overflowClear: return !getCCRReg(cpuM68k::overflow);
+        case overflowSet: return getCCRReg(cpuM68k::overflow);
+        case plus: return !getCCRReg(cpuM68k::negative);
+        case minus: return getCCRReg(cpuM68k::negative);
+        case greaterEqual: return (getCCRReg(cpuM68k::negative))>>(3) == (getCCRReg(cpuM68k::overflow))>>(1);
+        case lessThan: return getCCRReg(zero) && ((!getCCRReg(negative) && getCCRReg(overflow)) || (getCCRReg(negative) && !getCCRReg(overflow)));
+        case greaterThan: return (!getCCRReg(zero) && !getCCRReg(negative) && !getCCRReg(overflow)) || (!getCCRReg(zero) && getCCRReg(negative) && getCCRReg(overflow)); 
+        case lessEqual: return getCCRReg(zero) || (getCCRReg(negative) && !getCCRReg(overflow)) || (!getCCRReg(negative) && getCCRReg(overflow));
         default:
             break;
     }

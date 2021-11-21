@@ -55,7 +55,7 @@ private:
         always = 0,
         never = 1,
         higher = 2,
-        lowerSame = 3,
+        lowerEqual = 3,
         carryClear = 4,
         carrySet = 5,
         notEqual = 6,
