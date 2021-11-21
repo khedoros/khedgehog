@@ -17,6 +17,9 @@ class vdpGenesis: public vdp {
     bool frameInterrupt() override;
     void endLine(uint64_t) override;
 
-    public:
+    private:
+    void resizeBuffer(unsigned int x, unsigned int y);
     std::vector<uint8_t> buffer;
+    unsigned int curXRes;
+    unsigned int curYRes;
 };

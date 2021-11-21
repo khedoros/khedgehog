@@ -4,6 +4,7 @@
 #include "cpuM68k.h"
 #include "memmapM68k.h"
 #include "m68kInstructions.h"
+#include "../../util.h"
 
 cpuM68k::cpuM68k(std::shared_ptr<memmapM68k> memmap) : memory(memmap) {
 
@@ -92,7 +93,7 @@ bool cpuM68k::evalCond(uint8_t c) {
         case minus: return getCCRReg(cpuM68k::negative);
         case greaterEqual: return (getCCRReg(cpuM68k::negative))>>(3) == (getCCRReg(cpuM68k::overflow))>>(1);
         case lessThan: return getCCRReg(zero) && ((!getCCRReg(negative) && getCCRReg(overflow)) || (getCCRReg(negative) && !getCCRReg(overflow)));
-        case greaterThan: return (!getCCRReg(zero) && !getCCRReg(negative) && !getCCRReg(overflow)) || (!getCCRReg(zero) && getCCRReg(negative) && getCCRReg(overflow)); 
+        case greaterThan: return (!getCCRReg(zero) && !getCCRReg(negative) && !getCCRReg(overflow)) || (!getCCRReg(zero) && getCCRReg(negative) && getCCRReg(overflow));
         case lessEqual: return getCCRReg(zero) || (getCCRReg(negative) && !getCCRReg(overflow)) || (!getCCRReg(negative) && getCCRReg(overflow));
         default:
             break;
@@ -114,22 +115,27 @@ uint64_t cpuM68k::op_Bcc(uint16_t opcode) {
     int32_t displacement = static_cast<int8_t>(opcode & 0b1111'1111);
     bool trigger = false;
 
+    printf("Displacement: %d ", displacement);
+
     if(displacement == 0) { // 16-bit displacement
-        displacement = static_cast<int16_t>(memory->readWord(pc+2));
+        displacement = static_cast<int16_t>(bswap(memory->readWord(pc+2)));
+        printf("Displacing by 16-bit: %d", displacement);
         pc+=4;
     }
     else if(displacement == -1) { // 32-bit displacement
-        displacement = static_cast<int32_t>(memory->readLong(pc+2));
+        displacement = static_cast<int32_t>(bswap(memory->readLong(pc+2)));
+        printf("Displacing by 32-bit: %d", displacement);
         pc+=6;
     }
     else { // 8-bit displacement
         pc+=2;
-
+        printf("Displacing by 8-bit: %d", displacement);
     }
 
     if(evalCond(condition)) {
         pc += displacement;
     }
+    printf("\n");
 
     return 1; // TODO: Fix timing
 }
@@ -212,14 +218,31 @@ uint64_t cpuM68k::op_SWAP(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_TAS(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_TRAP(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_TST(uint16_t opcode) {
+    // 15 14 13 12 11 10 9 8   7 6     5 4 3   2 1 0
+    //  0  1  0  0  1  0 1 0   SIZE   EFFECTIVE ADDRESS
+    //                                  MODE   REGISTER
     pc+=2;
     operandSize size = static_cast<operandSize>((opcode & 0b11000000)>>6);
-    // TODO: fix size handling
-    uint32_t operand = fetchArg<uint32_t>(opcode & 0b111111);
+    uint32_t operand;
+    switch(size) {
+        case byteSize:
+            operand = fetchArg<uint8_t>(opcode & 0b111111);
+            if(operand & 1<<7) setCCRReg(negative); else clearCCRReg(negative);
+            break;
+        case wordSize:
+            operand = fetchArg<uint16_t>(opcode & 0b111111);
+            if(operand & 1<<15) setCCRReg(negative); else clearCCRReg(negative);
+            break;
+        case longSize:
+            operand = fetchArg<uint32_t>(opcode & 0b111111);
+            if(operand & 1<<31) setCCRReg(negative); else clearCCRReg(negative);
+            break;
+    }
     if(operand == 0) setCCRReg(zero);
     else             clearCCRReg(zero);
-
-    return -1;
+    clearCCRReg(overflow);
+    clearCCRReg(carry);
+    return 1;     // TODO: Fix timing
 }
 uint64_t cpuM68k::op_UNLK(uint16_t opcode) {return -1;}
 
