@@ -84,6 +84,8 @@ void sdlWindow::updateWindow(int startx, int starty, int stride, const std::vect
     int height = image.size() / stride;
     if(width != xres || height != yres) {
         resize(width, height);
+        xres = width;
+        yres = height;
     }
 
     if(texture) {

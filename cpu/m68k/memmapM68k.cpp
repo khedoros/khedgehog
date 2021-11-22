@@ -1,6 +1,7 @@
 #include<fstream>
 #include<iostream>
 #include "memmapM68k.h"
+#include "../../util.h"
 
 /* Mapping
  * Component     |Start Addr| End Addr |
@@ -58,9 +59,25 @@ uint8_t& memmapM68k::map(uint32_t addr) {
     if(addr < 0x400000) {
         return rom[addr];
     }
+    else if(addr >= 0xa00000 && addr < 0xa10000) {
+        std::cerr<<"Unmapped Z80 address encountered: 0x"<<std::hex<<addr<<"\n";
+    }
+    else if(addr >= 0xa10000 && addr < 0xa11000) {
+        std::cerr<<"Unmapped I/O address encountered: 0x"<<std::hex<<addr<<"\n";
+    }
+    else if(addr >= 0xa11000 && addr < 0xa12000) {
+        std::cerr<<"Unmapped Control address encountered: 0x"<<std::hex<<addr<<"\n";
+    }
+    else if(addr >= 0xd00000 && addr < 0xe00000) {
+        std::cerr<<"Unmapped VDP address encountered: 0x"<<std::hex<<addr<<"\n";
+    }
+    else if(addr >= 0xff0000 && addr < 0x1000000) {
+        return ram[addr&0xffff];
+    }
     else {
         std::cerr<<"Unmapped address encountered: 0x"<<std::hex<<addr<<"\n";
-        return reinterpret_cast<uint8_t&>(dummyVal);
+
     }
+    return reinterpret_cast<uint8_t&>(dummyVal);
 }
 
