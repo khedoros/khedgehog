@@ -64,6 +64,7 @@ uint8_t& memmapM68k::map(uint32_t addr) {
     }
     else if(addr >= 0xa10000 && addr < 0xa11000) {
         std::cerr<<"Unmapped I/O address encountered: 0x"<<std::hex<<addr<<"\n";
+        return reinterpret_cast<uint8_t&>(fVal);
     }
     else if(addr >= 0xa11000 && addr < 0xa12000) {
         std::cerr<<"Unmapped Control address encountered: 0x"<<std::hex<<addr<<"\n";

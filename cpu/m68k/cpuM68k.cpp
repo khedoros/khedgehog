@@ -81,21 +81,53 @@ uint16_t cpuM68k::getCCRReg(ccrField f) {
 
 bool cpuM68k::evalCond(uint8_t c) {
     switch(c) {
-        case higher: return !getCCRReg(cpuM68k::carry) && !getCCRReg(cpuM68k::zero);
-        case lowerEqual: return getCCRReg(cpuM68k::carry) || getCCRReg(cpuM68k::zero);
-        case carryClear: return !getCCRReg(cpuM68k::carry);
-        case carrySet: return getCCRReg(cpuM68k::carry);
-        case notEqual: return !getCCRReg(cpuM68k::zero);
-        case equal: return getCCRReg(cpuM68k::zero);
-        case overflowClear: return !getCCRReg(cpuM68k::overflow);
-        case overflowSet: return getCCRReg(cpuM68k::overflow);
-        case plus: return !getCCRReg(cpuM68k::negative);
-        case minus: return getCCRReg(cpuM68k::negative);
-        case greaterEqual: return (getCCRReg(cpuM68k::negative))>>(3) == (getCCRReg(cpuM68k::overflow))>>(1);
-        case lessThan: return getCCRReg(zero) && ((!getCCRReg(negative) && getCCRReg(overflow)) || (getCCRReg(negative) && !getCCRReg(overflow)));
-        case greaterThan: return (!getCCRReg(zero) && !getCCRReg(negative) && !getCCRReg(overflow)) || (!getCCRReg(zero) && getCCRReg(negative) && getCCRReg(overflow));
-        case lessEqual: return getCCRReg(zero) || (getCCRReg(negative) && !getCCRReg(overflow)) || (!getCCRReg(negative) && getCCRReg(overflow));
+        case always:
+            std::cout<<"Always";
+            return true;
+        case higher:
+            std::cout<<"Higher";
+            return !getCCRReg(cpuM68k::carry) && !getCCRReg(cpuM68k::zero);
+        case lowerEqual:
+            std::cout<<"LowerEqual";
+            return getCCRReg(cpuM68k::carry) || getCCRReg(cpuM68k::zero);
+        case carryClear:
+            std::cout<<"CarryClear";
+            return !getCCRReg(cpuM68k::carry);
+        case carrySet:
+            std::cout<<"CarrySet";
+            return getCCRReg(cpuM68k::carry);
+        case notEqual:
+            std::cout<<"NotEqual";
+            return !getCCRReg(cpuM68k::zero);
+        case equal:
+            std::cout<<"Equal";
+            return getCCRReg(cpuM68k::zero);
+        case overflowClear:
+            std::cout<<"OverflowClear";
+            return !getCCRReg(cpuM68k::overflow);
+        case overflowSet:
+            std::cout<<"OverflowSet";
+            return getCCRReg(cpuM68k::overflow);
+        case plus:
+            std::cout<<"Positive";
+            return !getCCRReg(cpuM68k::negative);
+        case minus:
+            std::cout<<"Negative";
+            return getCCRReg(cpuM68k::negative);
+        case greaterEqual:
+            std::cout<<"greaterEqual";
+            return (getCCRReg(cpuM68k::negative))>>(3) == (getCCRReg(cpuM68k::overflow))>>(1);
+        case lessThan:
+            std::cout<<"lessThan";
+            return getCCRReg(zero) && ((!getCCRReg(negative) && getCCRReg(overflow)) || (getCCRReg(negative) && !getCCRReg(overflow)));
+        case greaterThan:
+            std::cout<<"greaterThan";
+            return (!getCCRReg(zero) && !getCCRReg(negative) && !getCCRReg(overflow)) || (!getCCRReg(zero) && getCCRReg(negative) && getCCRReg(overflow));
+        case lessEqual:
+            std::cout<<"lessEqual";
+            return getCCRReg(zero) || (getCCRReg(negative) && !getCCRReg(overflow)) || (!getCCRReg(negative) && getCCRReg(overflow));
         default:
+            std::cout<<"Invalid! "<<int(c);
             break;
     }
     return false;
@@ -111,31 +143,41 @@ uint64_t cpuM68k::op_AND(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_ANDI(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_ASd(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_Bcc(uint16_t opcode) {
-    uint8_t condition = (opcode>>4) & 0b1111;
+    uint8_t condition = (opcode>>8) & 0b1111;
     int32_t displacement = static_cast<int8_t>(opcode & 0b1111'1111);
     bool trigger = false;
 
-    printf("Displacement: %d ", displacement);
-
-    if(displacement == 0) { // 16-bit displacement
-        displacement = static_cast<int16_t>(bswap(memory->readWord(pc+2)));
-        printf("Displacing by 16-bit: %d", displacement);
-        pc+=4;
-    }
-    else if(displacement == -1) { // 32-bit displacement
-        displacement = static_cast<int32_t>(bswap(memory->readLong(pc+2)));
-        printf("Displacing by 32-bit: %d", displacement);
-        pc+=6;
-    }
-    else { // 8-bit displacement
-        pc+=2;
-        printf("Displacing by 8-bit: %d", displacement);
-    }
+    //printf("Displacement: %d ", displacement);
 
     if(evalCond(condition)) {
+        if(displacement == 0) { // 16-bit displacement
+            displacement = static_cast<int16_t>(bswap(memory->readWord(pc+2))) + 2;
+            //printf("Displacing by 16-bit: %d", displacement);
+        }
+        else if(displacement == -1) { // 32-bit displacement
+            displacement = static_cast<int32_t>(bswap(memory->readLong(pc+2))) + 2;
+            //printf("Displacing by 32-bit: %d", displacement);
+        }
+        else { // 8-bit displacement
+            //printf("Displacing by 8-bit: %d", displacement);
+            displacement += 2;
+        }
+        //std::cout<<" Taking the branch. Displacing by "<<displacement<<"\n";
         pc += displacement;
     }
-    printf("\n");
+    else {
+        if(displacement == 0) { // 16-bit displacement
+            pc +=4;
+        }
+        else if(displacement == -1) { // 32-bit displacement
+            pc += 6;
+        }
+        else { // 8-bit displacement
+            pc += 2;
+        }
+        //std::cout<<" Not taking the branch.\n";
+    }
+    //printf("\n");
 
     return 1; // TODO: Fix timing
 }
@@ -182,7 +224,22 @@ uint64_t cpuM68k::op_EXT(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_ILLEGAL(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_JMP(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_JSR(uint16_t opcode) {return -1;}
-uint64_t cpuM68k::op_LEA(uint16_t opcode) {return -1;}
+uint64_t cpuM68k::op_LEA(uint16_t opcode) {
+    // 000396: 41f9 (LEA)    396:   41f9 00ff 8000  lea 0xff8000,%a0
+    // 00023C: 4bfa (LEA)    23c:   4bfa 0088       lea %pc@(0x2c6),%a5
+    // 15 14 13 12    11 10 9   8 7 6   5  4  3  2  1  0
+    //  0  1  0  0   REGISTER   1 1 1   EFFECTIVE ADDRESS
+    pc += 2;
+    uint8_t regnum = ((opcode>>9) & 0b111);
+    if(regnum < 7) {
+        areg[regnum] = fetchArg<uint32_t>(opcode & 0b111111);
+    }
+    else {
+        sp[curStack] = fetchArg<uint32_t>(opcode & 0b111111);
+    }
+
+    return 1; // TODO: Fix timing
+}
 uint64_t cpuM68k::op_LINK(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_LSd(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_MOVE(uint16_t opcode) {return -1;}

@@ -17,6 +17,8 @@ public:
     void writeLong(uint32_t addr, uint32_t val) override;
     void sendEvent(ioEvent e) override;
     uint32_t dummyVal = 0xdeadbeef;
+    uint32_t zeroVal = 0;
+    uint32_t fVal = 0xffffffff;
 
 protected:
     uint8_t& map(uint32_t addr) override;
