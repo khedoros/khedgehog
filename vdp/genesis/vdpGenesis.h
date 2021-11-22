@@ -16,6 +16,7 @@ class vdpGenesis: public vdp {
     bool lineInterrupt() override;
     bool frameInterrupt() override;
     void endLine(uint64_t) override;
+    unsigned int resLine() override;
 
     private:
     void resizeBuffer(unsigned int x, unsigned int y);

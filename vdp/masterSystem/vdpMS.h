@@ -24,6 +24,7 @@ public:
     bool lineInterrupt() override;
     bool frameInterrupt() override;
     void endLine(uint64_t lineNum) override;
+    unsigned int resLine() override;
     unsigned int getFrameLines();
 	void latchHCounter(uint64_t cycle);
     void setGlasses(uint8_t val);

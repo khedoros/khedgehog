@@ -17,4 +17,5 @@ public:
     virtual bool lineInterrupt() = 0;
     virtual bool frameInterrupt() = 0;
     virtual void endLine(uint64_t) = 0;
+    virtual unsigned int resLine() = 0;
 };

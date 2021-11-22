@@ -52,3 +52,7 @@ std::vector<uint8_t>& vdpGenesis::getFrameBuffer() {
 
 
 void vdpGenesis::endLine(uint64_t line) {}
+
+unsigned int vdpGenesis::resLine() {
+    return curYRes;
+}

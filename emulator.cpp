@@ -85,7 +85,10 @@ int emulator::run() {
         else if(vdp_dev->lineInterrupt()) {
             cpu_dev->interrupt(1);
         }
-        if(line == 192) {
+          //          std::cout<<"Line: "<<line<<" ResLine: "<<vdp_dev->resLine()<<"\n";
+        if(line == vdp_dev->resLine()) {
+        //if(line == 192) {
+
             //vdp_dev->calc(cycle_chunk); //run VDP for amount matching the CPU
             //io -> updateWindow(mainWindow, 0, 0, vdp_dev->getPartialRender());
             io -> updateWindow(mainWindow, 0, 0, vdp_dev->getStride(), vdp_dev->getFrameBuffer());

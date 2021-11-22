@@ -250,7 +250,7 @@ void vdpMS::renderSmsSprites(unsigned int line, std::vector<uint8_t>& buffer) {
 
 }
 
-// 
+//
 
 void vdpMS::renderText(unsigned int line, std::vector<uint8_t>& buffer) {
     std::cout<<"Text (Mode 1) render\n";
@@ -578,6 +578,10 @@ void vdpMS::endLine(uint64_t lineNum) {
     renderLine(line, buffer);
 }
 
+unsigned int vdpMS::resLine() {
+    return curYRes;
+}
+
 void vdpMS::writeByte(uint8_t port, uint8_t val, uint64_t cycle) {
     //std::printf("Wrote val(%02x) to port(%02x) = ", val, port);
     if(port % 2 == 1) writeAddress(val);
@@ -736,13 +740,13 @@ uint8_t vdpMS::readVCounter(uint64_t cycle) {
             case graphicsMode_t::text:      [[fallthrough]];
             case graphicsMode_t::graphics2: [[fallthrough]];
             case graphicsMode_t::multicolor:[[fallthrough]];
-            case graphicsMode_t::mode4: 
+            case graphicsMode_t::mode4:
 				if(curLine <= 0xda) return curLine;
 				else                return curLine - 6;
-            case graphicsMode_t::mode4_224: 
+            case graphicsMode_t::mode4_224:
 				if(curLine <= 0xea) return curLine;
 				else                return curLine - 6;
-            case graphicsMode_t::mode4_240: 
+            case graphicsMode_t::mode4_240:
 				return curLine % 0x100;
         }
     }
@@ -765,7 +769,7 @@ uint8_t vdpMS::readVCounter(uint64_t cycle) {
 				if(curLine <= 0x10a) return curLine % 0x100;
 				else                return curLine - 0x39;
         }
-    
+
 	}
     return 255; //emergency catch-all
 }
