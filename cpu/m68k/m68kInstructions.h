@@ -5,18 +5,18 @@
 #include<array>
 
 enum addr_modes {
-    data_reg,      //000 Reg Argument from data register
-    addr_reg,      //001 Reg Argument from address register
-    addr_reg_ind,  //010 Reg Argument loaded from memory, with address in register
-    auto_post_inc, //011 Reg Same, but increment address after fetch
-    auto_pre_dec,  //100 Reg Same, but decrement address before fetch
-    index_basic,   //101 Reg Addr indirect with 16-bit signed displacement
-    index_full,    //110 Reg Addr indirect with 8-bit signed offset and 16 or 32-bit index register
-    abs_short,     //111 000 Absolute 15-bit sign-extended address
-    abs_long,      //111 001 Absolute 24-bit address
-    rel_basic,     //111 010 Relative to program counter with 16-bit signed displacement
-    rel_full,      //111 011 Relative to program counter with 8-bit signed offset and 16 or 32-bit index register
-    immed          //111 100 Immediate value
+    data_reg      = 0b000'000, //000 Reg Argument from data register
+    addr_reg      = 0b001'000, //001 Reg Argument from address register
+    addr_reg_ind  = 0b010'000, //010 Reg Argument loaded from memory, with address in register
+    auto_post_inc = 0b011'000, //011 Reg Same, but increment address after fetch
+    auto_pre_dec  = 0b100'000, //100 Reg Same, but decrement address before fetch
+    index_basic   = 0b101'000, //101 Reg Addr indirect with 16-bit signed displacement
+    index_full    = 0b110'000, //110 Reg Addr indirect with 8-bit signed offset and 16 or 32-bit index register
+    abs_short     = 0b111'000, //111 000 Absolute 15-bit sign-extended address
+    abs_long      = 0b111'001, //111 001 Absolute 24-bit address
+    rel_basic     = 0b111'010, //111 010 Relative to program counter with 16-bit signed displacement
+    rel_full      = 0b111'011, //111 011 Relative to program counter with 8-bit signed offset and 16 or 32-bit index register
+    immediate     = 0b111'100  //111 100 Immediate value
 };
 
 enum ops: unsigned int {

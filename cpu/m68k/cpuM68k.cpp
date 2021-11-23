@@ -82,52 +82,52 @@ uint16_t cpuM68k::getCCRReg(ccrField f) {
 bool cpuM68k::evalCond(uint8_t c) {
     switch(c) {
         case always:
-            std::cout<<"Always";
+            //std::cout<<"Always";
             return true;
         case higher:
-            std::cout<<"Higher";
+            //std::cout<<"Higher";
             return !getCCRReg(cpuM68k::carry) && !getCCRReg(cpuM68k::zero);
         case lowerEqual:
-            std::cout<<"LowerEqual";
+            //std::cout<<"LowerEqual";
             return getCCRReg(cpuM68k::carry) || getCCRReg(cpuM68k::zero);
         case carryClear:
-            std::cout<<"CarryClear";
+            //std::cout<<"CarryClear";
             return !getCCRReg(cpuM68k::carry);
         case carrySet:
-            std::cout<<"CarrySet";
+            //std::cout<<"CarrySet";
             return getCCRReg(cpuM68k::carry);
         case notEqual:
-            std::cout<<"NotEqual";
+            //std::cout<<"NotEqual";
             return !getCCRReg(cpuM68k::zero);
         case equal:
-            std::cout<<"Equal";
+            //std::cout<<"Equal";
             return getCCRReg(cpuM68k::zero);
         case overflowClear:
-            std::cout<<"OverflowClear";
+            //std::cout<<"OverflowClear";
             return !getCCRReg(cpuM68k::overflow);
         case overflowSet:
-            std::cout<<"OverflowSet";
+            //std::cout<<"OverflowSet";
             return getCCRReg(cpuM68k::overflow);
         case plus:
-            std::cout<<"Positive";
+            //std::cout<<"Positive";
             return !getCCRReg(cpuM68k::negative);
         case minus:
-            std::cout<<"Negative";
+            //std::cout<<"Negative";
             return getCCRReg(cpuM68k::negative);
         case greaterEqual:
-            std::cout<<"greaterEqual";
+            //std::cout<<"greaterEqual";
             return (getCCRReg(cpuM68k::negative))>>(3) == (getCCRReg(cpuM68k::overflow))>>(1);
         case lessThan:
-            std::cout<<"lessThan";
+            //std::cout<<"lessThan";
             return getCCRReg(zero) && ((!getCCRReg(negative) && getCCRReg(overflow)) || (getCCRReg(negative) && !getCCRReg(overflow)));
         case greaterThan:
-            std::cout<<"greaterThan";
+            //std::cout<<"greaterThan";
             return (!getCCRReg(zero) && !getCCRReg(negative) && !getCCRReg(overflow)) || (!getCCRReg(zero) && getCCRReg(negative) && getCCRReg(overflow));
         case lessEqual:
-            std::cout<<"lessEqual";
+            //std::cout<<"lessEqual";
             return getCCRReg(zero) || (getCCRReg(negative) && !getCCRReg(overflow)) || (!getCCRReg(negative) && getCCRReg(overflow));
         default:
-            std::cout<<"Invalid! "<<int(c);
+            std::cerr<<"Invalid branch type "<<int(c)<<"!\n";
             break;
     }
     return false;
@@ -231,12 +231,14 @@ uint64_t cpuM68k::op_LEA(uint16_t opcode) {
     //  0  1  0  0   REGISTER   1 1 1   EFFECTIVE ADDRESS
     pc += 2;
     uint8_t regnum = ((opcode>>9) & 0b111);
+    uint32_t addr = fetchArg<uint32_t>(opcode & 0b111111);
     if(regnum < 7) {
-        areg[regnum] = fetchArg<uint32_t>(opcode & 0b111111);
+        areg[regnum] = addr;
     }
     else {
-        sp[curStack] = fetchArg<uint32_t>(opcode & 0b111111);
+        sp[curStack] = addr;
     }
+    std::cout<<"Write 0x"<<std::hex<<addr<<" to reg a"<<int(regnum)<<"\n";
 
     return 1; // TODO: Fix timing
 }
@@ -303,24 +305,23 @@ uint64_t cpuM68k::op_TST(uint16_t opcode) {
 }
 uint64_t cpuM68k::op_UNLK(uint16_t opcode) {return -1;}
 
-
 template <class retType>
 retType cpuM68k::fetchArg(uint8_t addressBlock) {
     uint8_t mode = addressBlock & 0b00'111'000;
     uint8_t reg = addressBlock & 0b00'000'111;
     switch (mode) {
-        case 0: // Data register direct
+        case data_reg: // Data register direct
             return dreg[reg];
             break;
-        case 8: // Address register direct
+        case addr_reg: // Address register direct
             if(reg < 7) return areg[reg];
             else return sp[curStack];
             break;
-        case 0x10: // Address register indirect
+        case addr_reg_ind: // Address register indirect
             if(reg < 7) return memory->readLong(areg[reg]);
             else        return memory->readLong(sp[curStack]);
             break;
-        case 0x18: // Address register indirect with postincrement
+        case auto_post_inc: // Address register indirect with postincrement
             if(reg < 7) {
                 uint32_t& val = memory->readLong(areg[reg]);
                 areg[reg] += sizeof(retType);
@@ -333,7 +334,7 @@ retType cpuM68k::fetchArg(uint8_t addressBlock) {
                 return val;
             }
             break;
-        case 0x20: // Address register indirect with predecrement
+        case auto_pre_dec: // Address register indirect with predecrement
             if(reg < 7) {
                 areg[reg] -= sizeof(retType);
                 return memory->readLong(areg[reg]);
@@ -344,7 +345,7 @@ retType cpuM68k::fetchArg(uint8_t addressBlock) {
                 return memory->readLong(sp[curStack]);
             }
             break;
-        case 0x28: // Address register indirect with basic index
+        case index_basic: // Address register indirect with basic index
             {
                 int16_t offset = memory->readWord(pc);
                 pc+=2;
@@ -358,7 +359,7 @@ retType cpuM68k::fetchArg(uint8_t addressBlock) {
                 return memory->readLong(regval);
             }
             break;
-        case 0x30: // Address register indirect with full index
+        case index_full: // Address register indirect with full index
             {
                 union basicDisplacement {
                     uint16_t val;
@@ -378,27 +379,27 @@ retType cpuM68k::fetchArg(uint8_t addressBlock) {
 
             }
             break;
-        case 0x38: // Non-register operand
-            switch(addressBlock & 0b00'000'111) {
-                case 0: // Absolute short
+        case abs_short: // Non-register operand
+            switch(addressBlock) {
+                case abs_short: // Absolute short
                     {
                         uint32_t ptr = bswap_16(memory->readWord(pc));
                         pc += 2;
-                        return memory->readLong(ptr);
+                        return ptr;
                     }
                     break;
-                case 1: // Absolute long
+                case abs_long: // Absolute long
                     {
                         uint32_t ptr = bswap_32(memory->readLong(pc));
                         pc += 4;
-                        return memory->readLong(ptr);
+                        return ptr;
                     }
                     break;
-                case 2: // Relative basic
+                case rel_basic: // Relative basic
                     break;
-                case 3: // Relative full
+                case rel_full: // Relative full
                     break;
-                case 4: // Immediate
+                case immediate: // Immediate
                     break;
             }
             break;
