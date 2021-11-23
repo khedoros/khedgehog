@@ -166,8 +166,8 @@ private:
 
     class memoryMapException: public std::exception {
     public:
-        memoryMapException(uint8_t mode, uint8_t reg, uint8_t size){
-            std::snprintf(buffer, 100, "Failed with mode: %x, register: %x, operandSize: %x\n", mode, reg, size);
+        memoryMapException(const char* srcName, uint8_t mode, uint8_t reg, uint8_t size){
+            std::snprintf(buffer, 100, "Mapping failed in %s with mode: %x, register: %x, operandSize: %x\n", srcName, mode, reg, size);
         }
         virtual const char* what() const throw() {
             return const_cast<const char*>(buffer);

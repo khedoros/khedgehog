@@ -238,13 +238,43 @@ uint64_t cpuM68k::op_LEA(uint16_t opcode) {
     else {
         sp[curStack] = addr;
     }
-    std::cout<<"Write 0x"<<std::hex<<addr<<" to reg a"<<int(regnum)<<"\n";
+    //std::cout<<"Write 0x"<<std::hex<<addr<<" to reg a"<<int(regnum)<<"\n";
 
     return 1; // TODO: Fix timing
 }
 uint64_t cpuM68k::op_LINK(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_LSd(uint16_t opcode) {return -1;}
-uint64_t cpuM68k::op_MOVE(uint16_t opcode) {return -1;}
+uint64_t cpuM68k::op_MOVE(uint16_t opcode) {
+    //         00 size  dest reg mode   src mode  reg
+    //0x2010 = 00  10      000   000      010     000
+    //        move long       D0              (A0)
+    // MOVE (A0), D0
+    operandSize s = static_cast<operandSize>((opcode>>12) & 0b11);
+    uint8_t srcEA = opcode & 0b111'111;
+    uint8_t destEA = (opcode>>6) & 0b111'111;
+    pc+=2;
+    switch(s) {
+    case byteSize:
+        {
+            uint8_t src = fetchArg<uint8_t>(srcEA);
+            stashArg<uint8_t>(destEA, src);
+        }
+        break;
+    case wordSize:
+        {
+            uint16_t src = fetchArg<uint16_t>(srcEA);
+            stashArg<uint16_t>(destEA, src);
+        }
+    break;
+    case longSize:
+        {
+            uint32_t src = fetchArg<uint32_t>(srcEA);
+            stashArg<uint32_t>(destEA, src);
+        }
+        break;
+    }
+    return 1;
+}
 uint64_t cpuM68k::op_MOVEA(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_MOVE_from_SR(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_MOVEM(uint16_t opcode) {return -1;}
@@ -405,12 +435,26 @@ retType cpuM68k::fetchArg(uint8_t addressBlock) {
             break;
     }
 
-    throw memoryMapException(mode, reg, sizeof(retType));
+    throw memoryMapException("fetchArg", mode, reg, sizeof(retType));
 }
 
     template <class argType>
     void cpuM68k::stashArg(uint8_t addressBlock, argType value) {
-        uint8_t mode = addressBlock & 0b00'111'000;
-        uint8_t reg = addressBlock & 0b00'000'111;
-        throw memoryMapException(mode, reg, sizeof(argType));
+        uint8_t mode = addressBlock & 0b00'000'111;
+        uint8_t reg = addressBlock & 0b00'111'000;
+        switch (mode) {
+            case data_reg: // Data register direct
+                switch(sizeof(argType)) {
+                    case 1:
+                        dreg[reg] &= 0xffffff00;
+                        dreg[reg] |= value;
+                    case 2:
+                        dreg[reg] &= 0xffff0000;
+                        dreg[reg] |= value;
+                    case 4:
+                        dreg[reg] = value;
+                }
+                return;
+        }
+        throw memoryMapException("stashArg", mode, reg, sizeof(argType));
     }
