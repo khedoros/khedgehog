@@ -137,7 +137,24 @@ uint64_t cpuM68k::op_ABCD(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_ADD(uint16_t opcode)  {return -1;}
 uint64_t cpuM68k::op_ADDA(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_ADDI(uint16_t opcode) {return -1;}
-uint64_t cpuM68k::op_ADDQ(uint16_t opcode) {return -1;}
+uint64_t cpuM68k::op_ADDQ(uint16_t opcode) {
+    // 000330: 5280 (ADDQ) 0101 0010 1000 0000
+    // 0101 001 010 000000
+    uint8_t value = (opcode>>9) & 0b111;
+    operandSize size = static_cast<operandSize>((opcode>>6) & 0b11);
+
+    switch(size) {
+    }
+
+    /*  Conditions:
+        X — Set the same as the carry bit.
+        N — Set if the result is negative; cleared otherwise.
+        Z — Set if the result is zero; cleared otherwise.
+        V — Set if an overflow occurs; cleared otherwise.
+        C — Set if a carry occurs; cleared otherwise.
+        The condition codes are not affected when the destination is an address register.
+    */
+    return -1;}
 uint64_t cpuM68k::op_ADDX(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_AND(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_ANDI(uint16_t opcode) {return -1;}
@@ -192,7 +209,6 @@ uint64_t cpuM68k::op_BTST(uint16_t opcode) {
     // 0 0 0 0 1 0 0    0 0 0 mode register 0 0 0 0 0 0 0 0 bit-number   Bit-number specified as immediate data
     // 0 0 0 0 register 1 0 0 mode register                              Bit-number specified in data register
     pc+=2;
-    operandSize size = static_cast<operandSize>((opcode & 0b11000000)>>6);
     uint8_t bitNum;
     if (opcode & 0b1'0000'0000) { // bit number in register
         int regNum = (opcode & 0b1110'0000'0000)>>9;
@@ -202,7 +218,15 @@ uint64_t cpuM68k::op_BTST(uint16_t opcode) {
         bitNum = memory->readByte(pc+1) & 0x1f;
         pc+=2;
     }
-    uint32_t operand = fetchArg<uint32_t>(opcode & 0b111111);
+
+    uint32_t operand;
+    if(((opcode>>3)& 0b111) == 0) {
+        operand = fetchArg<uint32_t>(opcode & 0b111111);
+    }
+    else {
+        operand = fetchArg<uint8_t>(opcode & 0b111111);
+    }
+
     if(operand & (1<<bitNum)) clearCCRReg(cpuM68k::zero);
     else                      setCCRReg(cpuM68k::zero);
 
@@ -257,22 +281,44 @@ uint64_t cpuM68k::op_MOVE(uint16_t opcode) {
     case byteSize:
         {
             uint8_t src = fetchArg<uint8_t>(srcEA);
+
+            if(src & 0x80) setCCRReg(negative);
+            else           clearCCRReg(negative);
+
+            if(!src) setCCRReg(zero);
+            else     clearCCRReg(zero);
+
             stashArg<uint8_t>(destEA, src);
         }
         break;
     case wordSize:
         {
             uint16_t src = fetchArg<uint16_t>(srcEA);
+
+            if(src & 0x8000) setCCRReg(negative);
+            else             clearCCRReg(negative);
+
+            if(!src) setCCRReg(zero);
+            else     clearCCRReg(zero);
+
             stashArg<uint16_t>(destEA, src);
         }
     break;
     case longSize:
         {
             uint32_t src = fetchArg<uint32_t>(srcEA);
+
+            if(src & 0x80000000) setCCRReg(negative);
+            else                 clearCCRReg(negative);
+
+            if(!src) setCCRReg(zero);
+            else     clearCCRReg(zero);
             stashArg<uint32_t>(destEA, src);
         }
         break;
     }
+    clearCCRReg(overflow);
+    clearCCRReg(carry);
     return 1;
 }
 uint64_t cpuM68k::op_MOVEA(uint16_t opcode) {return -1;}
