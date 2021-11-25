@@ -155,6 +155,8 @@ private:
     uint64_t op_TST(uint16_t opcode);
     uint64_t op_UNLK(uint16_t opcode);
 
+    bool isAddrEA(uint8_t addressBlock);
+
     template <class retType>
     retType fetchArg(uint8_t addressBlock);
 

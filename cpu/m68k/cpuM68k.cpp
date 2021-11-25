@@ -142,19 +142,80 @@ uint64_t cpuM68k::op_ADDQ(uint16_t opcode) {
     // 0101 001 010 000000
     uint8_t value = (opcode>>9) & 0b111;
     operandSize size = static_cast<operandSize>((opcode>>6) & 0b11);
+    uint8_t destEA = opcode & 0b111'111;
+
+    pc+=2;
 
     switch(size) {
-    }
+    case byteSize: {
+        uint8_t operand = fetchArg<uint8_t>(destEA);
+        uint16_t result = operand + value;
+        if(result > 0xff) {
+            setCCRReg(carry);
+            setCCRReg(extend);
+        }
+        else {
+            clearCCRReg(carry);
+            clearCCRReg(extend);
+        }
+        if(!(result&0xff)) setCCRReg(zero);
+        else clearCCRReg(zero);
+        if(result&0x80) setCCRReg(negative);
+        else clearCCRReg(negative);
+        if(result > 127 && operand <= 127) setCCRReg(overflow);
+        else clearCCRReg(overflow);
 
-    /*  Conditions:
-        X — Set the same as the carry bit.
-        N — Set if the result is negative; cleared otherwise.
-        Z — Set if the result is zero; cleared otherwise.
-        V — Set if an overflow occurs; cleared otherwise.
-        C — Set if a carry occurs; cleared otherwise.
-        The condition codes are not affected when the destination is an address register.
-    */
-    return -1;}
+        stashArg<uint8_t>(destEA, result);
+        break;
+    }
+    case wordSize: {
+        uint16_t operand = fetchArg<uint16_t>(destEA);
+        uint32_t result = operand + value;
+        if(!isAddrEA(destEA)) {
+            if(result > 0xffff) {
+                setCCRReg(carry);
+                setCCRReg(extend);
+            }
+            else {
+                clearCCRReg(carry);
+                clearCCRReg(extend);
+            }
+            if(!(result&0xffff)) setCCRReg(zero);
+            else clearCCRReg(zero);
+            if(result&0x8000) setCCRReg(negative);
+            else clearCCRReg(negative);
+            if(result > 32767 && operand <= 32767) setCCRReg(overflow);
+            else clearCCRReg(overflow);
+        }
+        stashArg<uint16_t>(destEA, result);
+        break;
+    }
+    case longSize: {
+        uint16_t operand = fetchArg<uint32_t>(destEA);
+        uint32_t result = operand + value;
+        if(!isAddrEA(destEA)) {
+            if(result > 0xffff'ffff) {
+                setCCRReg(carry);
+                setCCRReg(extend);
+            }
+            else {
+                clearCCRReg(carry);
+                clearCCRReg(extend);
+            }
+            if(!(result&0xffff'ffff)) setCCRReg(zero);
+            else clearCCRReg(zero);
+            if(result&0x8000'0000) setCCRReg(negative);
+            else clearCCRReg(negative);
+            if(result > 0x7fff'ffff && operand <= 0x7fff'ffff) setCCRReg(overflow);
+            else clearCCRReg(overflow);
+        }
+        stashArg<uint32_t>(destEA, result);
+        break;
+    }
+    }
+    //TODO: fix timing
+    return 1;
+}
 uint64_t cpuM68k::op_ADDX(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_AND(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_ANDI(uint16_t opcode) {return -1;}
@@ -275,7 +336,8 @@ uint64_t cpuM68k::op_MOVE(uint16_t opcode) {
     // MOVE (A0), D0
     operandSize s = static_cast<operandSize>((opcode>>12) & 0b11);
     uint8_t srcEA = opcode & 0b111'111;
-    uint8_t destEA = (opcode>>6) & 0b111'111;
+    uint8_t destEA = ((opcode>>3) & 0b111) | ((opcode >> 9) & 0b111);
+
     pc+=2;
     switch(s) {
     case byteSize:
@@ -380,6 +442,11 @@ uint64_t cpuM68k::op_TST(uint16_t opcode) {
     return 1;     // TODO: Fix timing
 }
 uint64_t cpuM68k::op_UNLK(uint16_t opcode) {return -1;}
+
+bool cpuM68k::isAddrEA(uint8_t addressBlock) {
+    uint8_t mode = (addressBlock>>3) & 0b111;
+    return (mode >= 1 && mode <= 6);
+}
 
 template <class retType>
 retType cpuM68k::fetchArg(uint8_t addressBlock) {
@@ -486,8 +553,8 @@ retType cpuM68k::fetchArg(uint8_t addressBlock) {
 
     template <class argType>
     void cpuM68k::stashArg(uint8_t addressBlock, argType value) {
-        uint8_t mode = addressBlock & 0b00'000'111;
-        uint8_t reg = addressBlock & 0b00'111'000;
+        uint8_t mode = addressBlock & 0b00'111'000;
+        uint8_t reg = addressBlock & 0b00'000'111;
         switch (mode) {
             case data_reg: // Data register direct
                 switch(sizeof(argType)) {
