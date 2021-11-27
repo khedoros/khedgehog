@@ -79,6 +79,11 @@ uint16_t cpuM68k::getCCRReg(ccrField f) {
     return (ccr & f);
 }
 
+void cpuM68k::adjustCCRReg(uint8_t f, bool val) {
+    if(val) ccr |= f;
+    else    ccr &= (~f);
+}
+
 bool cpuM68k::evalCond(uint8_t c) {
     switch(c) {
         case always:
@@ -150,20 +155,10 @@ uint64_t cpuM68k::op_ADDQ(uint16_t opcode) {
     case byteSize: {
         uint8_t operand = fetchArg<uint8_t>(destEA);
         uint16_t result = operand + value;
-        if(result > 0xff) {
-            setCCRReg(carry);
-            setCCRReg(extend);
-        }
-        else {
-            clearCCRReg(carry);
-            clearCCRReg(extend);
-        }
-        if(!(result&0xff)) setCCRReg(zero);
-        else clearCCRReg(zero);
-        if(result&0x80) setCCRReg(negative);
-        else clearCCRReg(negative);
-        if(result > 127 && operand <= 127) setCCRReg(overflow);
-        else clearCCRReg(overflow);
+        adjustCCRReg(carry|extend, result > 0xff);
+        adjustCCRReg(zero, !(result&0xff));
+        adjustCCRReg(negative, result&0x80);
+        adjustCCRReg(overflow, result > 0x7f && operand <= 0x7f);
 
         stashArg<uint8_t>(destEA, result);
         break;
@@ -172,20 +167,10 @@ uint64_t cpuM68k::op_ADDQ(uint16_t opcode) {
         uint16_t operand = fetchArg<uint16_t>(destEA);
         uint32_t result = operand + value;
         if(!isAddrEA(destEA)) {
-            if(result > 0xffff) {
-                setCCRReg(carry);
-                setCCRReg(extend);
-            }
-            else {
-                clearCCRReg(carry);
-                clearCCRReg(extend);
-            }
-            if(!(result&0xffff)) setCCRReg(zero);
-            else clearCCRReg(zero);
-            if(result&0x8000) setCCRReg(negative);
-            else clearCCRReg(negative);
-            if(result > 32767 && operand <= 32767) setCCRReg(overflow);
-            else clearCCRReg(overflow);
+            adjustCCRReg(carry|extend, result > 0xffff);
+            adjustCCRReg(zero, !(result&0xffff));
+            adjustCCRReg(negative, result&0x8000);
+            adjustCCRReg(overflow, result > 0x7fff && operand <= 0x7fff);
         }
         stashArg<uint16_t>(destEA, result);
         break;
@@ -194,20 +179,10 @@ uint64_t cpuM68k::op_ADDQ(uint16_t opcode) {
         uint16_t operand = fetchArg<uint32_t>(destEA);
         uint32_t result = operand + value;
         if(!isAddrEA(destEA)) {
-            if(result > 0xffff'ffff) {
-                setCCRReg(carry);
-                setCCRReg(extend);
-            }
-            else {
-                clearCCRReg(carry);
-                clearCCRReg(extend);
-            }
-            if(!(result&0xffff'ffff)) setCCRReg(zero);
-            else clearCCRReg(zero);
-            if(result&0x8000'0000) setCCRReg(negative);
-            else clearCCRReg(negative);
-            if(result > 0x7fff'ffff && operand <= 0x7fff'ffff) setCCRReg(overflow);
-            else clearCCRReg(overflow);
+            adjustCCRReg(carry|extend, result > 0xffff'ffff);
+            adjustCCRReg(zero, !(result&0xffff'ffff));
+            adjustCCRReg(negative, result&0x8000'0000);
+            adjustCCRReg(overflow, result > 0x7fff'ffff && operand <= 0x7fff'ffff);
         }
         stashArg<uint32_t>(destEA, result);
         break;

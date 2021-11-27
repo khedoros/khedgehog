@@ -75,6 +75,7 @@ private:
     void setCCRReg(ccrField);
     void clearCCRReg(ccrField);
     uint16_t getCCRReg(ccrField);
+    void adjustCCRReg(uint8_t, bool);
     bool evalCond(uint8_t);
 
     stackType curStack = supervisorMode;
