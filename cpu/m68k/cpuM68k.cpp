@@ -406,7 +406,68 @@ uint64_t cpuM68k::op_ROXd(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_SBCD(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_Scc(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_SPECIAL(uint16_t opcode) {return -1;}
-uint64_t cpuM68k::op_SUB(uint16_t opcode) {return -1;}
+uint64_t cpuM68k::op_SUB(uint16_t opcode) {
+    // 9088 1001 000 010   001000
+    //      1001 reg mode  effaddr
+    // mode: 0=Dn-Ea->Dn, 1=Ea-Dn->Ea 00=byte, 01=word, 10=long
+    // X — Set to the value of the carry bit.
+    // N — Set if the result is negative; cleared otherwise.
+    // Z — Set if the result is zero; cleared otherwise.
+    // V — Set if an overflow is generated; cleared otherwise.
+    // C — Set if a borrow is generated; cleared otherwise.
+    operandSize size  = static_cast<operandSize>((opcode & 0b11000000)>>6);
+    bool mode = (opcode>>8) & 1;
+    uint8_t ea = opcode & 0b111111;
+    uint8_t reg = (opcode >> 9) & 0b111;
+    switch(size) {
+        case byteSize: {
+            uint8_t op1 = fetchArg<uint8_t>(ea);
+            uint8_t op2 = dreg[reg];
+            uint8_t res;
+            if(mode) {
+                res = op1 - op2;
+                stashArg<uint8_t>(ea, res);
+            }
+            else {
+                res = op2 - op1;
+                dreg[reg] &= 0xffffff00;
+                dreg[reg] |= res;
+            }
+        }
+            break;
+        case wordSize: {
+            uint16_t op1 = fetchArg<uint16_t>(ea);
+            uint16_t op2 = dreg[reg];
+            uint16_t res;
+            if(mode) {
+                res = op1 - op2;
+                stashArg<uint16_t>(ea, res);
+            }
+            else {
+                res = op2 - op1;
+                dreg[reg] &= 0xffff0000;
+                dreg[reg] |= res;
+            }
+        }
+            break;
+        case longSize: {
+            uint32_t op1 = fetchArg<uint32_t>(ea);
+            uint32_t op2 = dreg[reg];
+            uint32_t res;
+            if(mode) {
+                res = op1 - op2;
+                stashArg<uint32_t>(ea, res);
+            }
+            else {
+                res = op2 - op1;
+                dreg[reg] = res;
+            }
+        }
+            break;
+    }
+    return -1;
+}
+
 uint64_t cpuM68k::op_SUBA(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_SUBI(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_SUBQ(uint16_t opcode) {return -1;}
