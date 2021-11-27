@@ -56,6 +56,7 @@ uint64_t cpuM68k::calc(uint64_t cycle_max) {
     while(cycles < cycle_max && inst_cycles < 1000) {
         uint16_t op = bswap_16(memory->readWord(pc));
         std::printf("%06X: %04x (%s)\n", pc, op, op_name[op>>3].c_str());
+        pc+=2;
         inst_cycles = (this->*op_table[op>>3])(op);
         if(inst_cycles == uint64_t(-1)) {
             return 0;
@@ -149,8 +150,6 @@ uint64_t cpuM68k::op_ADDQ(uint16_t opcode) {
     operandSize size = static_cast<operandSize>((opcode>>6) & 0b11);
     uint8_t destEA = opcode & 0b111'111;
 
-    pc+=2;
-
     switch(size) {
     case byteSize: {
         uint8_t operand = fetchArg<uint8_t>(destEA);
@@ -204,29 +203,27 @@ uint64_t cpuM68k::op_Bcc(uint16_t opcode) {
 
     if(evalCond(condition)) {
         if(displacement == 0) { // 16-bit displacement
-            displacement = static_cast<int16_t>(bswap(memory->readWord(pc+2))) + 2;
+            displacement = static_cast<int16_t>(bswap(memory->readWord(pc)));
             //printf("Displacing by 16-bit: %d", displacement);
         }
         else if(displacement == -1) { // 32-bit displacement
-            displacement = static_cast<int32_t>(bswap(memory->readLong(pc+2))) + 2;
+            displacement = static_cast<int32_t>(bswap(memory->readLong(pc)));
             //printf("Displacing by 32-bit: %d", displacement);
         }
         else { // 8-bit displacement
             //printf("Displacing by 8-bit: %d", displacement);
-            displacement += 2;
         }
         //std::cout<<" Taking the branch. Displacing by "<<displacement<<"\n";
         pc += displacement;
     }
     else {
         if(displacement == 0) { // 16-bit displacement
-            pc +=4;
+            pc +=2;
         }
         else if(displacement == -1) { // 32-bit displacement
-            pc += 6;
+            pc += 4;
         }
         else { // 8-bit displacement
-            pc += 2;
         }
         //std::cout<<" Not taking the branch.\n";
     }
@@ -244,7 +241,6 @@ uint64_t cpuM68k::op_BTST(uint16_t opcode) {
     // ----------------------------------|--------------------------
     // 0 0 0 0 1 0 0    0 0 0 mode register 0 0 0 0 0 0 0 0 bit-number   Bit-number specified as immediate data
     // 0 0 0 0 register 1 0 0 mode register                              Bit-number specified in data register
-    pc+=2;
     uint8_t bitNum;
     if (opcode & 0b1'0000'0000) { // bit number in register
         int regNum = (opcode & 0b1110'0000'0000)>>9;
@@ -289,7 +285,6 @@ uint64_t cpuM68k::op_LEA(uint16_t opcode) {
     // 00023C: 4bfa (LEA)    23c:   4bfa 0088       lea %pc@(0x2c6),%a5
     // 15 14 13 12    11 10 9   8 7 6   5  4  3  2  1  0
     //  0  1  0  0   REGISTER   1 1 1   EFFECTIVE ADDRESS
-    pc += 2;
     uint8_t regnum = ((opcode>>9) & 0b111);
     uint32_t addr = fetchArg<uint32_t>(opcode & 0b111111);
     if(regnum < 7) {
@@ -313,7 +308,6 @@ uint64_t cpuM68k::op_MOVE(uint16_t opcode) {
     uint8_t srcEA = opcode & 0b111'111;
     uint8_t destEA = ((opcode>>3) & 0b111) | ((opcode >> 9) & 0b111);
 
-    pc+=2;
     switch(s) {
     case byteSize:
         {
@@ -408,6 +402,8 @@ uint64_t cpuM68k::op_SUB(uint16_t opcode) {
                 dreg[reg] &= 0xffffff00;
                 dreg[reg] |= res;
             }
+            adjustCCRReg(zero, !res);
+            adjustCCRReg(negative, res&0x80);
         }
             break;
         case wordSize: {
@@ -423,6 +419,8 @@ uint64_t cpuM68k::op_SUB(uint16_t opcode) {
                 dreg[reg] &= 0xffff0000;
                 dreg[reg] |= res;
             }
+            adjustCCRReg(zero, !res);
+            adjustCCRReg(negative, res&0x8000);
         }
             break;
         case longSize: {
@@ -437,10 +435,14 @@ uint64_t cpuM68k::op_SUB(uint16_t opcode) {
                 res = op2 - op1;
                 dreg[reg] = res;
             }
+            adjustCCRReg(zero, !res);
+            adjustCCRReg(negative, res&0x8000'0000);
         }
             break;
     }
-    return -1;
+    // TODO: Fix Carry, extend, overflow flags
+    // TODO: Fix timing
+    return 1;
 }
 
 uint64_t cpuM68k::op_SUBA(uint16_t opcode) {return -1;}
@@ -454,7 +456,6 @@ uint64_t cpuM68k::op_TST(uint16_t opcode) {
     // 15 14 13 12 11 10 9 8   7 6     5 4 3   2 1 0
     //  0  1  0  0  1  0 1 0   SIZE   EFFECTIVE ADDRESS
     //                                  MODE   REGISTER
-    pc+=2;
     operandSize size = static_cast<operandSize>((opcode & 0b11000000)>>6);
     uint32_t operand;
     switch(size) {
