@@ -55,13 +55,14 @@ uint64_t cpuM68k::calc(uint64_t cycle_max) {
     uint64_t inst_cycles = 0;
     while(cycles < cycle_max && inst_cycles < 1000) {
         uint16_t op = bswap_16(memory->readWord(pc));
-        std::printf("%06X: %04x (%s)\n", pc, op, op_name[op>>3].c_str());
+        std::printf("%06X: %04x (%s)", pc, op, op_name[op>>3].c_str());
         pc+=2;
         inst_cycles = (this->*op_table[op>>3])(op);
         if(inst_cycles == uint64_t(-1)) {
             return 0;
         }
         cycles += inst_cycles;
+        std::printf("\n");
     }
     return cycles;
 }
@@ -88,49 +89,49 @@ void cpuM68k::adjustCCRReg(uint8_t f, bool val) {
 bool cpuM68k::evalCond(uint8_t c) {
     switch(c) {
         case always:
-            //std::cout<<"Always";
+            std::cout<<"Always";
             return true;
         case higher:
-            //std::cout<<"Higher";
+            std::cout<<"Higher";
             return !getCCRReg(cpuM68k::carry) && !getCCRReg(cpuM68k::zero);
         case lowerEqual:
-            //std::cout<<"LowerEqual";
+            std::cout<<"LowerEqual";
             return getCCRReg(cpuM68k::carry) || getCCRReg(cpuM68k::zero);
         case carryClear:
-            //std::cout<<"CarryClear";
+            std::cout<<"CarryClear";
             return !getCCRReg(cpuM68k::carry);
         case carrySet:
-            //std::cout<<"CarrySet";
+            std::cout<<"CarrySet";
             return getCCRReg(cpuM68k::carry);
         case notEqual:
-            //std::cout<<"NotEqual";
+            std::cout<<"NotEqual";
             return !getCCRReg(cpuM68k::zero);
         case equal:
-            //std::cout<<"Equal";
+            std::cout<<"Equal";
             return getCCRReg(cpuM68k::zero);
         case overflowClear:
-            //std::cout<<"OverflowClear";
+            std::cout<<"OverflowClear";
             return !getCCRReg(cpuM68k::overflow);
         case overflowSet:
-            //std::cout<<"OverflowSet";
+            std::cout<<"OverflowSet";
             return getCCRReg(cpuM68k::overflow);
         case plus:
-            //std::cout<<"Positive";
+            std::cout<<"Positive";
             return !getCCRReg(cpuM68k::negative);
         case minus:
-            //std::cout<<"Negative";
+            std::cout<<"Negative";
             return getCCRReg(cpuM68k::negative);
         case greaterEqual:
-            //std::cout<<"greaterEqual";
+            std::cout<<"greaterEqual";
             return (getCCRReg(cpuM68k::negative))>>(3) == (getCCRReg(cpuM68k::overflow))>>(1);
         case lessThan:
-            //std::cout<<"lessThan";
+            std::cout<<"lessThan";
             return getCCRReg(zero) && ((!getCCRReg(negative) && getCCRReg(overflow)) || (getCCRReg(negative) && !getCCRReg(overflow)));
         case greaterThan:
-            //std::cout<<"greaterThan";
+            std::cout<<"greaterThan";
             return (!getCCRReg(zero) && !getCCRReg(negative) && !getCCRReg(overflow)) || (!getCCRReg(zero) && getCCRReg(negative) && getCCRReg(overflow));
         case lessEqual:
-            //std::cout<<"lessEqual";
+            std::cout<<"lessEqual";
             return getCCRReg(zero) || (getCCRReg(negative) && !getCCRReg(overflow)) || (!getCCRReg(negative) && getCCRReg(overflow));
         default:
             std::cerr<<"Invalid branch type "<<int(c)<<"!\n";
@@ -193,7 +194,12 @@ uint64_t cpuM68k::op_ADDQ(uint16_t opcode) {
 uint64_t cpuM68k::op_ADDX(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_AND(uint16_t opcode) {return -1;}
 uint64_t cpuM68k::op_ANDI(uint16_t opcode) {return -1;}
-uint64_t cpuM68k::op_ASd(uint16_t opcode) {return -1;}
+uint64_t cpuM68k::op_ASd(uint16_t opcode) {
+    // e280 1110 001     0    10        0    00   000
+    //      1110 c/r(3) dr(1) size(2) l/r(1) 00 reg/count
+    return -1;
+
+}
 uint64_t cpuM68k::op_Bcc(uint16_t opcode) {
     uint8_t condition = (opcode>>8) & 0b1111;
     int32_t displacement = static_cast<int8_t>(opcode & 0b1111'1111);
