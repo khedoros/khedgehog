@@ -366,7 +366,7 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
                                                modOp->inst->waveformMod);
 
                         modOut = lookupExp((modSin) +                                                // sine input
-                                           (amTable[modOp->amPhase] * 8)                             // AM volume attenuation (tremolo)
+                                           (amTable[modOp->amPhase] * 8) +                           // AM volume attenuation (tremolo)
                                            (modOp->envLevel * 0x10) +                                // Envelope
                                            //TODO: KSL
                                            (modOp->totalLevel * 0x20)) >> 1;                         // Modulator volume
