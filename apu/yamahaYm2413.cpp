@@ -124,14 +124,44 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
     if(reg < 8) {
         switch(reg) {
             case 0:
+                if(inst[0].amMod != static_cast<bool>(val & 0x80)) { // If turning off, going to phase 0 effectively disables it.
+                                                                     // If turning on, we want to start from the beginning of the phase.
+                    for(int i=0;i<9;i++) {
+                        if(chan[i].instNum == 0) {
+                            chan[i].modOp.amPhase = 0;
+                        }
+                    }
+                }
                 inst[0].amMod = (val & 0x80);
+                if(inst[0].vibMod != static_cast<bool>(val & 0x40)) { // Similar reasons to the AM one above
+                    for(int i=0;i<9;i++) {
+                        if(chan[i].instNum == 0) {
+                            chan[i].modOp.vibPhase = 0;
+                        }
+                    }
+                }
                 inst[0].vibMod = (val & 0x40);
                 inst[0].sustMod = (val & 0x20);
                 inst[0].keyScaleRateMod = (val & 0x10);
                 inst[0].multMod = (val & 0x0f);
                 break;
             case 1:
+                if(inst[0].amCar != static_cast<bool>(val & 0x80)) { // If turning off, going to phase 0 effectively disables it.
+                                                                     // If turning on, we want to start from the beginning of the phase.
+                    for(int i=0;i<9;i++) {
+                        if(chan[i].instNum == 0) {
+                            chan[i].carOp.amPhase = 0;
+                        }
+                    }
+                }
                 inst[0].amCar = (val & 0x80);
+                if(inst[0].vibCar != static_cast<bool>(val & 0x40)) { // Similar reasons to the AM one above
+                    for(int i=0;i<9;i++) {
+                        if(chan[i].instNum == 0) {
+                            chan[i].carOp.vibPhase = 0;
+                        }
+                    }
+                }
                 inst[0].vibCar = (val & 0x40);
                 inst[0].sustCar = (val & 0x20);
                 inst[0].keyScaleRateCar = (val & 0x10);
@@ -278,7 +308,8 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
     /**/    applyRegister(regWrites[curIndex++]);
     /**/ }
          
-        envCounter+=16;
+        // envCounter+=16;
+        envCounter++;
 
         int chanMax = (rhythm)?6:9;
         for(int ch=0;ch<chanMax;ch++) {
@@ -291,12 +322,12 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
                 int feedback = (modOp->inst->feedbackMod) ? ((modOp->modFB1 + modOp->modFB2) >> (8 - modOp->inst->feedbackMod)) : 0;
                 carOp->phaseCnt += carOp->phaseInc;
                 int modSin = lookupSin((modOp->phaseCnt / 512) -1 +                              // phase
-                                       (modOp->vibPhase) +                                       // modification for vibrato
+                                       (fmTable[chan[ch].fNum>>6][modOp->vibPhase] * 2) +        // modification for vibrato
                                        (feedback),                                               // modification for feedback
                                        modOp->inst->waveformMod);
 
                 int modOut = lookupExp((modSin) +                                                // sine input
-                                       (modOp->amPhase * 0x10) +                                 // AM volume attenuation (tremolo)
+                                       (amTable[modOp->amPhase] * 8) +                           // AM volume attenuation (tremolo)
                                        (modOp->envLevel * 0x10) +                                // Envelope
                                        //TODO: KSL
                                        (modOp->totalLevel * 0x20)) >> 1;                         // Modulator volume
@@ -304,12 +335,12 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
                 modOp->modFB2 = modOut;
 
                 int carSin = lookupSin((carOp->phaseCnt / 512) +                                 // phase
-                                       (2 * modOut) +                                            // fm modulation
-                                       (carOp->vibPhase),                                        // modification for vibrato
+                                       (modOut) +                                                // fm modulation
+                                       (fmTable[chan[ch].fNum>>6][carOp->vibPhase] * 2),         // modification for vibrato
                                        carOp->inst->waveformCar);
 
                 buffer[i]+=lookupExp((carSin) +                                                  // sine input
-                                     (carOp->amPhase * 0x10) +                                   // AM volume attenuation (tremolo)
+                                     (amTable[carOp->amPhase] * 8) +                             // AM volume attenuation (tremolo)
                                      (carOp->envLevel * 0x10) +                                  // Envelope
                                      //TODO: KSL
                                      (chan[ch].volume * 0x80)) & 0xfff0;                         // Channel volume
@@ -401,6 +432,33 @@ const std::string YamahaYm2413::rhythmNames[] {"Bass Drum", "High Hat",
                                                "Snare Drum", "Tom-tom", "Top Cymbal"};
 
 void YamahaYm2413::op_t::updateEnvelope(unsigned int counter, bool mod) {
+
+    if(counter % amPhaseSampleLength == 0) {
+        if(mod && inst->amMod) {
+            amPhase++;
+        }
+        else if(inst->amCar) {
+            amPhase++;
+        }
+
+        if(amPhase == amTable.size()) {
+            amPhase = 0;
+        }
+    }
+
+    if(counter % vibPhaseSampleLength == 0) {
+        if(mod && inst->vibMod) {
+            vibPhase++;
+        }
+        else if(inst->vibCar) {
+            vibPhase++;
+        }
+
+        if(vibPhase == fmTable[0].size()) {
+            vibPhase = 0;
+        }
+    }
+
     if(envPhase == dampen && envLevel >= 123) {
         envPhase = attack;
     }
@@ -471,3 +529,28 @@ void YamahaYm2413::op_t::updateEnvelope(unsigned int counter, bool mod) {
     if(envLevel > 130) envLevel = 0; // assume wrap-around
     else if(envLevel > 127) envLevel = 127; //assume it just overflowed the 7-bit value
 }
+
+const std::array<int,210> YamahaYm2413::amTable {
+    0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4,
+    4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 9, 9, 9,
+    9,10,10,10,10,11,11,11,11,12,12,12,12,13,13,13,13,14,14,14,14,
+    15,15,15,15,16,16,16,16,17,17,17,17,18,18,18,18,19,19,19,19,20,
+    20,20,20,21,21,21,21,22,22,22,22,23,23,23,23,24,24,24,24,25,25,
+    25,25,26,26,26,25,25,25,25,24,24,24,24,23,23,23,23,22,22,22,22,
+    21,21,21,21,20,20,20,20,19,19,19,19,18,18,18,18,17,17,17,17,16,
+    16,16,16,15,15,15,15,14,14,14,14,13,13,13,13,12,12,12,12,11,11,
+    11,11,10,10,10,10, 9, 9, 9, 9, 8, 8, 8, 8, 7, 7, 7, 7, 6, 6, 6,
+    6, 5, 5, 5, 5, 4, 4, 4, 4, 3, 3, 3, 3, 2, 2, 2, 2, 1, 1, 1, 1
+    };
+
+const std::array<std::array<int,8>,8> YamahaYm2413::fmTable {{
+    {0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 1, 0, 0, 0,-1, 0},
+    {0, 1, 2, 1, 0,-1,-2,-1},
+    {0, 1, 3, 1, 0,-1,-3,-1},
+    {0, 2, 4, 2, 0,-2,-4,-2},
+    {0, 2, 5, 2, 0,-2,-5,-2},
+    {0, 3, 6, 3, 0,-3,-6,-3},
+    {0, 3, 7, 3, 0,-3,-7,-3}
+}};
+

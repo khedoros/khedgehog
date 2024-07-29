@@ -2,6 +2,7 @@
 #include<cstdint>
 #include<string>
 #include<tuple>
+#include<array>
 
 class dbg_con {
     public:

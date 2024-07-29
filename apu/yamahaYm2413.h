@@ -17,6 +17,8 @@ private:
     class inst_t;
     void applyRegister(std::pair<uint8_t, uint8_t>& write);
     std::array<int16_t, 882 * 2> buffer;
+    static const std::array<int,210> amTable;
+    static const std::array<std::array<int,8>,8> fmTable; 
     uint8_t curReg;
     uint8_t statusVal;
 
@@ -48,21 +50,21 @@ private:
         unsigned phaseCnt:19;    // Current place in the sine phase. 10.9 fixed-point number, where the whole selects the sine sample to use
 
         // TODO: AM/tremolo state. amPhase is a placeholder.
-        unsigned amPhase:4;
+        int amPhase;
+        static const int amPhaseSampleLength = ( 49716 * 64 ) / 44100;
 
         // TODO: FM/vibrato state. vibPhase is a placeholder.
-        unsigned vibPhase:4;
+        int vibPhase;
+        static const int vibPhaseSampleLength = ( 49716 * 1024 ) / 44100;
 
         // TODO: Modulator feedback state.
-        unsigned int modFB1;
-        unsigned int modFB2;
+        int modFB1;
+        int modFB2;
 
         bool releaseSustain;   //1=key-off has release-rate at 5, 0=key-off has release rate at 7 (both with KSR adjustment)
 
         adsrPhase envPhase;
         unsigned int envLevel; // 0 - 127. 0.375dB steps (add envLevel * 0x10)
-
-
     };
 
     struct inst_t {

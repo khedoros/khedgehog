@@ -3,7 +3,7 @@ target:=khedgehog
 
 SDLCFLAGS:=$(shell sdl2-config --cflags)
 SDLLDFLAGS:=$(shell sdl2-config --libs)
-CXXFLAGS:=-std=c++17 -flto -O3 $(SDLCFLAGS)
+CXXFLAGS:=-std=c++17 -flto -D_GLIBCXX_DEBUG -O3 $(SDLCFLAGS)
 
 ifdef DEBUG
     debug:=-g
@@ -13,7 +13,7 @@ ifdef DEBUG
 endif
 
 $(target): $(objects)
-	$(CXX) $(debug) -flto -O3 -o $@ $^ $(SDLLDFLAGS)
+	$(CXX) $(debug) -flto -O3 -o $@ $^ $(SDLLDFLAGS) $(LDFLAGS)
 
 %.od: %.cpp
 	$(CXX) -c $(debug) $(CPPFLAGS) $(CXXFLAGS) $< -o $@
