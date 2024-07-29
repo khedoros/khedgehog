@@ -387,6 +387,7 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
                 }
             }
         }
+        buffer[i] *= 2;
     }
 
     writeIndex = 0;
@@ -406,7 +407,7 @@ int YamahaYm2413::lookupSin(int val, bool wf) {
     val &= 255;
     int result = logsinTable[mirror ? val ^ 255 : val];
     if (sign) {
-        if(wf) result = 0xfff; // set to 0 for negative part of second waveform
+        if(wf) result = 0;     // set to 0 for negative part of second waveform
         result |= 0x8000;      // still outputs positive and negative 0
     }
     return result;
@@ -414,8 +415,9 @@ int YamahaYm2413::lookupSin(int val, bool wf) {
 
 int YamahaYm2413::lookupExp(int val) {
     bool sign = val & 0x8000;
-    int t = (expTable[(val & 255) ^ 255] << 1) | 0x800;
-    int result = t >> ((val & 0x7F00) >> 8);
+    // int t = (expTable[(val & 255) ^ 255] << 1) | 0x800;
+    int t = (expTable[(val & 255) ^ 255] | 1024) << 1;
+    int result = t >> ((val & 0x7F00) >> 8) >> 2;
     if (sign) result = ~result;
     return result;
 }
