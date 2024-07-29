@@ -361,12 +361,12 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
                         int feedback = (modOp->inst->feedbackMod) ? ((modOp->modFB1 + modOp->modFB2) >> (8 - modOp->inst->feedbackMod)) : 0;
                         modOp->phaseCnt += modOp->phaseInc;
                         int modSin = lookupSin((modOp->phaseCnt / 512) - 1 +                         // phase
-                                               (modOp->vibPhase) +                                   // modification for vibrato
+                                               (fmTable[chan[ch].fNum>>6][modOp->vibPhase] * 2) +    // modification for vibrato
                                                (feedback),                                           // modification for feedback
                                                modOp->inst->waveformMod);
 
                         modOut = lookupExp((modSin) +                                                // sine input
-                                           (modOp->amPhase * 0x10) +                                 // AM volume attenuation (tremolo)
+                                           (amTable[modOp->amPhase] * 8)                             // AM volume attenuation (tremolo)
                                            (modOp->envLevel * 0x10) +                                // Envelope
                                            //TODO: KSL
                                            (modOp->totalLevel * 0x20)) >> 1;                         // Modulator volume
@@ -375,12 +375,12 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
 
                     }
                     int carSin = lookupSin((carOp->phaseCnt / 512) +                                 // phase
-                                           (2 * modOut) +                                            // fm modulation
-                                           (carOp->vibPhase),                                        // modification for vibrato
+                                           (modOut) +                                                // fm modulation
+                                           (fmTable[chan[ch].fNum>>6][carOp->vibPhase] * 2),         // modification for vibrato
                                            carOp->inst->waveformCar);
 
                     buffer[i]+= lookupExp((carSin) +                                                 // sine input
-                                         (carOp->amPhase * 0x10) +                                   // AM volume attenuation (tremolo)
+                                         (amTable[carOp->amPhase] * 8) +                             // AM volume attenuation (tremolo)
                                          (carOp->envLevel * 0x10) +                                  // Envelope
                                          //TODO: KSL
                                          (*percChan[ch].volume * 0x80)) & 0xfff0;                    // Channel volume
