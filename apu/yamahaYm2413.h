@@ -36,8 +36,8 @@ private:
     unsigned int writeIndex;
     std::array<std::pair<uint8_t, uint8_t>, 100> regWrites;
 
-    int tremoloMultiplier; // 1dB when false (add range of 0->43?), 4.8dB when true (0->205?)
-    int vibratoMultiplier; // 7 cent when false, 14 cent when true
+    static const int tremoloMultiplier = 8; // 4.8dB max amplitude
+    static const int vibratoMultiplier = 2; // 14 cent max amplitude
 
     unsigned int envCounter; // Global counter for advancing envelope state
 
@@ -53,9 +53,11 @@ private:
         attack,         //New note rising after key-on
         decay,          //Initial fade to sustain level after reaching max volume
         sustain,        //Level to hold at until key-off, or level at which to transition from decay to sustainRelease phase
-        sustainRelease, //sustain for percussive notes
-        release         //key-off
+        percussiveRelease, //sustain for percussive notes, while note is still held
+        release         //key-off (note is released)
     };
+
+    static const std::array<std::string,10> adsrPhaseNames;
 
     struct inst_t {
         //reg 0
@@ -64,7 +66,7 @@ private:
 
         bool vibMod;          //frequency variance @ 6.4Hz
 
-        bool sustMod;         //1=sustained tone, 0=no sustain period
+        bool sustMod;         //EG-TYP, 1=sustained tone, 0=no sustain period
         bool keyScaleRateMod; //KSR: modify ADSR rate based on frequency
         unsigned multMod:4;   //frequency multiplier, 1 of 3 elements that define the frequency
 
@@ -74,7 +76,7 @@ private:
 
         bool vibCar;          //frequency variance @ 6.4Hz
 
-        bool sustCar;         //1=sustained tone, 0=no sustain period
+        bool sustCar;         //EG-TYP, 1=sustained tone, 0=no sustain period
         bool keyScaleRateCar; //KSR: modify ADSR rate based on frequency
         unsigned multCar:4;   //frequency multiplier, 1 of 3 elements that define the frequency
 
@@ -119,6 +121,8 @@ private:
         adsrPhase envPhase;
         int envLevel; // 0 - 127. 0.375dB steps (add envLevel * 0x10)
         int envAccum; // microsecond count for envLevel increment/decrement
+
+        bool keyOn; // mirror of on-off state of the key
     };
 
     struct chan_t {

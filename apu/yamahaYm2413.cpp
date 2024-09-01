@@ -25,6 +25,7 @@ YamahaYm2413::YamahaYm2413(std::shared_ptr<config>& conf) : apu(conf), curReg(0)
         ch.modOp.phaseCnt = 0;
         ch.modOp.envPhase = silent;
         ch.modOp.envLevel = 127;
+        ch.modOp.envAccum = 0;
         ch.modOp.inst->amModAtten = 0;
         ch.fmModShift = 0;
         ch.modOp.modFB1 = 0;
@@ -35,6 +36,7 @@ YamahaYm2413::YamahaYm2413(std::shared_ptr<config>& conf) : apu(conf), curReg(0)
         ch.carOp.phaseCnt = 0;
         ch.carOp.envPhase = silent;
         ch.carOp.envLevel = 127;
+        ch.carOp.envAccum = 0;
         ch.carOp.inst->amCarAtten = 0;
         ch.fmCarShift = 0;
 
@@ -89,6 +91,9 @@ YamahaYm2413::YamahaYm2413(std::shared_ptr<config>& conf) : apu(conf), curReg(0)
         inst[instrument].sustainLevelCar = (reg7 & 0xf0)>>4;
         inst[instrument].releaseCar = (reg7 & 0x0f);
     }
+    for(auto& pChan: percChan) {
+        pChan.keyOn = false;
+    }
 }
 void YamahaYm2413::mute(bool) {}
 void YamahaYm2413::writeRegister(uint8_t val) {}
@@ -123,8 +128,8 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
     uint8_t val = write.second;
     uint8_t chNum = reg & 0x0f;
     chan_t& channel = chan[chNum];
-    op_t& modOp = chan[chNum].modOp;
-    op_t& carOp = chan[chNum].carOp;
+    op_t& modOp = channel.modOp;
+    op_t& carOp = channel.carOp;
     if(reg < 8) {
         inst_t& userInst = inst[0];
         switch(reg) {
@@ -221,6 +226,7 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
                 percChan[i].carOp->envPhase = release;
             }
             else if(!percChan[i].keyOn && newKeyOn) { //keyon event
+                // std::cout<<"Percussion key-on?\n";
                 if(percChan[i].modOp) {
                     if(percChan[i].modOp->envPhase == silent) {
                         percChan[i].modOp->envPhase = attack;
@@ -242,49 +248,72 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
         }
     }
     else if(reg >= 0x10 && reg <= 0x18) {
-        chan[chNum].fNum &= 0x100;
-        chan[chNum].fNum |= val;
-        chan[chNum].modOp.phaseInc = (((chan[chNum].fNum * multVal[chan[chNum].modOp.inst->multMod]) << chan[chNum].octave) * 44100) / 49716;
-        chan[chNum].carOp.phaseInc = (((chan[chNum].fNum * multVal[chan[chNum].carOp.inst->multCar]) << chan[chNum].octave) * 44100) / 49716;
+        channel.fNum &= 0x100;
+        channel.fNum |= val;
+        modOp.phaseInc = (((channel.fNum * multVal[modOp.inst->multMod]) << channel.octave) * 44100) / 49716;
+        carOp.phaseInc = (((channel.fNum * multVal[carOp.inst->multCar]) << channel.octave) * 44100) / 49716;
     }
     else if(reg >= 0x20 && reg <= 0x28) {
-        chan[chNum].fNum &= 0xff;
-        chan[chNum].fNum |= ((val&0x01)<<8);
-        chan[chNum].octave = ((val>>1) & 0x07);
-        chan[chNum].modOp.releaseSustain = ((val>>5) & 0x01);
-        chan[chNum].carOp.releaseSustain = ((val>>5) & 0x01);
-        chan[chNum].modOp.phaseInc = (((chan[chNum].fNum * multVal[chan[chNum].modOp.inst->multMod]) << chan[chNum].octave) * 44100) / 49716;
-        chan[chNum].carOp.phaseInc = (((chan[chNum].fNum * multVal[chan[chNum].carOp.inst->multCar]) << chan[chNum].octave) * 44100) / 49716;
+        channel.fNum &= 0xff;
+        channel.fNum |= ((val&0x01)<<8);
+        channel.octave = ((val>>1) & 0x07);
+        modOp.releaseSustain = ((val>>5) & 0x01);
+        carOp.releaseSustain = ((val>>5) & 0x01);
+        modOp.phaseInc = (((channel.fNum * multVal[modOp.inst->multMod]) << channel.octave) * 44100) / 49716;
+        carOp.phaseInc = (((channel.fNum * multVal[carOp.inst->multCar]) << channel.octave) * 44100) / 49716;
         bool newKeyOn = ((val>>4) & 0x01);
-        if(chan[chNum].keyOn && !newKeyOn) { // keyOff event
-            dbg_printf("APU::YM2413 melody chan %d (%s) key-off\n", chNum, instNames[chan[chNum].instNum].c_str());
-            chan[chNum].modOp.envPhase = release;
-            chan[chNum].carOp.envPhase = release;
-        }
-        else if(!chan[chNum].keyOn && newKeyOn) { // keyOn event
-            if(chan[chNum].modOp.envPhase == silent) {
-                chan[chNum].modOp.envPhase = attack;
+        if(channel.keyOn && !newKeyOn) { // keyOff event
+            dbg_printf("APU::YM2413 melody chan %d (%s) key-off\n", chNum, instNames[channel.instNum].c_str());
+            // std::cout<<"Channel "<<int(chNum)<<" key-off\n";
+            if(!modOp.releaseSustain) {
+                modOp.envPhase = release;
+                modOp.envAccum = 0;
             }
-            else {
-                chan[chNum].modOp.envPhase = dampen;
-            }
-            if(chan[chNum].carOp.envPhase == silent) {
-                chan[chNum].carOp.envPhase = attack;
-                dbg_printf("APU::YM2413 melody chan %d (%s) attack key-on\n", chNum, instNames[chan[chNum].instNum].c_str());
-            }
-            else {
-                chan[chNum].carOp.envPhase = dampen;
-                dbg_printf("APU::YM2413 melody chan %d (%s) dampen key-on\n", chNum, instNames[chan[chNum].instNum].c_str());
+            if(!carOp.releaseSustain) {
+                carOp.envPhase = release;
+                carOp.envAccum = 0;
             }
         }
-        chan[chNum].keyOn = newKeyOn;
+        else if(newKeyOn && !channel.keyOn) { // keyOn event
+            // std::cout<<"Channel "<<int(chNum)<<" key-on\n";
+            modOp.envAccum = 0;
+            carOp.envAccum = 0;
+            if(modOp.envPhase == silent) {
+                if(modOp.inst->attackMod == 15) {
+                    modOp.envLevel = 0;
+                    modOp.envPhase = decay;
+                }
+                else {
+                    modOp.envPhase = attack;
+                }
+            }
+            else {
+                modOp.envPhase = dampen;
+            }
+
+            if(carOp.envPhase == silent) {
+                if(carOp.inst->attackCar == 15) {
+                    carOp.envLevel = 0;
+                    carOp.envPhase = decay;
+                }
+                else {
+                    carOp.envPhase = attack;
+                }
+                dbg_printf("APU::YM2413 melody chan %d (%s) attack key-on\n", chNum, instNames[channel.instNum].c_str());
+            }
+            else {
+                carOp.envPhase = dampen;
+                dbg_printf("APU::YM2413 melody chan %d (%s) dampen key-on\n", chNum, instNames[channel.instNum].c_str());
+            }
+        }
+        channel.keyOn = newKeyOn;
 
     }
     else if(reg >=0x30 && reg <= 0x38) {
-        chan[chNum].modOp.inst = &inst[val>>4];
-        chan[chNum].carOp.inst = &inst[val>>4];
-        chan[chNum].instNum = val>>4;
-        chan[chNum].volume = val & 0x0f;
+        channel.modOp.inst = &inst[val>>4];
+        channel.carOp.inst = &inst[val>>4];
+        channel.instNum = val>>4;
+        channel.volume = val & 0x0f;
     }
 }
 
@@ -455,13 +484,17 @@ void YamahaYm2413::updatePhases() {
 }
 
 void YamahaYm2413::updateEnvelopes() {
+    int c = 1;
     for(auto& ch: chan) {
+        // if(ch.modOp.envPhase != silent || ch.carOp.envPhase != silent) std::cout<<"start chan "<<c<<'\n';
         if(ch.modOp.envPhase != adsrPhase::silent) {
             ch.modOp.updateEnvelope(envCounter, true);
         }
         if(ch.carOp.envPhase != adsrPhase::silent) {
             ch.carOp.updateEnvelope(envCounter, false);
         }
+        // if(ch.modOp.envPhase != silent || ch.carOp.envPhase != silent) std::cout<<"end chan "<<c<<'\n';
+        c++;
     }
 }
 
@@ -474,52 +507,77 @@ const std::string YamahaYm2413::rhythmNames[] {"Bass Drum", "High Hat",
                                                "Snare Drum", "Tom-tom", "Top Cymbal"};
 
 void YamahaYm2413::op_t::updateEnvelope(unsigned int counter, bool mod) {
-    if(envPhase == dampen && envLevel >= 123) {
-        envPhase = attack;
-        envAccum = 0;
-        envLevel = 127;
+    // Phase transitions
+    /*
+    if(mod) {
+        std::cout<<"MOD: phase: "<<adsrPhaseNames[envPhase]<<" envLevel: "<<envLevel<<'\n';
     }
-    else if(envPhase == attack && envLevel <= 0) {
+    else {
+        std::cout<<"CAR: phase: "<<adsrPhaseNames[envPhase]<<" envLevel: "<<envLevel<<'\n';
+    }
+    */
+    if(envPhase == dampen && envLevel >= 123) { // Dampen phase ends, so transition to attack
+        envAccum = 0;
+        if(mod && inst->attackMod == 15) {
+            envLevel = 0;
+            envPhase = decay;
+        }
+        else {
+            envPhase = attack;
+            envLevel = 127;
+        }
+    }
+    else if(envPhase == attack && envLevel <= 0) { // Attack phase ends, so transition to decay
         envPhase = decay;
         envAccum = 0;
         envLevel = 0;
     }
     else if(envPhase == decay && 
-            ((mod && envLevel >= (inst->sustainLevelMod) * 8) || (!mod && envLevel >= (inst->sustainLevelCar) * 8))) {
-        if((mod && inst->sustMod) || (!mod && inst->sustCar)) {
+            ((mod && envLevel >= (inst->sustainLevelMod) * 8) || 
+            (!mod && envLevel >= (inst->sustainLevelCar) * 8))) { // Decay has reached sustain level
+        envAccum = 0;
+        if (mod && inst->sustMod) { // sound is sustained
             envPhase = sustain;
-            envAccum = 0;
+            envLevel = (inst->sustainLevelMod * 8);
         }
-        else {
-            envPhase = sustainRelease;
-            envAccum = 0;
+        else if (!mod && inst->sustCar) {
+            envPhase = sustain;
+            envLevel = (inst->sustainLevelCar * 8);
         }
-        if(mod) envLevel = (inst->sustainLevelMod * 8);
-        else    envLevel = (inst->sustainLevelCar * 8);
+        else {  // Sound is percussive
+            envPhase = percussiveRelease;
+        }
     }
-    else if((envPhase == sustainRelease || envPhase == release) && envLevel >= 123) {
+    else if(!keyOn && (envPhase == percussiveRelease || envPhase == release) && envLevel >= 123) { // Key released, channel went close enough to silent
         envPhase = silent;
+        envAccum = 0;
     }
 
     int activeRate = 0;
     bool attack = false;
     switch(envPhase) {
         case adsrPhase::silent: activeRate = 0; break;
-        case adsrPhase::dampen: activeRate = 12; break;
-        case adsrPhase::attack: if(mod) activeRate = inst->attackMod;
-                     else    activeRate = inst->attackCar;
-                     attack = true;
-                     break;
-        case adsrPhase::decay:  if(mod) activeRate = inst->decayMod;
-                     else    activeRate = inst->decayCar;
-                     break;
-        case adsrPhase::sustain: activeRate = 0; break;
-        case adsrPhase::sustainRelease: if(mod) activeRate = inst->releaseMod;
-                             else    activeRate = inst->releaseCar;
-                             break;
-        case adsrPhase::release: if(releaseSustain) activeRate = 5;
-                      else        activeRate = 7;
-                      break;
+        case adsrPhase::dampen: activeRate = 12; break; // 10ms "DP" is about decay rate 12
+        case adsrPhase::attack: 
+            if(mod) activeRate = inst->attackMod;
+            else    activeRate = inst->attackCar;
+            attack = true;
+            break;
+        case adsrPhase::decay:
+            if(mod) activeRate = inst->decayMod;
+            else    activeRate = inst->decayCar;
+            break;
+        case adsrPhase::sustain:
+            activeRate = 0;
+            break;
+        case adsrPhase::percussiveRelease:
+            if(releaseSustain) activeRate = 5; // 1.2s "RS" is about decay rate 5
+            else        activeRate = 7; // 310 ms "RR" is about decay rate 7
+            break;
+        case adsrPhase::release:
+            if(mod) activeRate = inst->releaseMod;
+            else    activeRate = inst->releaseCar;
+            break;
         default: activeRate = 0;
                  std::cout<<"Unhandled envPhase: "<<envPhase<<"\n";
                  break;
@@ -626,4 +684,14 @@ const std::array<int,64> YamahaYm2413::decayTable {
     40, 32, 27, 23, 
     20, 16, 13, 12, 
     10, 10, 10, 10
+};
+
+const std::array<std::string,10> YamahaYm2413::adsrPhaseNames {
+    "silent",
+    "dampen",
+    "attack",
+    "decay",
+    "sustain",
+    "percussiveRelease",
+    "release"
 };
