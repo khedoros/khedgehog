@@ -630,8 +630,9 @@ void YamahaYm2413::op_t::updateEnvelope(unsigned int counter, bool mod) {
             int index;
             if(mod) index = std::min(63, activeRate * 4);// + ksrModIndex);
             if(!mod) index = std::min(63, activeRate * 4);// + ksrCarIndex);
-            targetValue = 10*decayTable[index];
+            targetValue = decayTable[index];
             levelsToChange = envAccum / targetValue;
+            envAccum = envAccum % targetValue;
             envLevel += levelsToChange;
         }
     }
