@@ -13,12 +13,19 @@ public:
     void setStereo(uint8_t) override;
     std::array<int16_t, 882 * 2>& getSamples() override;
     void clearWrites() override;
+    static const int sampleRate = 44100;
+    static const int nativeOplSampleRate = 49716;
+    static const int envAccumRate = 1'000'000 / sampleRate; // Microseconds per sample
 private:
-    class inst_t;
     void applyRegister(std::pair<uint8_t, uint8_t>& write);
+    void updatePhases();
+    void updateEnvelopes();
     std::array<int16_t, 882 * 2> buffer;
     static const std::array<int,210> amTable;
-    static const std::array<std::array<int,8>,8> fmTable; 
+    static const std::array<int,64> fmTable; 
+    static const std::array<int,128> kslTable;
+    static const std::array<int,64> attackTable;
+    static const std::array<int,64> decayTable;
     uint8_t curReg;
     uint8_t statusVal;
 
@@ -29,7 +36,16 @@ private:
     unsigned int writeIndex;
     std::array<std::pair<uint8_t, uint8_t>, 100> regWrites;
 
+    int tremoloMultiplier; // 1dB when false (add range of 0->43?), 4.8dB when true (0->205?)
+    int vibratoMultiplier; // 7 cent when false, 14 cent when true
+
     unsigned int envCounter; // Global counter for advancing envelope state
+
+    int amPhase; // index into the amTable, for how deep to currently apply the AM value
+    static const int amPhaseSampleLength = (sampleRate * 64) / nativeOplSampleRate; // Number of samples between progressing to a new index
+
+    int fmPhase; // vibrato has 8 phases
+    static const int fmPhaseSampleLength = (sampleRate * 1024) / nativeOplSampleRate;
 
     enum adsrPhase {
         silent,         //Note hit envelope==48dB
@@ -41,43 +57,23 @@ private:
         release         //key-off
     };
 
-    struct op_t {
-        void updateEnvelope(unsigned int envCounter, bool mod);
-        bool modulator;          // true=modulator, false=carrier
-        inst_t* inst;            // pointer to the instrument being used.
-        unsigned totalLevel:6;   // level for the modulator, 0.75dB steps (add totalLevel * 0x20 to output value)
-        unsigned phaseInc:19;    // Basically the frequency, generated from the instrument's mult, and the fNum and octave/block for the channel
-        unsigned phaseCnt:19;    // Current place in the sine phase. 10.9 fixed-point number, where the whole selects the sine sample to use
-
-        // TODO: AM/tremolo state. amPhase is a placeholder.
-        int amPhase;
-        static const int amPhaseSampleLength = ( 49716 * 64 ) / 44100;
-
-        // TODO: FM/vibrato state. vibPhase is a placeholder.
-        int vibPhase;
-        static const int vibPhaseSampleLength = ( 49716 * 1024 ) / 44100;
-
-        // TODO: Modulator feedback state.
-        int modFB1;
-        int modFB2;
-
-        bool releaseSustain;   //1=key-off has release-rate at 5, 0=key-off has release rate at 7 (both with KSR adjustment)
-
-        adsrPhase envPhase;
-        unsigned int envLevel; // 0 - 127. 0.375dB steps (add envLevel * 0x10)
-    };
-
     struct inst_t {
         //reg 0
         bool amMod;           //tremolo (amplitude variance) @ 3.7Hz
+        int amModAtten;          // current AM (tremolo) attenuation level
+
         bool vibMod;          //frequency variance @ 6.4Hz
+
         bool sustMod;         //1=sustained tone, 0=no sustain period
         bool keyScaleRateMod; //KSR: modify ADSR rate based on frequency
         unsigned multMod:4;   //frequency multiplier, 1 of 3 elements that define the frequency
 
         //reg 1
         bool amCar;           //tremolo (amplitude variance) @ 3.7Hz
+        int amCarAtten;          // current AM (tremolo) attenuation level
+
         bool vibCar;          //frequency variance @ 6.4Hz
+
         bool sustCar;         //1=sustained tone, 0=no sustain period
         bool keyScaleRateCar; //KSR: modify ADSR rate based on frequency
         unsigned multCar:4;   //frequency multiplier, 1 of 3 elements that define the frequency
@@ -106,12 +102,40 @@ private:
         unsigned releaseCar:4;
     } inst[19];
 
+    struct op_t {
+        void updateEnvelope(unsigned int envCounter, bool mod);
+        bool modulator;          // true=modulator, false=carrier
+        inst_t* inst;            // pointer to the instrument being used.
+        unsigned totalLevel:6;   // level for the modulator, 0.75dB steps (add totalLevel * 0x20 to output value)
+        unsigned phaseInc:19;    // Basically the frequency, generated from the instrument's mult, and the fNum and octave/block for the channel
+        unsigned phaseCnt:19;    // Current place in the sine phase. 10.9 fixed-point number, where the whole selects the sine sample to use
+
+        // TODO: Modulator feedback state.
+        int modFB1;
+        int modFB2;
+
+        bool releaseSustain;   //1=key-off has release-rate at 5, 0=key-off has release rate at 7 (both with KSR adjustment)
+
+        adsrPhase envPhase;
+        int envLevel; // 0 - 127. 0.375dB steps (add envLevel * 0x10)
+        int envAccum; // microsecond count for envLevel increment/decrement
+    };
+
     struct chan_t {
         unsigned int fNum; // 2nd of 3 elements that define the frequency
         bool keyOn; //on-off state of the key
         unsigned int octave; //3rd element that defines the frequency
         unsigned int volume; // volume for the channel, 3dB steps (add volume * 0x80 to output value)
         unsigned int instNum;
+
+        unsigned kslIndex: 7; // Index to the KSL table (scales volume level by note)
+        unsigned ksrIndex: 4; // Index to the KSR table (scales envelope by note)
+        
+        // FM/vibrato state tracking.
+        int fmRow; // fmRow is decided by the top 3 bits of the current fNum for the channel
+        int fmModShift;          // current FM (vibrato) phase shift level
+        int fmCarShift;          // current FM (vibrato) phase shift level
+
         op_t modOp;
         op_t carOp;
     } chan[9];
@@ -125,7 +149,6 @@ private:
         op_t* carOp;
         inst_t* instrument;
         unsigned int* volume;
-
     };
 
     percChan_t percChan[5] = { {false, &chan[6], &chan[6].modOp, &chan[6].carOp, &inst[16], &chan[6].volume},  // Bass Drum
@@ -169,10 +192,11 @@ private:
     static const std::string instNames[];
     static const std::string rhythmNames[];
 
-    static int logsinTable[256];
-    static int expTable[256];
+    static std::array<int, 1024 * 2> logsinTable;
+    static std::array<int, 256> expTable;
 
     void initTables();
     int lookupSin(int val, bool waveForm);
     int lookupExp(int val);
+    int convertWavelength(int wavelength);
 };
