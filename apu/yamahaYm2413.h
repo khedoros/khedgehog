@@ -48,16 +48,17 @@ private:
     static const int fmPhaseSampleLength = (sampleRate * 1024) / nativeOplSampleRate;
 
     enum adsrPhase {
-        silent,         //Note hit envelope==48dB
+        silent,         //Note hit envelope==48dB and key-off
         dampen,         //End of previous note, behaves like a base decay rate of 12, adjusted by rate_key_scale
-        attack,         //New note rising after key-on
-        decay,          //Initial fade to sustain level after reaching max volume
-        sustain,        //Level to hold at until key-off, or level at which to transition from decay to sustainRelease phase
-        percussiveRelease, //sustain for percussive notes, while note is still held
-        release         //key-off (note is released)
+        attack,         //New note rising after key-on, uses attack-rate
+        decay,          //Initial fade to sustain level after reaching max volume, uses decay-rate
+        sustain,        //Level to hold at until key-off, or level at which to transition from decay to percussive/sustainRelease phase
+        percussiveRelease, //key-off, release for percussive notes, behaves like decay rate of 7
+        sustainRelease, //key-off, sustained release, behaves like decay rate of 5
+        release         //key-off (note is released), uses release-rate
     };
 
-    static const std::array<std::string,10> adsrPhaseNames;
+    static const std::array<std::string,8> adsrPhaseNames;
 
     struct inst_t {
         //reg 0
@@ -126,8 +127,10 @@ private:
     };
 
     struct chan_t {
+        void keyOn(int chNum);
+        void keyOff(int chNum);
         unsigned int fNum; // 2nd of 3 elements that define the frequency
-        bool keyOn; //on-off state of the key
+        bool key; //on-off state of the key
         unsigned int octave; //3rd element that defines the frequency
         unsigned int volume; // volume for the channel, 3dB steps (add volume * 0x80 to output value)
         unsigned int instNum;
@@ -147,7 +150,9 @@ private:
     bool rhythm;          // Rhythm mode enabled
 
     struct percChan_t {
-        bool keyOn;
+        void keyOn();
+        void keyOff();
+        bool key;
         chan_t* chan;
         op_t* modOp; // nullptr for everything but bass drum
         op_t* carOp;
