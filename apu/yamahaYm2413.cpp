@@ -308,13 +308,13 @@ void YamahaYm2413::percKeyOff(YamahaYm2413::op_t* modOp, YamahaYm2413::op_t* car
     if(modOp) {
         modOp->envAccum = 0;
         modOp->keyOn = false;
-        modOp->envPhase = adsrPhase::release;
+        modOp->envPhase = adsrPhase::percussiveRelease;
     }
 
     if(carOp) {
         carOp->envAccum = 0;
         carOp->keyOn = false;
-        carOp->envPhase = adsrPhase::release;
+        carOp->envPhase = adsrPhase::percussiveRelease;
     }
 }
 
