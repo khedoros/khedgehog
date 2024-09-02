@@ -63,6 +63,10 @@ private:
 
     static const std::array<std::string,8> adsrPhaseNames;
 
+    int lfsrStepGalois();
+    uint32_t galoisState; // LFSR state for the rhythem channels
+    bool galoisBit;
+
     struct inst_t {
         //reg 0
         bool amMod;           //tremolo (amplitude variance) @ 3.7Hz

@@ -4,7 +4,7 @@
 #include "yamahaYm2413.h"
 #include "../util.h"
 
-YamahaYm2413::YamahaYm2413(std::shared_ptr<config>& conf) : apu(conf), curReg(0), statusVal(0), writeIndex(0), cfg(conf), envCounter(0) {
+YamahaYm2413::YamahaYm2413(std::shared_ptr<config>& conf) : apu(conf), curReg(0), statusVal(0), writeIndex(0), cfg(conf), envCounter(0), galoisState(1) {
     buffer.fill(0);
 
     if(cfg->getSystemRegion() == systemRegion::eu_pal) {
@@ -429,10 +429,11 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
                 op_t * modOp = percChan[ch].modOp;
                 op_t * carOp = percChan[ch].carOp;
                 int modOut = 0, modSin = 0, carSin = 0, feedback = 0;
+                int bitComponent;
 
-                switch(ch) {
-                    case 0: // Bass Drum
-                        if(carOp->envPhase != adsrPhase::silent) {
+                if(carOp->envPhase != adsrPhase::silent) {
+                    switch(ch) {
+                        case 0: // Bass Drum
                             feedback = ((modOp->modFB1 + modOp->modFB2) >> (8 - modOp->inst->feedbackMod));
                             modOp->phaseCnt += modOp->phaseInc;
                             carOp->phaseCnt += carOp->phaseInc;
@@ -443,53 +444,60 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
                             modOp->modFB1 = modOp->modFB2;
                             modOp->modFB2 = modOut;
 
-                            carSin = lookupSin((carOp->phaseCnt / 512) +                                 // phase
+                            carSin = lookupSin((carOp->phaseCnt / 512) +                            // phase
                                         (modOut),
                                         carOp->inst->waveformCar);
-
-                            buffer[i]+=(lookupExp((carSin) +                                                  // sine input
+                            buffer[i]+=(lookupExp((carSin) +                                        // sine input
                                         (carOp->envLevel * 0x10) +                                  // Envelope
-                                        (*(percChan[ch].volume) * 0x80)) & 0xfff0)<<1;                         // Channel volume
-                        }
-                        break;
-                    case 1: // High Hat
-                        break;
-                    case 2: // Snare Drum
-                        break;
-                    case 3: // Tom-tom
-                        break;
-                    case 4: // Top Cymbal
-                        break;
-                }/*
-                if(percChan[ch].carOp->envPhase != silent) {
-                    int modOut = 0;
-                    carOp->phaseCnt += carOp->phaseInc;
-                    if(modOp) {
-                        modOp->phaseCnt += modOp->phaseInc;
-                        int modSin = lookupSin((modOp->phaseCnt / 512) +                         // phase
-
-                                               modOp->inst->waveformMod);
-
-                        modOut = lookupExp((modSin) +                                                // sine input
-                                           modOp->inst->amModAtten +                           // AM volume attenuation (tremolo)
-                                           (modOp->envLevel * 0x10) +                                // Envelope
-                                           //modOp->inst->kslModAtten +
-                                           (modOp->totalLevel * 0x20));                         // Modulator volume
-                        modOp->modFB1 = modOp->modFB2;
-                        modOp->modFB2 = modOut;
-
+                                        (*(percChan[ch].volume) * 0x80)) & 0xfff0)<<1;              // Channel volume
+                            break;
+                        case 1: // High Hat
+                            {
+                                bool c85 = chan[8].carOp.phaseCnt & 0x20;
+                                bool c83 = chan[8].carOp.phaseCnt & 0x08;
+                                bool m77 = chan[7].modOp.phaseCnt & 0x80;
+                                bool m73 = chan[7].modOp.phaseCnt & 0x08;
+                                bool m72 = chan[7].modOp.phaseCnt & 0x04;
+                                bool out = ((c85 ^ c83) & (m77 ^ m72) & (c85 ^ m73));
+                                modOut = ((galoisBit) ? (out ? 0xd0 : 0x234) :
+                                                        (out) ? 0x34 : 0x2d0);
+                                buffer[i] += (lookupExp((modOut) + 
+                                                        (carOp->envLevel * 0x10) +
+                                                        (*(percChan[ch].volume) * 0x80)) & 0xfff0)<<3;
+                            }
+                            break;
+                        case 2: // Snare Drum
+                            bitComponent = ((carOp->phaseCnt) & (1<8));
+                            if(bitComponent && galoisBit) modOut = 0x8000; // -max value
+                            else if(!bitComponent && !galoisBit) modOut = 0; // +max value
+                            else modOut = 4095; // zero value
+                            modOut += (carOp->envLevel * 0x10) +
+                                      (*(percChan[ch].volume) * 0x80);
+                            buffer[i] += (lookupExp(modOut) & 0xfff0)<<2;
+                            break;
+                        case 3: // Tom-tom
+                            carSin = lookupSin((carOp->phaseCnt / 512),                             // phase
+                                        carOp->inst->waveformMod); // Tom-tom actually uses a mod op, but it's named as a carrier so I have fewer edge cases
+                            buffer[i]+=(lookupExp((carSin) +                                        // sine input
+                                        (carOp->envLevel * 0x10) +                                  // Envelope
+                                        (*(percChan[ch].volume) * 0x80)) & 0xfff0)<<3;              // Channel volume
+                            break;
+                        case 4: // Top Cymbal
+                            {
+                                bool c85 = chan[8].carOp.phaseCnt & 0x20;
+                                bool c83 = chan[8].carOp.phaseCnt & 0x08;
+                                bool m77 = chan[7].modOp.phaseCnt & 0x80;
+                                bool m73 = chan[7].modOp.phaseCnt & 0x08;
+                                bool m72 = chan[7].modOp.phaseCnt & 0x04;
+                                bool out = ((c85 ^ c83) & (m77 ^ m72) & (c85 ^ m73));
+                                modOut = ((out) ? 0 : 0x8000) +
+                                         (carOp->envLevel * 0x10) +
+                                         (*(percChan[ch].volume) * 0x80);
+                                buffer[i] += (lookupExp(modOut) & 0xfff0)<<3;
+                            }
+                            break;
                     }
-                    int carSin = lookupSin((carOp->phaseCnt / 512) +                                 // phase
-                                           (modOut) ,                                                // fm modulation
-                                           // chan->fmCarShift,         // modification for vibrato
-                                           carOp->inst->waveformCar);
-
-                    buffer[i]+= lookupExp((carSin) +                                                 // sine input
-                                         carOp->inst->amCarAtten +                             // AM volume attenuation (tremolo)
-                                         (carOp->envLevel * 0x10) +                                  // Envelope
-                                         //carOp->inst->kslCarAtten +
-                                         (*percChan[ch].volume * 0x80)) & 0xfff0;                    // Channel volume
-                }*/
+                }
             }
         }
         buffer[i] *= 4;
@@ -561,6 +569,8 @@ void YamahaYm2413::updatePhases() {
             if(ch.carOp.inst->vibMod) ch.fmCarShift = fmTable[ch.fmRow + fmPhase] * vibratoMultiplier;
         }
     }
+
+    galoisBit = lfsrStepGalois();
 }
 
 void YamahaYm2413::updateEnvelopes() {
@@ -702,6 +712,13 @@ void YamahaYm2413::op_t::updateEnvelope(unsigned int counter, bool mod) {
     if(envLevel < 0) envLevel = 0; // assume wrap-around
     else if(envLevel > 127) envLevel = 127; //assume it just overflowed the 7-bit value
 }
+
+int YamahaYm2413::lfsrStepGalois() {
+    bool output = galoisState & 1;
+    galoisState >>= 1;
+    if (output) galoisState ^= 0x400181;
+    return output;
+}            
 
 const std::array<int,210> YamahaYm2413::amTable {
     0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4,
