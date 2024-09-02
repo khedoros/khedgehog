@@ -200,13 +200,13 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
     else if(reg == 0x0e) { // Register 0xe is rhythm mode control
         bool newRhythm = val & 0x20;
 
-        if(newRhythm && !rhythm) {
+        if(newRhythm && !rhythm) { // Turning rhythm mode on
             percChan[0].modOp->inst = percChan[0].instrument;
             for(int i=0;i<5;i++) {
                 percChan[i].carOp->inst = percChan[i].instrument;
             }
         }
-        else if(rhythm && !newRhythm) {
+        else if(rhythm && !newRhythm) { // Shutting rhythm mode down
             for(int i=7;i<9;i++) {
                 chan[i].modOp.inst = &inst[chan[i].instNum];
                 chan[i].carOp.inst = &inst[chan[i].instNum];
@@ -219,30 +219,12 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
         for(int i=0;i<5;i++) {
             bool newKeyOn = (val & key[i]);
             if(percChan[i].key && !newKeyOn) { //keyoff event
-                if(percChan[i].modOp) {
-                    percChan[i].modOp->envPhase = release;
-                }
                 dbg_printf("APU::YM2413 perc   chan %d (%s) key-off\n", i, rhythmNames[i].c_str());
-                percChan[i].carOp->envPhase = release;
+                percKeyOff(percChan[i].modOp, percChan[i].carOp);
             }
             else if(!percChan[i].key && newKeyOn) { //keyon event
-                // std::cout<<"Percussion key-on?\n";
-                if(percChan[i].modOp) {
-                    if(percChan[i].modOp->envPhase == silent) {
-                        percChan[i].modOp->envPhase = attack;
-                    }
-                    else {
-                        percChan[i].modOp->envPhase = dampen;
-                    }
-                }
-                if(percChan[i].carOp->envPhase != silent) {
-                    percChan[i].carOp->envPhase = dampen;
-                    dbg_printf("APU::YM2413 perc   chan %d (%s) dampen key-on\n", i, rhythmNames[i].c_str());
-                }
-                else {
-                    percChan[i].carOp->envPhase = attack;
-                    dbg_printf("APU::YM2413 perc   chan %d (%s) attack key-on\n", i, rhythmNames[i].c_str());
-                }
+                percKeyOn(percChan[i].modOp, percChan[i].carOp);
+
             }
             percChan[i].key = newKeyOn;
         }
@@ -282,7 +264,55 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
     }
 }
 
-void YamahaYm2413::setStereo(uint8_t) {}
+void YamahaYm2413::setStereo(uint8_t pan) {}
+
+void YamahaYm2413::percKeyOn(YamahaYm2413::op_t* modOp, YamahaYm2413::op_t* carOp) {
+    if(modOp) {
+        modOp->envAccum = 0;
+        modOp->phaseCnt = 0;
+        modOp->keyOn = true;
+        if(modOp->envPhase == silent) {
+            if(modOp->inst->attackMod == 15) {
+                modOp->envLevel = 0;
+                modOp->envPhase = decay;
+            }
+            else {
+                modOp->envPhase = attack;
+            }
+        }
+        else {
+            modOp->envPhase = dampen;
+        }
+    }
+
+    carOp->envAccum = 0;
+    carOp->phaseCnt = 0;
+    carOp->keyOn = true;
+    if(carOp->envPhase == silent) {
+        if(carOp->inst->attackCar == 15) {
+            carOp->envLevel = 0;
+            carOp->envPhase = decay;
+        }
+        else {
+            carOp->envPhase = attack;
+        }
+    }
+    else {
+        carOp->envPhase = dampen;
+    }
+}
+
+void YamahaYm2413::percKeyOff(YamahaYm2413::op_t* modOp, YamahaYm2413::op_t* carOp) {
+    if(modOp) {
+        modOp->envAccum = 0;
+        modOp->keyOn = false;
+        modOp->envPhase = adsrPhase::release;
+    }
+
+    carOp->envAccum = 0;
+    carOp->keyOn = false;
+    carOp->envPhase = adsrPhase::release;
+}
 
 // Transition of release -> percussiveRelease, release -> sustainRelease, sustain->release, and sustain->sustainRelease happen in keyOff in applyRegister
 void YamahaYm2413::chan_t::keyOff(int chNum) {
@@ -398,16 +428,46 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
             for(int ch = 0; ch < 5; ch++) {
                 op_t * modOp = percChan[ch].modOp;
                 op_t * carOp = percChan[ch].carOp;
+                int modOut = 0, modSin = 0, carSin = 0, feedback = 0;
 
+                switch(ch) {
+                    case 0: // Bass Drum
+                        if(carOp->envPhase != adsrPhase::silent) {
+                            feedback = ((modOp->modFB1 + modOp->modFB2) >> (8 - modOp->inst->feedbackMod));
+                            modOp->phaseCnt += modOp->phaseInc;
+                            carOp->phaseCnt += carOp->phaseInc;
+                            modSin = lookupSin(((modOp->phaseCnt / 512) + feedback), modOp->inst->waveformMod);
+                            modOut = lookupExp((modSin) + 
+                                            (modOp->envLevel * 0x10) + 
+                                            (modOp->totalLevel * 0x20));
+                            modOp->modFB1 = modOp->modFB2;
+                            modOp->modFB2 = modOut;
+
+                            carSin = lookupSin((carOp->phaseCnt / 512) +                                 // phase
+                                        (modOut),
+                                        carOp->inst->waveformCar);
+
+                            buffer[i]+=(lookupExp((carSin) +                                                  // sine input
+                                        (carOp->envLevel * 0x10) +                                  // Envelope
+                                        (*(percChan[ch].volume) * 0x80)) & 0xfff0)<<1;                         // Channel volume
+                        }
+                        break;
+                    case 1: // High Hat
+                        break;
+                    case 2: // Snare Drum
+                        break;
+                    case 3: // Tom-tom
+                        break;
+                    case 4: // Top Cymbal
+                        break;
+                }/*
                 if(percChan[ch].carOp->envPhase != silent) {
                     int modOut = 0;
                     carOp->phaseCnt += carOp->phaseInc;
                     if(modOp) {
-                        int feedback = (modOp->inst->feedbackMod) ? ((modOp->modFB1 + modOp->modFB2) >> (8 - modOp->inst->feedbackMod)) : 0;
                         modOp->phaseCnt += modOp->phaseInc;
-                        int modSin = lookupSin((modOp->phaseCnt / 512) - 1 +                         // phase
-                                               // chan->fmModShift +    // modification for vibrato
-                                               (feedback),                                           // modification for feedback
+                        int modSin = lookupSin((modOp->phaseCnt / 512) +                         // phase
+
                                                modOp->inst->waveformMod);
 
                         modOut = lookupExp((modSin) +                                                // sine input
@@ -429,10 +489,10 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
                                          (carOp->envLevel * 0x10) +                                  // Envelope
                                          //carOp->inst->kslCarAtten +
                                          (*percChan[ch].volume * 0x80)) & 0xfff0;                    // Channel volume
-                }
+                }*/
             }
         }
-        buffer[i] *= 2;
+        buffer[i] *= 4;
     }
 
     writeIndex = 0;
@@ -478,7 +538,8 @@ std::array<int,1024*2> YamahaYm2413::logsinTable;
 std::array<int,256> YamahaYm2413::expTable;
 
 int YamahaYm2413::convertWavelength(int wavelength) {
-    return (static_cast<int64_t>(wavelength) * static_cast<int64_t>(nativeOplSampleRate)) / static_cast<int64_t>(sampleRate);
+    //return (static_cast<int64_t>(wavelength) * static_cast<int64_t>(nativeOplSampleRate)) / static_cast<int64_t>(sampleRate);
+    return (static_cast<int64_t>(wavelength) * static_cast<int64_t>(sampleRate)) / static_cast<int64_t>(nativeOplSampleRate);
 }
 
 void YamahaYm2413::updatePhases() {

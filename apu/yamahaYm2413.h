@@ -20,6 +20,9 @@ private:
     void applyRegister(std::pair<uint8_t, uint8_t>& write);
     void updatePhases();
     void updateEnvelopes();
+    class op_t;
+    void percKeyOn(op_t* modOp, op_t* carOp);
+    void percKeyOff(op_t* modOp, op_t* carOp);
     std::array<int16_t, 882 * 2> buffer;
     static const std::array<int,210> amTable;
     static const std::array<int,64> fmTable; 
@@ -159,7 +162,7 @@ private:
         inst_t* instrument;
         unsigned int* volume;
     };
-
+    //                          key     channel   modulator op     carrier op    instrument     volume
     percChan_t percChan[5] = { {false, &chan[6], &chan[6].modOp, &chan[6].carOp, &inst[16], &chan[6].volume},  // Bass Drum
                                {false, &chan[7], nullptr,        &chan[7].modOp, &inst[17], &chan[7].instNum}, // High Hat
                                {false, &chan[7], nullptr,        &chan[7].carOp, &inst[17], &chan[7].volume},  // Snare Drum
