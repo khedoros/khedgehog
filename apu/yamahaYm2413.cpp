@@ -207,7 +207,7 @@ void YamahaYm2413::applyRegister(std::pair<uint8_t, uint8_t>& write) {
             }
         }
         else if(rhythm && !newRhythm) { // Shutting rhythm mode down
-            for(int i=7;i<9;i++) {
+            for(int i=6;i<9;i++) {
                 chan[i].modOp.inst = &inst[chan[i].instNum];
                 chan[i].carOp.inst = &inst[chan[i].instNum];
             }
@@ -285,20 +285,22 @@ void YamahaYm2413::percKeyOn(YamahaYm2413::op_t* modOp, YamahaYm2413::op_t* carO
         }
     }
 
-    carOp->envAccum = 0;
-    carOp->phaseCnt = 0;
-    carOp->keyOn = true;
-    if(carOp->envPhase == silent) {
-        if(carOp->inst->attackCar == 15) {
-            carOp->envLevel = 0;
-            carOp->envPhase = decay;
+    if(carOp) {
+        carOp->envAccum = 0;
+        carOp->phaseCnt = 0;
+        carOp->keyOn = true;
+        if(carOp->envPhase == silent) {
+            if(carOp->inst->attackCar == 15) {
+                carOp->envLevel = 0;
+                carOp->envPhase = decay;
+            }
+            else {
+                carOp->envPhase = attack;
+            }
         }
         else {
-            carOp->envPhase = attack;
+            carOp->envPhase = dampen;
         }
-    }
-    else {
-        carOp->envPhase = dampen;
     }
 }
 
@@ -309,9 +311,11 @@ void YamahaYm2413::percKeyOff(YamahaYm2413::op_t* modOp, YamahaYm2413::op_t* car
         modOp->envPhase = adsrPhase::release;
     }
 
-    carOp->envAccum = 0;
-    carOp->keyOn = false;
-    carOp->envPhase = adsrPhase::release;
+    if(carOp) {
+        carOp->envAccum = 0;
+        carOp->keyOn = false;
+        carOp->envPhase = adsrPhase::release;
+    }
 }
 
 // Transition of release -> percussiveRelease, release -> sustainRelease, sustain->release, and sustain->sustainRelease happen in keyOff in applyRegister
@@ -453,6 +457,7 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
                             break;
                         case 1: // High Hat
                             {
+                                carOp->phaseCnt += carOp->phaseInc;
                                 bool c85 = chan[8].carOp.phaseCnt & 0x20;
                                 bool c83 = chan[8].carOp.phaseCnt & 0x08;
                                 bool m77 = chan[7].modOp.phaseCnt & 0x80;
@@ -467,6 +472,7 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
                             }
                             break;
                         case 2: // Snare Drum
+                            carOp->phaseCnt += carOp->phaseInc;
                             bitComponent = ((carOp->phaseCnt) & (1<8));
                             if(bitComponent && galoisBit) modOut = 0x8000; // -max value
                             else if(!bitComponent && !galoisBit) modOut = 0; // +max value
@@ -476,6 +482,7 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
                             buffer[i] += (lookupExp(modOut) & 0xfff0)<<2;
                             break;
                         case 3: // Tom-tom
+                            carOp->phaseCnt += carOp->phaseInc;
                             carSin = lookupSin((carOp->phaseCnt / 512),                             // phase
                                         carOp->inst->waveformMod); // Tom-tom actually uses a mod op, but it's named as a carrier so I have fewer edge cases
                             buffer[i]+=(lookupExp((carSin) +                                        // sine input
@@ -484,6 +491,9 @@ std::array<int16_t, 882 * 2>& YamahaYm2413::getSamples() {
                             break;
                         case 4: // Top Cymbal
                             {
+                                chan[7].modOp.phaseCnt += chan[7].modOp.phaseInc;
+                                chan[8].carOp.phaseCnt += chan[8].carOp.phaseInc;
+
                                 bool c85 = chan[8].carOp.phaseCnt & 0x20;
                                 bool c83 = chan[8].carOp.phaseCnt & 0x08;
                                 bool m77 = chan[7].modOp.phaseCnt & 0x80;
