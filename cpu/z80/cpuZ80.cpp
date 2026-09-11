@@ -806,11 +806,11 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
 
     uint8_t operand2 = *regset[reg];
     uint16_t temp_a = af.hi;
+    uint8_t carry_in = (operation == 1 || operation == 3) ? carry() : 0;
     switch(operation) {
     case 0x00: // add
     case 0x01: // adc
-        if(operation == 1) operand2 += carry();
-        temp_a += operand2;
+        temp_a += operand2 + carry_in;
 
         clear(SUB_FLAG);
 
@@ -820,7 +820,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
         if( !((af.hi & 0x80)^(operand2 & 0x80)) && (af.hi&0x80) != (temp_a&0x80)) set(OVERFLOW_FLAG);
         else clear(OVERFLOW_FLAG);
 
-        if((af.hi & 0xf) + (operand2 & 0xf) >= 0x10) set(HALF_CARRY_FLAG);
+        if((af.hi & 0xf) + (operand2 & 0xf) + carry_in >= 0x10) set(HALF_CARRY_FLAG);
         else clear(HALF_CARRY_FLAG);
 
         af.hi = temp_a; //truncates to 8 bits
@@ -828,20 +828,19 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
     case 0x02: // sub
     case 0x03: // sbc
     case 0x07: // cp
-        if(operation == 3) operand2 += carry();
-        temp_a -= (operand2);
+        {
+        uint16_t sub_operand = uint16_t(operand2) + carry_in;   // widen instead of truncating
+        temp_a -= sub_operand; //(operand2 + carry_in);
         set(SUB_FLAG);
 
-        if(operand2 > af.hi) set(CARRY_FLAG);
+        if(sub_operand > af.hi) set(CARRY_FLAG);
         else               clear(CARRY_FLAG);
 
-        if((operand2 & 0xf) > (af.hi & 0xf)) set(HALF_CARRY_FLAG);
+        if((operand2 & 0xf) + carry_in > (af.hi & 0xf)) set(HALF_CARRY_FLAG);
         else clear(HALF_CARRY_FLAG);
 
         if (((af.hi & 0x80)^(operand2 & 0x80)) && (operand2 & 0x80) == (temp_a & 0x80)) set(OVERFLOW_FLAG);
         else clear(OVERFLOW_FLAG);
-
-        // TODO: Fix flags
 
         if(operation != 7) {
             af.hi = temp_a;
@@ -852,6 +851,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
 
             if(temp_a & 0x80) set(SIGN_FLAG);
             else              clear(SIGN_FLAG);
+        }
         }
         break;
     case 0x04: // and

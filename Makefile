@@ -12,6 +12,11 @@ ifdef DEBUG
     objects:=$(subst .o,.od,$(objects))
 endif
 
+ifdef DISABLE_AUDIO
+    CXXFLAGS+=-DDISABLE_AUDIO
+    target:=khedgehog-mute
+endif
+
 $(target): $(objects)
 	$(CXX) $(debug) -flto -O3 -o $@ $^ $(SDLLDFLAGS) $(LDFLAGS)
 
