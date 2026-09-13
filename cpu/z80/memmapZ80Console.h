@@ -16,8 +16,8 @@ public:
     void writeWord(uint32_t addr, uint16_t val) override;
     void writeLong(uint32_t addr, uint32_t val) override;
     uint8_t& readByte(uint32_t addr) override;
-    uint16_t& readWord(uint32_t addr) override;
-    uint32_t& readLong(uint32_t addr) override;
+    uint16_t readWord(uint32_t addr) override;
+    uint32_t readLong(uint32_t addr) override;
     void sendEvent(ioEvent e) override;
 
     uint8_t readPortByte(uint8_t port, uint64_t cycle);

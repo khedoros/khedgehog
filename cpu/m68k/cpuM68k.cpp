@@ -67,7 +67,12 @@ uint64_t cpuM68k::calc(uint64_t cycle_max) {
     return cycles;
 }
 
+// I think these two are basically dummies for the functions required by Z80
 void cpuM68k::interrupt(uint8_t vector){}
+
+bool cpuM68k::intEnabled() {
+    return false;
+}
 
 void cpuM68k::setCCRReg(ccrField f) {
     ccr |= f;
@@ -509,12 +514,12 @@ retType cpuM68k::fetchArg(uint8_t addressBlock) {
             break;
         case auto_post_inc: // Address register indirect with postincrement
             if(reg < 7) {
-                uint32_t& val = memory->readLong(areg[reg]);
+                uint32_t val = memory->readLong(areg[reg]);
                 areg[reg] += sizeof(retType);
                 return val;
             }
             else {
-                uint32_t& val = memory->readLong(sp[curStack]);
+                uint32_t val = memory->readLong(sp[curStack]);
                 sp[curStack] += sizeof(retType);
                 if(sizeof(retType) == byteSize) { sp[curStack]++; }
                 return val;

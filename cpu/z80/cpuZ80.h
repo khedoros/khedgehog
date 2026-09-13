@@ -152,4 +152,5 @@ public:
     void nmi();
     void interrupt(uint8_t vector);
     uint64_t test_daa();
+    bool intEnabled();
 };

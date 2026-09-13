@@ -579,7 +579,7 @@ void vdpMS::endLine(uint64_t lineNum) {
 }
 
 unsigned int vdpMS::resLine() {
-    return curYRes;
+    return 192;
 }
 
 void vdpMS::writeByte(uint8_t port, uint8_t val, uint64_t cycle) {
@@ -658,10 +658,11 @@ void vdpMS::writeAddress(uint8_t val) {
                         break;
                     case 0x08:
                         bg_x_scroll = (address & 0x00ff);
-                        //std::printf("scroll bg to %d\n", bg_x_scroll);
+                        std::printf("X: scroll bg_x to %d\n", bg_x_scroll);
                         break;
                     case 0x09:
                         bg_y_scroll = (address & 0x00ff);
+                        std::printf("Y: scroll bg_y to %d\n", bg_y_scroll);
                         break;
                     case 0x0a:
                         line_interrupt = (address & 0x00ff);
@@ -719,8 +720,8 @@ uint8_t vdpMS::readStatus(uint64_t cycle) {
     // TODO: Keep track of collision flag (SG: includes transparent pixels (DONE), SMS: Doesn't?)
     //temp.val = 0;
     //temp.fields.vblank_flag = scr_int_active;
-    //scr_int_active = false;
-    //line_int_active = false;
+    scr_int_active = false;
+    line_int_active = false;
     //return temp.val;
     //return 0x80;
     uint8_t retval = status.val;

@@ -79,10 +79,10 @@ int emulator::run() {
             running = false;
             std::cerr<<"Found a bad op, I guess?\n";
         }
-        if(vdp_dev->frameInterrupt()) {
+        if(cpu_dev->intEnabled() && vdp_dev->frameInterrupt()) {
             cpu_dev->interrupt(0);
         }
-        else if(vdp_dev->lineInterrupt()) {
+        if(cpu_dev->intEnabled() && vdp_dev->lineInterrupt()) {
             cpu_dev->interrupt(1);
         }
           //          std::cout<<"Line: "<<line<<" ResLine: "<<vdp_dev->resLine()<<"\n";

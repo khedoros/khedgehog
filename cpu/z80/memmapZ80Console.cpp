@@ -159,12 +159,12 @@ uint8_t memmapZ80Console::readPortByte(uint8_t port, uint64_t cycle) {
     return 0xff;
 }
 
-uint16_t& memmapZ80Console::readWord(uint32_t addr) {
-    return reinterpret_cast<uint16_t&>(map(addr));
+uint16_t memmapZ80Console::readWord(uint32_t addr) {
+    return static_cast<uint16_t>(readByte(addr)) | (static_cast<uint16_t>(readByte(addr + 1)) << 8);
 }
 
-uint32_t& memmapZ80Console::readLong(uint32_t addr) {
-    return reinterpret_cast<uint32_t&>(map(addr));
+uint32_t memmapZ80Console::readLong(uint32_t addr) {
+    return static_cast<uint32_t>(readByte(addr)) | (static_cast<uint32_t>(readByte(addr + 1)) << 8) | (static_cast<uint32_t>(readByte(addr + 2)) << 16) | (static_cast<uint32_t>(readByte(addr + 3)) << 24);
 }
 
 void memmapZ80Console::writeByte(uint32_t addr, uint8_t val) {
@@ -359,7 +359,7 @@ uint8_t& memmapZ80Console::map(uint32_t addr) {
     }
     else if(addr < 0xC000) { // slot2 rom TODO: implement rom-ram swapout
         if(slot2RamActive) {
-            return cartRam[addr & 0x1fff + 0x2000 * slot2RamPage];
+            return cartRam[(addr & 0x1fff) + 0x2000 * slot2RamPage];
         }
         else {
             return rom[(addr & 0x3fff) + map_slot2_offset];

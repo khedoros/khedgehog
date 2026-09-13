@@ -5,13 +5,18 @@
 #include "../../util.h"
 
 #undef dbg_printf
-#define dbg_printf dummy
-//#define dbg_printf printf
+// #define dbg_printf dummy
+#define dbg_printf printf
 
 uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
 
     cycles_remaining += cycles_to_run;
     while(cycles_remaining > 0) {
+        bool triggerEi = false;
+        if(eiTriggered) {
+            triggerEi = true;
+            eiTriggered = false;
+        }
         const uint8_t opcode = memory->readByte(pc++);
         dbg_printf("%04X: %02x", pc-1, opcode);
         const uint64_t inst_cycles = CALL_MEMBER_FN(this, op_table[opcode])(opcode);
@@ -24,13 +29,19 @@ uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
 
         cycles_remaining -= inst_cycles;
         total_cycles+=inst_cycles;
+
+        if(triggerEi) {
+            iff1 = true;
+            iff2 = true;
+            triggerEi = false;
+        }
     }
     // std::printf("total_cycles: %lu\n", total_cycles);
 
     return cycles_to_run - cycles_remaining;
 }
 
-cpuZ80::cpuZ80(std::shared_ptr<memmapZ80Console> memmap): memory(memmap), cycles_remaining(0), pc(0), iff1(false), iff2(false), total_cycles(0), halted(false), sp(0xdfef), int_mode(cpuZ80::mode0) {
+cpuZ80::cpuZ80(std::shared_ptr<memmapZ80Console> memmap): memory(memmap), cycles_remaining(0), pc(0), iff1(false), iff2(false), total_cycles(0), halted(false), sp(0xdfef), int_mode(cpuZ80::mode0), int_vect{0}, mem_refresh{0}, eiTriggered{false} {
 
     af.pair = 0xffff;
     af_1.pair = 0xffff;
@@ -134,7 +145,7 @@ void cpuZ80::interrupt(uint8_t vector) { // Maskable interrupts, no vector provi
         push(pc);
         uint16_t temp_addr;
         switch(int_mode) {
-        case mode0: decode(vector);
+        case mode0: decode(vector); break;
         case mode1: pc = 0x0038; break;
         case mode2:
             temp_addr = int_vect * 256 + vector;
@@ -145,7 +156,7 @@ void cpuZ80::interrupt(uint8_t vector) { // Maskable interrupts, no vector provi
 }
 
 cpuZ80::int_type_t cpuZ80::check_interrupts() {
-    // TODO: implement real interrupt checking
+    // TODO: implement real interrupt checking. This is probably the cause of various pacing issues, like in Sonic 2 on GG.
     return int_type_t::irq_int;
 }
 
@@ -1335,8 +1346,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_di(uint8_t opcode) { // DI 4
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_ei(uint8_t opcode) { // EI 4
-    iff1 = true;
-    iff2 = true;
+    eiTriggered = true;
     return 4;
 }
 
@@ -1383,6 +1393,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_exx(uint8_t opcode) { // EXX 4
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_halt(uint8_t opcode) {
+    // TODO: Proper implementation of check_interrupts
     if(check_interrupts() == int_type_t::no_int) {
         pc--;
         dbg_printf("halted\n");
@@ -1576,6 +1587,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_jp(uint8_t opcode) {
     case 0xc3: //JP nn 4,3,3
         pc = jump_addr;
         cycles = 10;
+        break;
     case 0xe9: case 0xdde9: case 0xfde9: //JP HL/IX/IY
         pc = jump_addr;
         break;
@@ -2031,7 +2043,8 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_ret(uint8_t opcode) { // RET 10, 
 
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_reti(uint8_t opcode) { // RETI 14
-    if(iff1) pc = pop();
+    // if(iff1) pc = pop();
+    pc = pop();
     return 14;
 }
 
@@ -2144,4 +2157,8 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_sbc16(uint8_t opcode) { // SBC HL
     else                 clear(SIGN_FLAG);
 
     return 15;
+}
+
+bool cpuZ80::intEnabled() {
+    return iff1;
 }

@@ -183,5 +183,6 @@ private:
 public:
     uint64_t calc(uint64_t cycles);
     void interrupt(uint8_t vector);
+    bool intEnabled();
     cpuM68k(std::shared_ptr<memmapM68k>);
 };

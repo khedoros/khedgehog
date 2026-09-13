@@ -37,12 +37,12 @@ uint8_t& memmapM68k::readByte(uint32_t addr) {
     return map(addr);
 }
 
-uint16_t& memmapM68k::readWord(uint32_t addr) {
-    return reinterpret_cast<uint16_t&>(map(addr));
+uint16_t memmapM68k::readWord(uint32_t addr) {
+    return static_cast<uint16_t>(readByte(addr)) | (static_cast<uint16_t>(readByte(addr + 1)) << 8);
 }
 
-uint32_t& memmapM68k::readLong(uint32_t addr) {
-    return reinterpret_cast<uint32_t&>(map(addr));
+uint32_t memmapM68k::readLong(uint32_t addr) {
+    return static_cast<uint32_t>(readByte(addr)) | (static_cast<uint32_t>(readByte(addr + 1)) << 8) | (static_cast<uint32_t>(readByte(addr + 2)) << 16) | (static_cast<uint32_t>(readByte(addr + 3)) << 24);
 }
 
 
