@@ -17,14 +17,21 @@ uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
             triggerEi = true;
             eiTriggered = false;
         }
-        const uint8_t opcode = memory->readByte(pc++);
-        dbg_printf("%04X: %02x", pc-1, opcode);
-        const uint64_t inst_cycles = CALL_MEMBER_FN(this, op_table[opcode])(opcode);
-        print_registers();
-        dbg_printf("\t%lld cycles\n", inst_cycles);
 
-        if(inst_cycles == uint64_t(-1)) {
-            return 0;
+        uint64_t inst_cycles = 0;
+        if(halted) {
+            inst_cycles += 4;
+        }
+        else {
+            const uint8_t opcode = memory->readByte(pc++);
+            dbg_printf("%04X: %02x", pc-1, opcode);
+            inst_cycles = CALL_MEMBER_FN(this, op_table[opcode])(opcode);
+            print_registers();
+            dbg_printf("\t%lld cycles\n", inst_cycles);
+
+            if(inst_cycles == uint64_t(-1)) {
+                return 0;
+            }
         }
 
         cycles_remaining -= inst_cycles;
@@ -33,10 +40,8 @@ uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
         if(triggerEi) {
             iff1 = true;
             iff2 = true;
-            triggerEi = false;
         }
     }
-    // std::printf("total_cycles: %lu\n", total_cycles);
 
     return cycles_to_run - cycles_remaining;
 }
@@ -143,6 +148,7 @@ void cpuZ80::interrupt(uint8_t vector) { // Maskable interrupts, no vector provi
         iff1 = false;
         iff2 = false;
         push(pc);
+        halted = false; // Hit an interrupt; exit halted state when this happens
         uint16_t temp_addr;
         switch(int_mode) {
         case mode0: decode(vector); break;
@@ -153,11 +159,6 @@ void cpuZ80::interrupt(uint8_t vector) { // Maskable interrupts, no vector provi
             break;
         }
     }
-}
-
-cpuZ80::int_type_t cpuZ80::check_interrupts() {
-    // TODO: implement real interrupt checking. This is probably the cause of various pacing issues, like in Sonic 2 on GG.
-    return int_type_t::irq_int;
 }
 
 const std::array<z80OpPtr, 256> cpuZ80::op_table = {
@@ -1333,7 +1334,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_decr8(uint8_t opcode) {
             memory->writeByte(iy.pair + offset, val);
         }
     }
-	else {
+    else {
 		*regset[index] = val;
 	}
     return cycles;
@@ -1393,11 +1394,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_exx(uint8_t opcode) { // EXX 4
 }
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_halt(uint8_t opcode) {
-    // TODO: Proper implementation of check_interrupts
-    if(check_interrupts() == int_type_t::no_int) {
-        pc--;
-        dbg_printf("halted\n");
-    }
+    halted = true;
     if(OPCODE > 0x76) {
         return 8;
     }
@@ -1556,7 +1553,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_incr8(uint8_t opcode) {
         }
 
     }
-	else {
+    else {
 		*regset[index] = val;
 	}
     return cycles;
