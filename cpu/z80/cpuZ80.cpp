@@ -5,8 +5,11 @@
 #include "../../util.h"
 
 #undef dbg_printf
-// #define dbg_printf dummy
-#define dbg_printf printf
+#ifdef DEBUG
+    #define dbg_printf printf
+#else
+    #define dbg_printf dummy
+#endif
 
 uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
 
@@ -46,18 +49,22 @@ uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
     return cycles_to_run - cycles_remaining;
 }
 
-cpuZ80::cpuZ80(std::shared_ptr<memmapZ80Console> memmap): memory(memmap), cycles_remaining(0), pc(0), iff1(false), iff2(false), total_cycles(0), halted(false), sp(0xdfef), int_mode(cpuZ80::mode0), int_vect{0}, mem_refresh{0}, eiTriggered{false} {
+cpuZ80::cpuZ80(std::shared_ptr<memmapZ80Console> memmap): memory(memmap), cycles_remaining(0), pc(0), iff1(false), iff2(false), total_cycles(0), halted(false), /*sp(0xdfef), */sp(0xdff0), int_mode(cpuZ80::mode0), int_vect{0}, mem_refresh{0}, eiTriggered{false} {
 
-    af.pair = 0xffff;
-    af_1.pair = 0xffff;
+    //af.pair = 0xffff;
+    //af_1.pair = 0xffff;
+    af.pair = 0x0040;
+    af_1.pair = 0x0040;
     bc.pair = 0;
     bc_1.pair = 0;
     de.pair = 0;
     de_1.pair = 0;
     hl.pair = 0;
     hl_1.pair = 0;
-    ix.pair = 0;
-    iy.pair = 0;
+    //ix.pair = 0;
+    //iy.pair = 0;
+    ix.pair = 0xffff;
+    iy.pair = 0xffff;
     reset();
 }
 

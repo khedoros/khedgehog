@@ -7,7 +7,7 @@ CXXFLAGS:=-std=c++17 -flto -D_GLIBCXX_DEBUG -O3 $(SDLCFLAGS)
 
 ifdef DEBUG
     debug:=-g
-    CXXFLAGS+=-g
+    CXXFLAGS+=-g -DDEBUG
     target:=khedgehog-dbg
     objects:=$(subst .o,.od,$(objects))
 endif
