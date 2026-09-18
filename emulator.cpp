@@ -56,7 +56,7 @@ int emulator::run() {
             if(e.type == ioEvent::eventType::window && e.key.winEvent == ioEvent::windowEvent::exit) {
                 return 0;
             }
-            else if(e.type == ioEvent::eventType::smsKey || e.type == ioEvent::eventType::genKey) {
+            else if(e.type == ioEvent::eventType::smsKey || e.type == ioEvent::eventType::genKey || e.type == ioEvent::eventType::window) {
                 cpu_map->sendEvent(e);
             }
             e = io->getEvent();

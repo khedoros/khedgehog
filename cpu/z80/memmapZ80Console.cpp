@@ -4,6 +4,7 @@
 #include "../../apu/tiPsg.h"
 #include<iostream>
 #include<fstream>
+#include <memory>
 #include "../../util.h"
 #include "../../debug_console.h"
 
@@ -168,10 +169,10 @@ uint32_t memmapZ80Console::readLong(uint32_t addr) {
 }
 
 void memmapZ80Console::writeByte(uint32_t addr, uint8_t val) {
-    if(addr < 0x8000) {
-        std::printf("Wrote %04x = %02x\n", addr, val);
+    if(addr < 0x8000 || ((!slot2RamActive) && addr < 0xc000)) {
+        std::printf("Wrote to read-only %04x = %02x\n", addr, val);
     }
-    if(addr >= 0x8000 && addr < 0xc000 && slot2RamActive) {
+    else if(slot2RamActive && addr >= 0x8000 && addr < 0xc000) {
         cartRam[addr & 0x1fff] = val;
     }
     else if(addr >= 0xC000) {
@@ -182,27 +183,41 @@ void memmapZ80Console::writeByte(uint32_t addr, uint8_t val) {
     case 0xfff9:
     case 0xfffa:
     case 0xfffb:
-        std::cout<<"GLASSES: "<<int(val)<<"\n";
+        // std::cout<<"GLASSES: "<<int(val)<<"\n";
         std::dynamic_pointer_cast<vdpMS>(vdp_dev)->setGlasses(val);
         break;
     case 0xfffc:
+    #ifdef DEBUG
+        {
+            bool rom_write = (val & 0x80) ? true : false;
+            bool high_ram_enable = (val & 0x10) ? true : false;
+            bool slot_2_ram_enable = (val & 0x08) ? true : false;
+            uint8_t slot_2_ram_bank = (val & 0x04) / 4;
+            uint8_t bank_shift = (val & 0x03);
+            std::printf("MAP CTRL rom write: %d high ram enable: %d slot 2 ram enable: %d slot 2 ram bank: %d bank shift: %d\n", rom_write,high_ram_enable,slot_2_ram_enable,slot_2_ram_bank,bank_shift);
+        }
+    #endif
         slot2RamActive = (val & 0b00001000)? true: false;
         slot2RamPage = (val & 0b00000100)? 1: 0;
-        //std::printf("Wrote %02x to %04x. Exiting.\n", val, addr);
-        //std::cerr<<"Slot 2 RAM: "<<std::hex<<int(val)<<" (active: "<<slot2RamActive<<", page: "<<int(slot2RamPage)<<"\n";
-        //exit(1);
         break;
     case 0xfffd:
         map_slot0_offset = (0x4000 * val) % romsize;
-        //std::cerr<<"Slot 0 page: "<<std::hex<<int(val)<<"\n";
+    #ifdef DEBUG
+        std::cout<<"MAP Slot 0 page: "<<std::hex<<int(val)<<"\n";
+    #endif
         break;
     case 0xfffe:
         map_slot1_offset = (0x4000 * val) % romsize;
-        //std::cerr<<"Slot 1 page: "<<std::hex<<int(val)<<"\n";
+    #ifdef DEBUG
+        std::cout<<"MAP Slot 1 page: "<<std::hex<<int(val)<<"\n";
+    #endif
         break;
+
     case 0xffff:
         map_slot2_offset = (0x4000 * val) % romsize;
-        //std::cerr<<"Slot 2 page: "<<std::hex<<int(val)<<"\n";
+    #ifdef DEBUG
+        std::cout<<"MAP Slot 2 page: "<<std::hex<<int(val)<<"\n";
+    #endif
         break;
     }
 }
@@ -315,6 +330,29 @@ void memmapZ80Console::writePortByte(uint8_t port, uint8_t val, uint64_t cycle) 
 	dbg_printf("\n");
 }
 
+uint8_t memmapZ80Console::getPage(uint16_t addr) {
+    if(addr < 0x0400) { // unpaged rom
+        return 0;
+    }
+    else if(addr < 0x4000) { // slot0 rom
+        return map_slot0_offset / 0x4000;
+    }
+    else if(addr < 0x8000) { // slot1 rom
+        return map_slot1_offset / 0x4000;
+    }
+    else if(addr < 0xC000) { // slot2 rom/ram, really high number indicates mapping to RAM. Hacky.
+        if(slot2RamActive) {
+            return 0xff - slot2RamPage;
+        }
+        else {
+            return map_slot2_offset / 0x4000;
+        }
+    }
+    else { // system ram TODO: implement paging control
+        return 0; // 
+    }
+}
+
 void memmapZ80Console::sendEvent(ioEvent e) {
     // React to key events
     if(e.type == ioEvent::eventType::smsKey) {
@@ -342,6 +380,14 @@ void memmapZ80Console::sendEvent(ioEvent e) {
                 if(cfg->getSystemType() == systemType::gameGear) {
                     gg_port_0.start = pressed;
                 }
+                break;
+        }
+    }
+    else if(e.type == ioEvent::eventType::window) {
+        switch(e.key.winEvent) {
+            case ioEvent::windowEvent::dump_vram:
+                std::cout<<"Telling VDP to dump VRAM\n";
+                std::dynamic_pointer_cast<vdpMS>(vdp_dev)->dumpVram();
                 break;
         }
     }

@@ -36,7 +36,8 @@ class ioEvent {
     enum class windowEvent {
         pause,
         mute,
-        exit
+        exit,
+        dump_vram
     };
 
     enum class keyState {

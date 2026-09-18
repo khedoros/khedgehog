@@ -27,7 +27,7 @@ uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
         }
         else {
             const uint8_t opcode = memory->readByte(pc++);
-            dbg_printf("%04X: %02x", pc-1, opcode);
+            dbg_printf("%03X:%04X: %02x", memory->getPage(pc-1), pc-1, opcode);
             inst_cycles = CALL_MEMBER_FN(this, op_table[opcode])(opcode);
             print_registers();
             dbg_printf("\t%lld cycles\n", inst_cycles);
@@ -650,7 +650,7 @@ template <uint32_t OPCODE>
 uint64_t cpuZ80::fdcb_op_prefix(uint8_t opcode) {
     uint8_t displacement = memory->readByte(pc++);
     opcode = memory->readByte(pc++);
-    dbg_printf(" %x", opcode);
+    dbg_printf(" %x %x", displacement, opcode);
     return CALL_MEMBER_FN(this, fdcb_op_table[opcode])(displacement);
 }
 
@@ -691,7 +691,7 @@ constexpr std::array<bool,256> cpuZ80::setParityArray() { // Calculate number of
 }
 
 void cpuZ80::print_registers() {
-    dbg_printf("\t\tA: %02x BC: %04x DE: %04x HL: %04x IX: %04x IY: %04x SP: %04x status: %c%c0%c0%c%c%c", af.hi, bc.pair, de.pair, hl.pair, ix.pair, iy.pair, sp,
+    dbg_printf("\t\tAF: %04x BC: %04x DE: %04x HL: %04x IX: %04x IY: %04x SP: %04x status: %c%c0%c0%c%c%c", af.pair, bc.pair, de.pair, hl.pair, ix.pair, iy.pair, sp,
      sign()?'S':'s',
      zero()?'Z':'z',
      hc()?'H':'h',

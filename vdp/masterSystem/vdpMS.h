@@ -28,6 +28,7 @@ public:
     unsigned int getFrameLines();
 	void latchHCounter(uint64_t cycle);
     void setGlasses(uint8_t val);
+    void dumpVram();
 
 private:
     void writeAddress(uint8_t val);

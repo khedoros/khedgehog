@@ -22,6 +22,7 @@ public:
 
     uint8_t readPortByte(uint8_t port, uint64_t cycle);
     void writePortByte(uint8_t port, uint8_t val, uint64_t cycle);
+    uint8_t getPage(uint16_t address);
 
 private:
     uint8_t& map(uint32_t addr) override;

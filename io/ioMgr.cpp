@@ -1,4 +1,5 @@
 #include "ioMgr.h"
+#include "ioEvent.h"
 #include<tuple>
 #include<iostream>
 
@@ -172,6 +173,9 @@ ioEvent ioMgr::getEvent() {
                     return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::button_1, ioEvent::keyState::keydown};
                 case SDL_SCANCODE_L:
                     return ioEvent{ioEvent::eventType::smsKey, ioEvent::smsKey::button_2, ioEvent::keyState::keydown};
+                case SDL_SCANCODE_V:
+                    std::cout<<"dump: Saw V Key\n";
+                    return ioEvent{ioEvent::eventType::window, ioEvent::windowEvent::dump_vram};
                 default:
                     break;
             }
