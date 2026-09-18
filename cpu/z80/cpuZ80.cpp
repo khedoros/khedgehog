@@ -1,6 +1,6 @@
 #include "cpuZ80.h"
+#include "cpuZ80InstInfo.h"
 #include<iostream>
-#include<limits>
 #include<cassert>
 #include "../../util.h"
 
@@ -27,10 +27,11 @@ uint64_t cpuZ80::calc(const uint64_t cycles_to_run) {
         }
         else {
             const uint8_t opcode = memory->readByte(pc++);
-            dbg_printf("%03X:%04X: %02x", memory->getPage(pc-1), pc-1, opcode);
-            inst_cycles = CALL_MEMBER_FN(this, op_table[opcode])(opcode);
+            dbg_printf("%03X:%04X: ", memory->getPage(pc-1), pc-1);
+            print_operation(opcode, pc);
             print_registers();
-            dbg_printf("\t%lld cycles\n", inst_cycles);
+            inst_cycles = CALL_MEMBER_FN(this, op_table[opcode])(opcode);
+            // dbg_printf("\t%lld cycles\n", inst_cycles);
 
             if(inst_cycles == uint64_t(-1)) {
                 return 0;
@@ -607,21 +608,21 @@ const std::array<z80OpPtr, 256> cpuZ80::fdcb_op_table = {
 template <uint32_t OPCODE>
 uint64_t cpuZ80::cb_op_prefix(uint8_t opcode) {
     opcode = memory->readByte(pc++);
-    dbg_printf(" %x", opcode);
+    //dbg_printf(" %x", opcode);
     return CALL_MEMBER_FN(this, cb_op_table[opcode])(opcode);
 }
 
 template <uint32_t OPCODE>
 uint64_t cpuZ80::dd_op_prefix(uint8_t opcode) {
     opcode = memory->readByte(pc++);
-    dbg_printf(" %x", opcode);
+    //dbg_printf(" %x", opcode);
     return CALL_MEMBER_FN(this, dd_op_table[opcode])(opcode);
 }
 
 template <uint32_t OPCODE>
 uint64_t cpuZ80::ed_op_prefix(uint8_t opcode) {
     opcode = memory->readByte(pc++);
-    dbg_printf(" %x", opcode);
+    //dbg_printf(" %x", opcode);
     if(opcode >= 0x40 && opcode <= 0xbb ) {
         return CALL_MEMBER_FN(this, ed_op_table[opcode - 0x40])(opcode);
     }
@@ -633,7 +634,7 @@ uint64_t cpuZ80::ed_op_prefix(uint8_t opcode) {
 template <uint32_t OPCODE>
 uint64_t cpuZ80::fd_op_prefix(uint8_t opcode) {
     opcode = memory->readByte(pc++);
-    dbg_printf(" %x", opcode);
+    //dbg_printf(" %x", opcode);
     return CALL_MEMBER_FN(this, fd_op_table[opcode])(opcode);
 }
 
@@ -641,7 +642,7 @@ template <uint32_t OPCODE>
 uint64_t cpuZ80::ddcb_op_prefix(uint8_t opcode) {
     uint8_t displacement = memory->readByte(pc++);
     opcode = memory->readByte(pc++);
-    dbg_printf(" %x %x", displacement, opcode);
+    //dbg_printf(" %x %x", displacement, opcode);
     return CALL_MEMBER_FN(this, ddcb_op_table[opcode])(displacement);
 }
 
@@ -650,7 +651,7 @@ template <uint32_t OPCODE>
 uint64_t cpuZ80::fdcb_op_prefix(uint8_t opcode) {
     uint8_t displacement = memory->readByte(pc++);
     opcode = memory->readByte(pc++);
-    dbg_printf(" %x %x", displacement, opcode);
+    //dbg_printf(" %x %x", displacement, opcode);
     return CALL_MEMBER_FN(this, fdcb_op_table[opcode])(displacement);
 }
 
@@ -691,7 +692,7 @@ constexpr std::array<bool,256> cpuZ80::setParityArray() { // Calculate number of
 }
 
 void cpuZ80::print_registers() {
-    dbg_printf("\t\tAF: %04x BC: %04x DE: %04x HL: %04x IX: %04x IY: %04x SP: %04x status: %c%c0%c0%c%c%c", af.pair, bc.pair, de.pair, hl.pair, ix.pair, iy.pair, sp,
+    dbg_printf(" AF:%04x BC:%04x DE:%04x HL:%04x IX:%04x IY:%04x SP:%04x IM:%01x status:%c%c0%c0%c%c%c\n", af.pair, bc.pair, de.pair, hl.pair, ix.pair, iy.pair, sp, int_mode, 
      sign()?'S':'s',
      zero()?'Z':'z',
      hc()?'H':'h',
@@ -723,8 +724,47 @@ bool cpuZ80::condition(int condition_number) {
     //throw std::string("This condition can't/shouldn't be reached.");
     return false;
 }
+
+void cpuZ80::print_operation(uint8_t opcode, uint16_t pc) {
+#ifdef DEBUG
+    int op_length;
+    uint8_t opcode2, opcode3, opcode4;
+    if(opcode == 0xdd || opcode == 0xfd) {
+        opcode2 = memory->readByte(pc);
+        op_length = xd_op_lengths[opcode2];
+    }
+    else if(opcode == 0xed) {
+        opcode2 = memory->readByte(pc);
+        op_length = ed_op_lengths[opcode2];
+    }
+    else {
+        op_length = op_lengths[opcode];
+    }
+    switch(op_length) {
+        case 0:
+            std::cerr<<" error: 0-length op ";
+            break;
+        case 1:
+            dbg_printf("%02x          ", opcode);
+            break;
+        case 2:
+            dbg_printf("%02x %02x       ", opcode, memory->readByte(pc));
+            break;
+        case 3:
+            dbg_printf("%02x %02x %02x    ", opcode, memory->readByte(pc), memory->readByte(pc+1));
+            break;
+        case 4:
+            dbg_printf("%02x %02x %02x %02x ", opcode, memory->readByte(pc), memory->readByte(pc+1), memory->readByte(pc+2));
+            break;
+        default:
+            std::cerr<<" error: "<<op_length<<"-length op ";
+    }
+
+#endif
+}
+
 template <uint32_t OPCODE> uint64_t cpuZ80::op_unimpl(uint8_t opcode) {
-    std::cout<<"\nOpcode "<<std::hex<<OPCODE<<" not implemented.\n";
+    std::cerr<<"\nOpcode "<<std::hex<<OPCODE<<" not implemented.\n";
     return -1;
 }
 
@@ -798,18 +838,18 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_alu(uint8_t opcode) { // 8-bit mo
         }
         else if(OPCODE <= 0xff) { // ops [cdef][6e] 2nd operand from immediate
             dummy8 = memory->readByte(pc++);
-            dbg_printf(" %02x", dummy8);
+            // dbg_printf(" %02x", dummy8);
             cycles = 7;
         }
         else if((OPCODE & 0xff00) == 0xdd00) { // DDxx ops, 2nd operand from (IX+d)
             int8_t offset = memory->readByte(pc++);
-            dbg_printf(" %02x", offset);
+            // dbg_printf(" %02x", offset);
             dummy8 = memory->readByte(ix.pair + offset);
             cycles = 19;
         }
         else if((OPCODE & 0xff00) == 0xfd00) { // FDxx ops, 2nd operand from (IY+d)
             int8_t offset = memory->readByte(pc++);
-            dbg_printf(" %02x", offset);
+            // dbg_printf(" %02x", offset);
             dummy8 = memory->readByte(iy.pair + offset);
             cycles = 19;
         }
@@ -914,7 +954,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_call(uint8_t opcode) { // CALL 17
     uint16_t address = 0;
     if(OPCODE == 0xcd) {
         address = memory->readWord(pc);
-        dbg_printf(" %04x", address);
+        // dbg_printf(" %04x", address);
         pc+=2;
     }
     else {
@@ -938,7 +978,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_call_cc(uint8_t opcode) { // CALL
     else {
         pc+=2;
     }
-    dbg_printf(" %04x", address);
+    // dbg_printf(" %04x", address);
     return cycles;
 }
 
@@ -1440,7 +1480,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_in(uint8_t opcode) { // OUTI 16 O
         pc++;
         dest = 7; // register 'a'
         cycles = 11;
-        dbg_printf(" %02x", port);
+        // dbg_printf(" %02x", port);
     }
 
     val = memory->readPortByte(port, total_cycles);
@@ -1585,7 +1625,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_jp(uint8_t opcode) {
         jump_addr = memory->readWord(pc);
     }
 
-    dbg_printf(" %04x", jump_addr);
+    // dbg_printf(" %04x", jump_addr);
 
     switch(OPCODE) {
     case 0xc3: //JP nn 4,3,3
@@ -1642,7 +1682,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_jr(uint8_t opcode) { //DJNZ and v
 
     int8_t offset = memory->readByte(pc++);
     uint16_t address = pc + offset;
-    dbg_printf(" %04x", address);
+    // dbg_printf(" %04x", address);
 
     if(branch) {
         pc = address;
@@ -1653,7 +1693,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_jr(uint8_t opcode) { //DJNZ and v
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_ld16(uint8_t opcode) {
     uint16_t immediate = memory->readWord(pc);
-    dbg_printf(" %04x", immediate);
+    // dbg_printf(" %04x", immediate);
     pc+=2;
     uint64_t cycles = 10;
     switch(OPCODE) {
@@ -1686,7 +1726,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_ld16rim(uint8_t opcode) {
     uint16_t * const regset[] = {&(bc.pair), &(de.pair), &(hl.pair), &sp, &(ix.pair), &(iy.pair)};
     uint16_t val = memory->readWord(pc);
     pc+=2;
-    dbg_printf(" %04x", val);
+    // dbg_printf(" %04x", val);
     uint8_t index = ((OPCODE>>4) & 0x03);
     uint8_t operation = ((OPCODE>>3) & 0x01);
 
@@ -1707,7 +1747,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_ld16rim(uint8_t opcode) {
 
 template <uint32_t OPCODE> uint64_t cpuZ80::op_ld16rm(uint8_t opcode) {  //LD r16,(**), LD (**), r16
     uint16_t address = memory->readWord(pc);
-    dbg_printf(" %04x", address);
+    // dbg_printf(" %04x", address);
     pc+=2;
     if(OPCODE == 0x22) {
         memory->writeWord(address, hl.pair);
@@ -1772,7 +1812,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_ld8ri(uint8_t opcode) { //LD r,im
         cycles = 10;
         memory->writeByte(hl.pair, dummy8);
     }
-    dbg_printf(" %02x", *regset[dest_index]);
+    // dbg_printf(" %02x", *regset[dest_index]);
 
     return cycles;
 }
@@ -1786,7 +1826,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_ld8idxri(uint8_t opcode) { //LD i
         case 0xfd2e: iy.low = val; break;
     }
 
-    dbg_printf(" %02x", val);
+    // dbg_printf(" %02x", val);
 
     return 11;
 }
@@ -1814,7 +1854,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_ld8rm(uint8_t opcode) { //LD a,(r
         dummy16 = memory->readWord(pc);
         pc+=2;
         cycles = 13;
-        dbg_printf(" %04x", dummy16);
+        // dbg_printf(" %04x", dummy16);
     }
     if((OPCODE & 0x8) == 0x8) { // read from memory
         af.hi = memory->readByte(*regset[index]);
@@ -1843,13 +1883,13 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_ld8rr(uint8_t opcode) { //LD r,r 
             break;
         case 0xdd00:
             offset = memory->readByte(pc++);
-            dbg_printf(" %02x", offset);
+            // dbg_printf(" %02x", offset);
             dummy8 = memory->readByte(ix.pair + offset);
             cycles = 19;
             break;
         case 0xfd00:
             offset = memory->readByte(pc++);
-            dbg_printf(" %02x", offset);
+            // dbg_printf(" %02x", offset);
             dummy8 = memory->readByte(iy.pair + offset);
             cycles = 19;
             break;
@@ -1867,13 +1907,13 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_ld8rr(uint8_t opcode) { //LD r,r 
             break;
         case 0xdd00:
             offset = memory->readByte(pc++);
-            dbg_printf(" %02x", offset);
+            // dbg_printf(" %02x", offset);
             memory->writeByte(ix.pair + offset, dummy8);
             cycles = 19;
             break;
         case 0xfd00:
             offset = memory->readByte(pc++);
-            dbg_printf(" %02x", offset);
+            // dbg_printf(" %02x", offset);
             memory->writeByte(iy.pair + offset, dummy8);
             cycles = 19;
             break;
@@ -1967,7 +2007,7 @@ template <uint32_t OPCODE> uint64_t cpuZ80::op_out(uint8_t opcode) { // OUTI 16 
         port = memory->readByte(pc++);
         src = 7; // register 'a'
         cycles = 11;
-        dbg_printf(" %02x", port);
+        // dbg_printf(" %02x", port);
     }
 
     if(OPCODE > 0xed80) { // versions of the opcode that auto-inc/dec and repeat

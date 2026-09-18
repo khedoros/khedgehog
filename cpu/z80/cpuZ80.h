@@ -132,6 +132,7 @@ private:
     static std::array<bool, 256> parity;
     bool condition(int condition_number);
     void print_registers();
+    void print_operation(uint8_t opcode, uint16_t pc);
 
     template <uint32_t OPCODE> uint64_t op_unimpl(uint8_t);
 
