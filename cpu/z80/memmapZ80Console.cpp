@@ -208,7 +208,6 @@ void memmapZ80Console::writeByte(uint32_t addr, uint8_t val) {
         map_slot1_offset = (0x4000 * val) % romsize;
         dbg_printf("MAP Slot 1 page: %02x\n", val);
         break;
-
     case 0xffff:
         map_slot2_offset = (0x4000 * val) % romsize;
         dbg_printf("MAP Slot 2 page: %02x\n", val);
@@ -216,10 +215,8 @@ void memmapZ80Console::writeByte(uint32_t addr, uint8_t val) {
     }
 }
 void memmapZ80Console::writeWord(uint32_t addr, uint16_t val) {
-    if(addr >= 0xC000) {
-        ram[addr & 0x1fff] = (val & 0xff);
-        ram[(addr + 1) & 0x1fff] = (val >> 8);
-    }
+    writeByte(addr, val & 0xff);
+    writeByte(addr + 1, (val >> 8));
 }
 void memmapZ80Console::writeLong(uint32_t addr, uint32_t val) {}
 
