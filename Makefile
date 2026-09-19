@@ -3,25 +3,39 @@ target:=khedgehog
 
 SDLCFLAGS:=$(shell sdl2-config --cflags)
 SDLLDFLAGS:=$(shell sdl2-config --libs)
-CXXFLAGS:=-std=c++17 -flto -D_GLIBCXX_DEBUG -O3 $(SDLCFLAGS)
+CXXFLAGS:=-std=c++17 -flto -O3 $(SDLCFLAGS)
 
 ifdef DEBUG
-    debug:=-g
-    CXXFLAGS+=-g -DDEBUG
+    CXXFLAGS+=-g -DDEBUG -D_GLIBCXX_DEBUG
     target:=khedgehog-dbg
     objects:=$(subst .o,.od,$(objects))
 endif
 
+ifdef PROFILE
+    CXXFLAGS+=-pg
+    LDFLAGS:=-pg
+    target:=khedgehog-profile
+    objects:=$(subst .o,.op,$(objects))
+endif
+
+#muting audio also disables execution throttling. It's useful for running CPU test ROMs.
 ifdef DISABLE_AUDIO
     CXXFLAGS+=-DDISABLE_AUDIO
     target:=khedgehog-mute
+    objects:=$(subst .o,.om,$(objects))
 endif
 
 $(target): $(objects)
-	$(CXX) $(debug) -flto -O3 -o $@ $^ $(SDLLDFLAGS) $(LDFLAGS)
+	$(CXX) -flto -O3 -o $@ $^ $(SDLLDFLAGS) $(LDFLAGS)
 
 %.od: %.cpp
-	$(CXX) -c $(debug) $(CPPFLAGS) $(CXXFLAGS) $< -o $@
+	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
+
+%.op: %.cpp
+	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
+
+%.om: %.cpp
+	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
 
 clean:
 	-rm $(target) $(objects) 
