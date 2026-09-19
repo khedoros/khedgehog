@@ -106,10 +106,10 @@ uint8_t memmapZ80Console::readPortByte(uint8_t port, uint64_t cycle) {
         case 0xc0:
             switch(port) {
                 case 0xf0:
-                    dbg_printf(" (YM2413 data port register latch)");
+                    dbg_printf(" (YM2413 data port register latch)\n");
                     return apu_dev->readRegister(port);
                 case 0xf2: // bit 0 can be read and written if IO chip is disabled by bit 2 of port 3E
-                    dbg_printf(" (YM2413 control register + status port)");
+                    dbg_printf(" (YM2413 control register + status port)\n");
                     return apu_dev->readRegister(port);
                 default:
                     dbg_printf(" (joystick port 1)\n");
@@ -127,7 +127,7 @@ uint8_t memmapZ80Console::readPortByte(uint8_t port, uint64_t cycle) {
         case 0xc1:
             switch(port) {
                 case 0xf1:
-                    dbg_printf(" (YM2413 data port register data)");
+                    dbg_printf(" (YM2413 data port register data)\n");
                     return apu_dev->readRegister(port);
                 default:
                     dbg_printf(" (joystick port 2 + nationalization) ");
@@ -194,7 +194,7 @@ void memmapZ80Console::writeByte(uint32_t addr, uint8_t val) {
             bool slot_2_ram_enable = (val & 0x08) ? true : false;
             uint8_t slot_2_ram_bank = (val & 0x04) / 4;
             uint8_t bank_shift = (val & 0x03);
-            std::printf("MAP CTRL rom write: %d high ram enable: %d slot 2 ram enable: %d slot 2 ram bank: %d bank shift: %d\n", rom_write,high_ram_enable,slot_2_ram_enable,slot_2_ram_bank,bank_shift);
+            dbg_printf("MAP CTRL rom write: %d high ram enable: %d slot 2 ram enable: %d slot 2 ram bank: %d bank shift: %d\n", rom_write,high_ram_enable,slot_2_ram_enable,slot_2_ram_bank,bank_shift);
         }
     #endif
         slot2RamActive = (val & 0b00001000)? true: false;
@@ -202,22 +202,16 @@ void memmapZ80Console::writeByte(uint32_t addr, uint8_t val) {
         break;
     case 0xfffd:
         map_slot0_offset = (0x4000 * val) % romsize;
-    #ifdef DEBUG
-        std::cout<<"MAP Slot 0 page: "<<std::hex<<int(val)<<"\n";
-    #endif
+        dbg_printf("MAP Slot 0 page: %02x\n", val);
         break;
     case 0xfffe:
         map_slot1_offset = (0x4000 * val) % romsize;
-    #ifdef DEBUG
-        std::cout<<"MAP Slot 1 page: "<<std::hex<<int(val)<<"\n";
-    #endif
+        dbg_printf("MAP Slot 1 page: %02x\n", val);
         break;
 
     case 0xffff:
         map_slot2_offset = (0x4000 * val) % romsize;
-    #ifdef DEBUG
-        std::cout<<"MAP Slot 2 page: "<<std::hex<<int(val)<<"\n";
-    #endif
+        dbg_printf("MAP Slot 2 page: %02x\n", val);
         break;
     }
 }
@@ -230,38 +224,39 @@ void memmapZ80Console::writeWord(uint32_t addr, uint16_t val) {
 void memmapZ80Console::writeLong(uint32_t addr, uint32_t val) {}
 
 void memmapZ80Console::writePortByte(uint8_t port, uint8_t val, uint64_t cycle) {
-    dbg_printf(" wrote %02x to port %02x", val, port);
+    // dbg_printf(" wrote %02x to port %02x", val, port);
     switch(port & 0b11000001) {
         case 0x00:
             switch(port) {//     https://www.smspower.org/Development/GearToGearCable#StatusPort05
-                case 0: dbg_printf(" (Game Gear registers, start button)"); break;
-                case 2: dbg_printf(" (Game Gear registers, EXT direction)");
+                case 0: dbg_printf(" (Game Gear registers, start button)\n");
+                    break;
+                case 2: dbg_printf(" (Game Gear registers, EXT direction)\n");
                     gg_port_2 = val; //There are seven parallel bits which can be configured in either direction. Write to port $02 to configure the direction: 0 = output, 1 = input. 
                     break;
-                case 4: dbg_printf(" (Game Gear registers)");
+                case 4: dbg_printf(" (Game Gear registers)\n");
                     gg_port_4 = val;
                     break;
-                case 6: dbg_printf(" (Game Gear registers)");
+                case 6: dbg_printf(" (Game Gear registers)\n");
                     gg_port_6 = val;
                     break;
                 default:
-                    dbg_printf(" (memory control)");
+                    dbg_printf(" (memory control)\n");
                     break;
             }
             break;
         case 0x01:
             switch(port) {
-                case 1: dbg_printf(" (Game Gear registers)");
+                case 1: dbg_printf(" (Game Gear registers)\n");
                     gg_port_1 = val;
                     break;
-                case 3: dbg_printf(" (Game Gear registers, EXT transmit)");
+                case 3: dbg_printf(" (Game Gear registers, EXT transmit)\n");
                     gg_port_3 = val; // write port $03 to transmit. 
                     break;
-                case 5: dbg_printf(" (Game Gear registers, EXT status)");
+                case 5: dbg_printf(" (Game Gear registers, EXT status)\n");
                     gg_port_5 = val;
                     break; // likely read-only
                 default:
-                    dbg_printf(" (I/O control + automatic nationalization)");
+                    dbg_printf(" (I/O control + automatic nationalization)\n");
 					// If port a TR is strobed, latch the H Counter in the VDP
 					if(!io_port_ctrl.port_a_th_lev && (val & (1<<5))) {
 						std::cout<<"Latched Hcounter (TH went 0->1)\n";
@@ -283,25 +278,25 @@ void memmapZ80Console::writePortByte(uint8_t port, uint8_t val, uint64_t cycle) 
             }
             break;
         case 0x40: case 0x41:
-            dbg_printf(" (PSG SN76489 output control)");
+            dbg_printf(" (PSG SN76489 output control)\n");
             apu_dev->writeRegister(val);
             break;
         case 0x80:
-            dbg_printf(" (VDP data)");
+            // dbg_printf(" (VDP data)");
             vdp_dev->writeByte(port, val, cycle);
             break;
         case 0x81:
-            dbg_printf(" (VDP address/register)");
+            // dbg_printf(" (VDP address/register)");
             vdp_dev->writeByte(port, val, cycle);
             break;
         case 0xc0:
             switch(port) {
-                case 0xde: case 0xdf: dbg_printf(" (keyboard control, not implemented)"); break;
+                case 0xde: case 0xdf: dbg_printf(" (keyboard control, not implemented)\n"); break;
                 case 0xf0:
-                    dbg_printf(" (YM2413 data port register latch)");
+                    dbg_printf(" (YM2413 data port register latch)\n");
                     apu_dev->writeRegister(port, val);
                     break;
-                case 0xf2: dbg_printf(" (YM2413 control register + status port)");
+                case 0xf2: dbg_printf(" (YM2413 control register + status port)\n");
                     apu_dev->writeRegister(port, val);
                     break; // bit 0 can be read and written if IO chip is disabled by bit 2 of port 3E
                 case 0xfc:
@@ -309,13 +304,13 @@ void memmapZ80Console::writePortByte(uint8_t port, uint8_t val, uint64_t cycle) 
                     dbg_con::write_control(val);
                     break;
                 default:
-                    dbg_printf(" (Joystick port #0");
+                    dbg_printf(" (Joystick port #0)\n");
                     break;
             }
             break;
         case 0xc1:
             switch(port) {
-                case 0xf1: dbg_printf(" (YM2413 data port register data)");
+                case 0xf1: dbg_printf(" (YM2413 data port register data)\n");
                     apu_dev->writeRegister(port, val);
                     break;
                 case 0xfd:
@@ -323,11 +318,11 @@ void memmapZ80Console::writePortByte(uint8_t port, uint8_t val, uint64_t cycle) 
                     std::printf("wrote %02x to port %02x (routed to console data)\n", val, port);
                     break;
                 default:
-                    dbg_printf(" (Joystick port #1");
+                    dbg_printf(" (Joystick port #1)\n");
                     break;
             }
     }
-	dbg_printf("\n");
+	// dbg_printf("\n");
 }
 
 uint8_t memmapZ80Console::getPage(uint16_t addr) {

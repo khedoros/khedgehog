@@ -583,7 +583,6 @@ unsigned int vdpMS::resLine() {
 }
 
 void vdpMS::writeByte(uint8_t port, uint8_t val, uint64_t cycle) {
-    //std::printf("Wrote val(%02x) to port(%02x) = ", val, port);
     if(port % 2 == 1) writeAddress(val);
     else {
         addr_latch = false;
@@ -608,78 +607,81 @@ void vdpMS::writeAddress(uint8_t val) {
         addr_latch = true;
         address &= 0xff00;
         address |= val;
-        std::printf("low byte of address: %02x\n", val);
     }
     else {
         addr_latch = false;
         address &= 0x00ff;
         address |= (0x100 * static_cast<uint16_t>(val));
-        std::printf("high byte of address: %02x\n", val);
 
         switch(val & 0b11000000) {
             case 0x00: // VRAM read mode
                 addr_mode = addr_mode_t::vram_read;
                 data_buffer = vram[address++];
-                std::printf(" set VRAM read address to %04x\n", address);
+                dbg_printf("Set VRAM read address to %04x\n", address);
                 break;
             case 0x40: // VRAM write mode
                 addr_mode = addr_mode_t::vram_write;
-                std::printf("set VRAM write address to %04x\n", address);
+                dbg_printf("Set VRAM write address to %04x\n", address);
                 break;
             case 0x80: // VDP register write mode
                 addr_mode = addr_mode_t::reg_write;
-                std::printf(" set register %01x to %02x\n", (val & 0x0f), (address & 0x00ff));
+                dbg_printf("Set register %01x to %02x: ", (val & 0x0f), (address & 0x00ff));
                 switch(val & 0x0f) {
                     case 0x00:
+                        dbg_printf("(ctrl1)\n");
                         ctrl_1.val = (address & 0x00ff);
                         curMode = getMode();
                         break;
                     case 0x01:
+                        dbg_printf("(ctrl2)\n");
                         ctrl_2.val = (address & 0x00ff);
                         curMode = getMode();
                         break;
                     case 0x02:
-                        std::printf("set Name table base: %02x (%04x)\n", address & 0x00ff, (0x400 * (address & 0x0e)));
+                        dbg_printf("set Name table base: %02x (%04x)\n", address & 0x00ff, (0x400 * (address & 0x0e)));
                         nt_base = (address & 0x00ff);
                         break;
                     case 0x03:
-                        std::printf("set color table base: %02x (%04x)\n", address & 0x00ff, (0x40 * (address & 0x00ff)));
+                        dbg_printf("set color table base: %02x (%04x)\n", address & 0x00ff, (0x40 * (address & 0x00ff)));
                         color_t_base = (address & 0x00ff);
                         break;
                     case 0x04:
-                        std::printf("set bg tile base: %02x (%04x or 0?)\n", address & 0x00ff, (0x800 * (address & 0x04)));
+                        dbg_printf("set bg tile base: %02x (%04x or 0?)\n", address & 0x00ff, (0x800 * (address & 0x04)));
                         pt_base = (address & 0x00ff);
                         break;
                     case 0x05:
-                        std::printf("set sprite attr base: %02x (%04x)\n", address & 0x00ff, (0x80 * (address & 0x7e)));
+                        dbg_printf("set sprite attr base: %02x (%04x)\n", address & 0x00ff, (0x80 * (address & 0x7e)));
                         spr_attr_base = (address & 0x00ff);
                         break;
                     case 0x06:
-                        std::printf("set sprite tile base: %02x (%04x)\n", address & 0x00ff, (0x800 * (address & 0x04)));
+                        dbg_printf("set sprite tile base: %02x (%04x)\n", address & 0x00ff, (0x800 * (address & 0x04)));
                         spr_tile_base = (address & 0x00ff);
                         break;
                     case 0x07:
+                        dbg_printf("bg/fg color set to %02x\n", (address & 0x00ff));
                         bg_fg_col.val = (address & 0x00ff);
                         break;
                     case 0x08:
                         bg_x_scroll = (address & 0x00ff);
-                        std::printf("X: scroll bg_x to %d\n", bg_x_scroll);
+                        dbg_printf("X: scroll bg_x to %d\n", bg_x_scroll);
                         break;
                     case 0x09:
                         bg_y_scroll = (address & 0x00ff);
-                        std::printf("Y: scroll bg_y to %d\n", bg_y_scroll);
+                        dbg_printf("Y: scroll bg_y to %d\n", bg_y_scroll);
                         break;
                     case 0x0a:
                         line_interrupt = (address & 0x00ff);
+                        dbg_printf("set line intterupt value to %02\n", line_interrupt);
                         break;
                     default:
                         // no effect in SMS or SG-1000 for reg's B-F
+                        dbg_printf("non-existent register number!\n");
                         break;
                 }
                 break;
             case 0xc0: // CRAM write mode
                 addr_mode = addr_mode_t::cram_write;
-                std::printf(" set cram write to address %02x\n", (address & 0x00ff));
+                dbg_printf("Set cram write to address %02x\n", (address & 0x00ff));
                 break;
         }
     }
@@ -688,11 +690,11 @@ void vdpMS::writeAddress(uint8_t val) {
 void vdpMS::writeData(uint8_t val) {
     if(addr_mode == addr_mode_t::vram_write /*|| addr_mode == addr_mode_t::vram_read || addr_mode == addr_mode_t::reg_write*/) {
         //dbg_printf(" wrote %02x to address %04x\n", val, address);
-        std::printf(" wrote %02x to address %04x\n", val, address);
+        dbg_printf("Wrote %02x to VRAM address %04x\n", val, address);
         vram[address] = val;
     }
     else if(addr_mode == addr_mode_t::cram_write) {
-        //std::printf(" wrote %02x to palette address %04x\n", val, address);
+        dbg_printf("Wrote %02x to palette address %04x\n", val, address);
         if(vdpMode == systemType::gameGear) {
             if(address % 2 == 0) {
                 ggPalBuffer = val;
